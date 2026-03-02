@@ -277,24 +277,32 @@ def _process(text: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════
 # COLOURS
 # ═══════════════════════════════════════════════════════════════════════
-# Real exam paper palette — clean, minimal, professional
-C_NAVY  = HexColor("#000000")   # Pure black for headers
-C_STEEL = HexColor("#1a1a1a")   # Near-black for question numbers
-C_BODY  = HexColor("#1a1a1a")   # Body text
-C_GREY  = HexColor("#555555")   # Marks label
-C_LIGHT = HexColor("#f2f2f2")   # Section banner background — very light grey
-C_RULE  = HexColor("#000000")   # Rules — black
-C_MARK  = HexColor("#000000")   # Mark labels
-C_KRED  = HexColor("#000000")   # Answer key headings
-C_KFILL = HexColor("#f8f8f8")   # Answer key background
-C_STEP  = HexColor("#1a1a1a")   # Key steps
-C_HDR   = HexColor("#000000")   # Header (unused but keep for compat)
+# Professional exam paper palette — authoritative, print-clean, executive-grade
+C_NAVY   = HexColor("#0f2149")   # Deep navy — top bar, major headers
+C_NAVY2  = HexColor("#1a3a6e")   # Mid navy — section accents
+C_STEEL  = HexColor("#1e293b")   # Near-black — question text
+C_BODY   = HexColor("#1e293b")   # Body text
+C_GREY   = HexColor("#475569")   # Meta text, marks labels
+C_LGREY  = HexColor("#94a3b8")   # Light divider lines
+C_LIGHT  = HexColor("#f0f4f8")   # Section banner background (light blue-grey)
+C_LIGHT2 = HexColor("#e8eef5")   # Alternate row tint
+C_RULE   = HexColor("#0f2149")   # Horizontal rules — navy
+C_MARK   = HexColor("#0f2149")   # Mark bracket color
+C_KHEAD  = HexColor("#0f2149")   # Answer key banner bg
+C_KFILL  = HexColor("#fafbfc")   # Answer key bg (off-white)
+C_KSTEP  = HexColor("#1e293b")   # Key step text
+C_ACCENT = HexColor("#2563eb")   # Thin accent line
+C_HDR    = HexColor("#0f2149")   # Legacy compat
+# Aliases for backward compat
+C_KRED   = C_KHEAD
+C_STEP   = C_KSTEP
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # STYLES
 # ═══════════════════════════════════════════════════════════════════════
 def _styles():
+    """Return all ReportLab paragraph styles for a professional exam paper."""
     register_fonts()
     R, B, I = _f("Reg"), _f("Bold"), _f("Ital")
     base = getSampleStyleSheet()
@@ -306,83 +314,126 @@ def _styles():
             for k, v in kw.items():
                 setattr(base[name], k, v)
 
-    S("PTitle",    fontName=B, fontSize=15, textColor=black,
-      alignment=TA_CENTER, leading=22, spaceAfter=0, spaceBefore=0)
-    S("PMeta",     fontName=R, fontSize=9, textColor=C_BODY,
+    # ── Paper header ──────────────────────────────────────────────────
+    S("PTitle",    fontName=B, fontSize=14, textColor=white,
+      alignment=TA_CENTER, leading=20, spaceAfter=0, spaceBefore=0)
+    S("PSubtitle", fontName=R, fontSize=9.5, textColor=HexColor("#d0e4f7"),
+      alignment=TA_CENTER, leading=14, spaceAfter=0)
+    S("PMeta",     fontName=R, fontSize=9, textColor=C_GREY,
       alignment=TA_LEFT, leading=13, spaceAfter=0)
-    S("PMetaR",    fontName=R, fontSize=9, textColor=C_BODY,
+    S("PMetaR",    fontName=R, fontSize=9, textColor=C_GREY,
       alignment=TA_RIGHT, leading=13, spaceAfter=0)
-    S("PMetaC",    fontName=R, fontSize=9, textColor=C_BODY,
-      alignment=TA_CENTER, leading=13, spaceAfter=0)
-    S("SecBanner", fontName=B, fontSize=10.5, textColor=black,
+    S("PMetaC",    fontName=R, fontSize=9.5, textColor=C_BODY,
+      alignment=TA_CENTER, leading=14, spaceAfter=0)
+    S("PMetaBold", fontName=B, fontSize=9.5, textColor=C_NAVY,
+      alignment=TA_CENTER, leading=14, spaceAfter=0)
+
+    # ── Section banners ───────────────────────────────────────────────
+    S("SecBanner", fontName=B, fontSize=10.5, textColor=C_NAVY,
       leading=15, spaceAfter=0, spaceBefore=0)
-    S("InstrHead", fontName=B, fontSize=9.5, textColor=C_BODY,
+    S("SecBannerKey", fontName=B, fontSize=11, textColor=white,
+      alignment=TA_CENTER, leading=16, spaceAfter=0, spaceBefore=0)
+
+    # ── Instructions ──────────────────────────────────────────────────
+    S("InstrHead", fontName=B, fontSize=9.5, textColor=C_NAVY,
       leading=14, spaceAfter=2, spaceBefore=4)
     S("Instr",     fontName=R, fontSize=9.5, textColor=C_BODY,
       leading=14, spaceAfter=2, leftIndent=18, firstLineIndent=-18)
-    S("Q",         fontName=R, fontSize=11, textColor=C_BODY,
-      alignment=TA_JUSTIFY, leading=16, spaceBefore=6, spaceAfter=2,
-      leftIndent=24, firstLineIndent=-24)
-    S("QCont",     fontName=R, fontSize=11, textColor=C_BODY,
-      alignment=TA_JUSTIFY, leading=16, spaceBefore=1, spaceAfter=2, leftIndent=24)
-    S("QSub",      fontName=R, fontSize=11, textColor=C_BODY,
-      alignment=TA_JUSTIFY, leading=16, spaceBefore=3, spaceAfter=2,
-      leftIndent=38, firstLineIndent=-14)
-    S("Opt",       fontName=R, fontSize=10.5, textColor=C_BODY,
+
+    # ── Question text ─────────────────────────────────────────────────
+    S("Q",    fontName=R, fontSize=11, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=17, spaceBefore=7, spaceAfter=2,
+      leftIndent=26, firstLineIndent=-26)
+    S("QCont",fontName=R, fontSize=11, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=17, spaceBefore=1, spaceAfter=2, leftIndent=26)
+    S("QSub", fontName=R, fontSize=11, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=17, spaceBefore=3, spaceAfter=2,
+      leftIndent=40, firstLineIndent=-14)
+    S("Opt",  fontName=R, fontSize=10.5, textColor=C_BODY,
       leading=15, spaceAfter=1, leftIndent=0)
-    S("KTitle",    fontName=B, fontSize=13, textColor=black,
-      alignment=TA_CENTER, leading=18, spaceAfter=6, spaceBefore=0)
-    S("KSec",      fontName=B, fontSize=10.5, textColor=black,
+
+    # ── Answer key ────────────────────────────────────────────────────
+    S("KTitle",fontName=B, fontSize=13, textColor=white,
+      alignment=TA_CENTER, leading=19, spaceAfter=0, spaceBefore=0)
+    S("KSec",  fontName=B, fontSize=10.5, textColor=C_NAVY,
       leading=14, spaceAfter=2, spaceBefore=6)
-    S("KQ",        fontName=B, fontSize=10.5, textColor=black,
-      leading=14, spaceAfter=2, spaceBefore=4, leftIndent=24, firstLineIndent=-24)
-    S("KStep",     fontName=R, fontSize=10.5, textColor=C_STEP,
+    S("KQ",    fontName=B, fontSize=10.5, textColor=C_NAVY,
+      leading=14, spaceAfter=2, spaceBefore=5, leftIndent=24, firstLineIndent=-24)
+    S("KStep", fontName=R, fontSize=10.5, textColor=C_KSTEP,
       leading=16, spaceAfter=2, leftIndent=24)
-    S("KSub",      fontName=R, fontSize=10.5, textColor=C_BODY,
+    S("KSub",  fontName=R, fontSize=10.5, textColor=C_BODY,
       leading=16, spaceAfter=2, leftIndent=36, firstLineIndent=-12)
-    S("KMath",     fontName=I, fontSize=10.5, textColor=C_BODY,
+    S("KMath", fontName=I, fontSize=10.5, textColor=C_BODY,
       leading=16, spaceAfter=2, leftIndent=32)
+
+    # ── Diagram label ─────────────────────────────────────────────────
     S("DiagLabel", fontName=I, fontSize=9, textColor=C_GREY,
       leading=12, spaceAfter=2, spaceBefore=2)
+
     return base
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# PAGE CANVAS
-# ═══════════════════════════════════════════════════════════════════════
 class ExamCanvas:
+    """Page template: thin navy top-rule, subtle footer with page number."""
     def __call__(self, canvas, doc):
-        W = A4[0]
-        LM, RM = doc.leftMargin, W - doc.rightMargin
+        W, H = A4
+        LM = doc.leftMargin
+        RM = W - doc.rightMargin
+
         canvas.saveState()
-        canvas.setStrokeColor(HexColor("#000000"))
+
+        # ── Top rule — two lines (thick navy + hairline) ─────────────
+        canvas.setStrokeColor(C_NAVY)
+        canvas.setLineWidth(1.2)
+        canvas.line(LM, H - 10*mm, RM, H - 10*mm)
+        canvas.setStrokeColor(C_ACCENT)
         canvas.setLineWidth(0.5)
-        canvas.line(LM, A4[1] - 12*mm, RM, A4[1] - 12*mm)
-        canvas.setStrokeColor(HexColor("#aaaaaa"))
+        canvas.line(LM, H - 10*mm - 1.5, RM, H - 10*mm - 1.5)
+
+        # ── Footer rule + text ────────────────────────────────────────
+        canvas.setStrokeColor(HexColor("#c8d5e5"))
         canvas.setLineWidth(0.4)
-        canvas.line(LM, 20, RM, 20)
-        canvas.setFont(_f("Reg"), 8)
+        canvas.line(LM, 22, RM, 22)
+
+        canvas.setFont(_f("Reg"), 7.5)
         canvas.setFillColor(C_GREY)
-        canvas.drawRightString(RM, 10, f"Page {doc.page}")
+        canvas.drawString(LM, 10, "ExamCraft  |  Generated Paper — For Internal Use")
+        canvas.drawRightString(RM, 10, f"Page  {doc.page}")
+
         canvas.restoreState()
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # HELPERS
 # ═══════════════════════════════════════════════════════════════════════
-def _sec_banner(text, st, pw):
-    p = Paragraph(f'<b>{text}</b>', st["SecBanner"])
-    t = Table([[p]], colWidths=[pw])
-    t.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), HexColor("#f2f2f2")),
-        ("LINEBELOW",     (0,0),(-1,-1), 0.8, HexColor("#111111")),
-        ("LINETOP",       (0,0),(-1,-1), 0.8, HexColor("#111111")),
-        ("LEFTPADDING",   (0,0),(-1,-1), 8),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 8),
-        ("TOPPADDING",    (0,0),(-1,-1), 4),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 4),
+def _sec_banner(text, st, pw, is_key=False):
+    """Section banner: navy bg for answer key, pale blue-grey for questions."""
+    if is_key:
+        p = Paragraph(f'<b>{text}</b>', st["SecBannerKey"])
+        bg, line_c = C_NAVY, C_NAVY
+    else:
+        p = Paragraph(f'<b>{text}</b>', st["SecBanner"])
+        bg, line_c = C_LIGHT, C_NAVY2
+
+    # Left accent bar (3pt wide navy strip)
+    accent = Table([[""]], colWidths=[3])
+    accent.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), C_ACCENT),
+        ("TOPPADDING",    (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
     ]))
-    return t
+
+    row = Table([[accent, p]], colWidths=[3, pw - 3])
+    row.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), bg),
+        ("LINEBELOW",     (0,0),(-1,-1), 0.6, line_c),
+        ("LINETOP",       (0,0),(-1,-1), 0.6, line_c),
+        ("LEFTPADDING",   (0,0),(0,-1),  0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 8),
+        ("TOPPADDING",    (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+        ("LEFTPADDING",   (0,1),(1,-1),  8),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+    ]))
+    return row
 
 
 def _opts_table(opts, st, pw):
@@ -549,7 +600,8 @@ def _strip_ai_noise(text: str) -> str:
 
 
 def create_exam_pdf(text, subject, chapter, board="",
-                   answer_key=None, include_key=False, diagrams=None) -> bytes:
+                   answer_key=None, include_key=False, diagrams=None,
+                   marks=None) -> bytes:
 
     # Strip AI preamble/closing noise before parsing
     text = _strip_ai_noise(text)
@@ -575,7 +627,8 @@ def create_exam_pdf(text, subject, chapter, board="",
         m = re.search(pat, text, re.I | re.M)
         return m.group(1).strip() if m else default
 
-    h_marks = _pull(r'Total\s*Marks\s*[:/]\s*(\d+)', "100")
+    # Use passed marks if provided (more reliable than parsing AI text)
+    h_marks = str(marks) if marks else _pull(r'Total\s*Marks\s*[:/]\s*(\d+)', "100")
     h_time  = _pull(r'Time\s*(?:Allowed|:)\s*([^\n]+)', "3 Hours")
     h_class = _pull(r'Class\s*[:/]?\s*(\d+\w*)', "")
     h_board = board or _pull(r'Board\s*[:/]\s*([^\n]+)', "")
@@ -583,40 +636,59 @@ def create_exam_pdf(text, subject, chapter, board="",
     disp_title   = subject or "Question Paper"
     disp_chapter = chapter or ""
 
-    title_str = disp_title
+    # ── Full-width navy header block ──────────────────────────────────
+    #  ┌─────────────────────────────────────────┐  ← navy fill
+    #  │   SUBJECT — CHAPTER          [Logo dot] │
+    #  │   Board | Class                Time     │
+    #  ├─────────────────────────────────────────┤  ← accent stripe
+    #  │  Marks: XX  | Class: X | Board: ...     │  ← light meta row
+    #  └─────────────────────────────────────────┘
+    title_str = disp_title.upper()
     if disp_chapter:
-        title_str += f"  —  {disp_chapter}"
+        title_str += f"  ·  {disp_chapter}"
 
-    tbl_title = Table(
-        [[Paragraph(title_str, st["PTitle"])]],
-        colWidths=[PW])
-    tbl_title.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), white),
-        ("LINEBELOW",     (0,0),(-1,-1), 1.5, black),
-        ("LINETOP",       (0,0),(-1,-1), 1.5, black),
-        ("TOPPADDING",    (0,0),(-1,-1), 6),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 6),
-        ("LEFTPADDING",   (0,0),(-1,-1), 0),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
-    ]))
+    # --- Title row (navy bg, white text) ---
+    dot = Paragraph('<font color="#2563eb">●</font>', st["PTitle"])
+    tit = Paragraph(f'<b>{title_str}</b>', st["PTitle"])
 
-    left_meta  = "  |  ".join(x for x in [h_board, f"Class {h_class}" if h_class else ""] if x)
-    right_meta = f"Total Marks: {h_marks}   |   Time: {h_time}"
-    tbl_meta = Table(
-        [[Paragraph(left_meta,  st["PMeta"]),
-          Paragraph(right_meta, st["PMetaR"])]],
-        colWidths=[PW*0.55, PW*0.45])
-    tbl_meta.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0),(-1,-1), white),
-        ("LINEBELOW",     (0,0),(-1,-1), 0.6, HexColor("#888888")),
-        ("TOPPADDING",    (0,0),(-1,-1), 3),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 4),
-        ("LEFTPADDING",   (0,0),(-1,-1), 0),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+    tbl_top = Table([[tit, dot]], colWidths=[PW - 18, 18])
+    tbl_top.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), C_NAVY),
+        ("TOPPADDING",    (0,0),(-1,-1), 10),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 10),
+        ("LEFTPADDING",   (0,0),(0,-1),  14),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 10),
         ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
     ]))
 
-    elems += [tbl_title, tbl_meta, Spacer(1, 8)]
+    # --- Accent stripe (1 pt, bright blue) ---
+    stripe = Table([[""]], colWidths=[PW])
+    stripe.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), C_ACCENT),
+        ("TOPPADDING",    (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+        ("LINEBELOW",     (0,0),(-1,-1), 0, white),
+        ("ROWHEIGHT",     (0,0),(-1,-1), 2),
+    ]))
+
+    # --- Meta row (light bg, 3-column) ---
+    board_cls = "  ·  ".join(x for x in [h_board, f"Class {h_class}" if h_class else ""] if x)
+    c1 = Paragraph(f'<b>{board_cls}</b>', st["PMeta"])
+    c2 = Paragraph(f'<font color="#0f2149"><b>Total Marks: {h_marks}</b></font>', st["PMetaBold"])
+    c3 = Paragraph(f'<font color="#475569">Time: {h_time}</font>', st["PMetaR"])
+
+    tbl_meta = Table([[c1, c2, c3]], colWidths=[PW*0.40, PW*0.30, PW*0.30])
+    tbl_meta.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), C_LIGHT2),
+        ("LINEBELOW",     (0,0),(-1,-1), 1.2, C_NAVY),
+        ("TOPPADDING",    (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+        ("LEFTPADDING",   (0,0),(-1,-1), 10),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 10),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+    ]))
+
+    elems += [tbl_top, stripe, tbl_meta, Spacer(1, 10)]
 
     tbl_rows    = []
     in_table    = False
@@ -848,15 +920,27 @@ def create_exam_pdf(text, subject, chapter, board="",
     # ─── Answer key ───────────────────────────────────────────────────
     if include_key and answer_key and answer_key.strip():
         elems.append(PageBreak())
-        kt = Table([[Paragraph("ANSWER KEY", st["KTitle"])]], colWidths=[PW])
+        # ── Answer Key header — full navy banner ─────────────────────
+        key_dot = Paragraph('<font color="#2563eb">●</font>', st["KTitle"])
+        key_lbl = Paragraph('<b>ANSWER  KEY  &amp;  SOLUTIONS</b>', st["KTitle"])
+        kt = Table([[key_lbl, key_dot]], colWidths=[PW - 18, 18])
         kt.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0),(-1,-1), C_KFILL),
-            ("LINEBELOW",     (0,0),(-1,-1), 2.0, black),
-            ("LINETOP",       (0,0),(-1,-1), 2.0, black),
-            ("TOPPADDING",    (0,0),(-1,-1), 8),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+            ("BACKGROUND",    (0,0),(-1,-1), C_NAVY),
+            ("TOPPADDING",    (0,0),(-1,-1), 10),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 10),
+            ("LEFTPADDING",   (0,0),(0,-1),  14),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 10),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
         ]))
-        elems += [kt, Spacer(1, 10)]
+        # Accent stripe under the key header
+        kstripe = Table([[""]], colWidths=[PW])
+        kstripe.setStyle(TableStyle([
+            ("BACKGROUND", (0,0),(-1,-1), C_ACCENT),
+            ("ROWHEIGHT",  (0,0),(-1,-1), 2),
+            ("TOPPADDING", (0,0),(-1,-1), 0),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+        ]))
+        elems += [kt, kstripe, Spacer(1, 10)]
 
         key_lines = answer_key.split('\n')
         ki = 0
@@ -871,15 +955,7 @@ def create_exam_pdf(text, subject, chapter, board="",
                 continue
 
             if re.match(r'^(Section|SECTION|Part|PART)\s+[A-Da-d]\b', sk):
-                ks = Table([[Paragraph(f'<b>{sk.rstrip(":")}:</b>',
-                                       st["KSec"])]], colWidths=[PW])
-                ks.setStyle(TableStyle([
-                    ("BACKGROUND",    (0,0),(-1,-1), HexColor("#f0f0f0")),
-                    ("LINEBELOW",     (0,0),(-1,-1), 0.8, HexColor("#111111")),
-                    ("LEFTPADDING",   (0,0),(-1,-1), 10),
-                    ("TOPPADDING",    (0,0),(-1,-1), 4),
-                    ("BOTTOMPADDING", (0,0),(-1,-1), 4),
-                ]))
+                ks = _sec_banner(sk.rstrip(":"), st, PW, is_key=False)
                 elems += [Spacer(1, 6), ks, Spacer(1, 4)]
                 continue
 
@@ -961,7 +1037,7 @@ def call_gemini(prompt):
             try:
                 model = genai.GenerativeModel(
                     model_name,
-                    generation_config={"temperature": 0.3, "max_output_tokens": 8192, "top_p": 0.8})
+                    generation_config={"temperature": 0.2, "max_output_tokens": 16384, "top_p": 0.85, "top_k": 40})
                 response = model.generate_content(prompt)
                 if response and hasattr(response, "text") and response.text.strip():
                     return response.text.strip(), None
@@ -1080,74 +1156,115 @@ Section-VII:
 # MATH NOTATION RULES (injected into every STEM prompt)
 # ═══════════════════════════════════════════════════════════════════════
 
-def _math_rules():
-    return (
-        "\nMATH NOTATION — every mathematical expression MUST be in $...$:\n"
-        "  Powers     : $x^{2}$  $a^{3}$  $10^{-3}$    ← never x2\n"
-        "  Subscripts : $H_{2}O$  $v_{0}$  $CO_{2}$     ← never H2O\n"
-        "  Fractions  : $\\frac{a}{b}$  $\\frac{mv^{2}}{r}$\n"
-        "  Roots      : $\\sqrt{2}$  $\\sqrt{b^{2}-4ac}$\n"
-        "  Greek      : $\\theta$  $\\alpha$  $\\pi$  $\\lambda$  $\\omega$\n"
-        "  Trig       : $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$\n"
-        "  Units      : write cm, kg, m/s, N, Ω as plain text outside $\n"
-        "  Blanks     : use __________ (underscores, NOT LaTeX)\n"
-    )
 
+# ═══════════════════════════════════════════════════════════════════════
+# UNIVERSAL PROMPT ENGINE  v4
+# One clean function per paper type. No chapter banks. No hallucination.
+# The LLM uses its own deep knowledge; we provide structure + rules only.
+# ═══════════════════════════════════════════════════════════════════════
 
-# ─── helpers ──────────────────────────────────────────────────────────
 def _class_int(cls_str):
     m = re.search(r'\d+', str(cls_str or "10"))
     return int(m.group()) if m else 10
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# MASTER ROUTER
-# ═══════════════════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════════════════
-# SIMPLE, CLEAN PROMPT BUILDER  (replaces the old 800-line monster)
-# One function, no hallucination-inducing chapter banks.
-# The LLM generates from its own knowledge; we just tell it the rules.
-# ═══════════════════════════════════════════════════════════════════════
+def _time_for_marks(m):
+    if m <= 30:  return "1 Hour"
+    if m <= 60:  return "2 Hours"
+    if m <= 80:  return "2 Hours 30 Minutes"
+    return "3 Hours 15 Minutes"
 
-def build_prompt(class_name, subject, chapter, board, exam_type,
-                 difficulty, marks, suggestions):
 
-    m   = max(10, int(marks) if str(marks).isdigit() else 100)
-    cls = str(class_name or "10").strip()
+def _difficulty_profile(difficulty):
+    """Returns the difficulty calibration string.
+    Papers are set deliberately harder than standard curriculum level.
+    """
+    return {
+        "Easy": (
+            "EASY-TO-MODERATE  |  Papers are set harder than standard.\n"
+            "• 25% straightforward recall  • 45% single-step application\n"
+            "• 20% multi-step application  • 10% analysis\n"
+            "Avoid trivial questions. Every MCQ should have a plausible wrong option."
+        ),
+        "Medium": (
+            "MODERATE-TO-HARD  |  Papers are set harder than standard.\n"
+            "• 10% recall  • 30% application  • 35% multi-step analysis\n"
+            "• 15% evaluation  • 10% synthesis/proof\n"
+            "At least 40% of questions should challenge above-average students.\n"
+            "Long answers must require multi-concept integration."
+        ),
+        "Hard": (
+            "HARD-TO-NIGHTMARE  |  Papers are set at competition/distinction level.\n"
+            "• 0% pure recall  • 15% non-trivial application  • 40% deep analysis\n"
+            "• 30% evaluation & proof  • 15% synthesis & novel scenarios\n"
+            "80%+ of students should find this challenging.\n"
+            "MCQ distractors must target specific misconceptions.\n"
+            "Every calculation should involve ≥3 steps. Include edge cases."
+        ),
+    }.get(difficulty, "MODERATE-TO-HARD  |  Multi-step questions requiring analysis.")
 
-    extra = f"\nTEACHER NOTES: {suggestions.strip()}\n" if (suggestions or "").strip() else ""
 
-    board_l = (board or "").lower()
-    subj_l  = (subject or "").lower()
+def _notation_rules(subject):
+    """Returns notation and formatting rules relevant to the subject."""
+    subj_l = (subject or "").lower()
+    is_math = any(k in subj_l for k in ["math", "algebra", "geometry", "trigonometry", "statistics", "arithmetic"])
+    is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"])
+    is_stem = is_math or is_science
 
-    is_stem = any(k in subj_l for k in [
-        "math", "maths", "science", "physics", "chemistry",
-        "biology", "algebra", "geometry", "trigonometry", "statistics"
-    ])
-    math_note = _math_rules() if is_stem else ""
+    if not is_stem:
+        return (
+            "FORMATTING:\n"
+            "• [DIAGRAM: brief description] on its own line where a diagram/map/chart helps\n"
+            "• Use plain text; no LaTeX needed for humanities subjects\n"
+        )
 
-    cls_n = int(re.search(r'\d+', cls).group()) if re.search(r'\d+', cls) else 10
+    math_block = (
+        "MATH & SCIENCE NOTATION — strictly required:\n"
+        "• ALL expressions inside $…$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
+        "• Chemical formulas: $H_2O$  $CO_2$  $H_2SO_4$  $Ca(OH)_2$\n"
+        "• Powers / subscripts: $a^{3}$  $v_0$  $10^{-3}$  never write as plain a3 or v0\n"
+        "• Greek letters: $\\theta$  $\\alpha$  $\\beta$  $\\pi$  $\\lambda$  $\\mu$  $\\Omega$\n"
+        "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
+        "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
+        "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
+        "• Fill blanks: __________ (underscores only, never LaTeX)\n"
+        "• Equations on own line: $PV = nRT$\n"
+    )
 
-    # --- Competitive exam ---
-    comp_map = {"ntse": "NTSE", "nso": "NSO", "imo": "IMO", "ijso": "IJSO"}
-    for key, val in comp_map.items():
-        if key in board_l or key == (board or "").lower():
-            return _prompt_competitive(val, subject, chapter, cls, m, difficulty, extra, math_note)
+    if is_science:
+        diag_block = (
+            "DIAGRAMS — include wherever they add clarity:\n"
+            "• [DIAGRAM: labelled diagram of a plant cell showing cell wall, membrane, nucleus, vacuole, chloroplast]\n"
+            "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens, showing F and 2F points]\n"
+            "• [DIAGRAM: human digestive system with labels: mouth, oesophagus, stomach, small intestine, large intestine]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include diagrams in ≥30% of written-answer questions.\n"
+        )
+    elif is_math:
+        diag_block = (
+            "DIAGRAMS — include wherever geometric/graphical clarity is needed:\n"
+            "• [DIAGRAM: triangle ABC with angle A=60°, B=80°, side BC=7cm, altitude from A to BC]\n"
+            "• [DIAGRAM: number line showing solution set of inequality -3 < x ≤ 5]\n"
+            "• [DIAGRAM: coordinate axes with parabola y=x²-4x+3, showing vertex and x-intercepts]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include diagrams in ≥20% of geometry/coordinate questions.\n"
+        )
+    else:
+        diag_block = "• [DIAGRAM: description] on its own line where a visual would help\n"
 
-    # --- State board: route to full high-quality prompt builders ---
-    return _prompt_ap_ts(subject, chapter, board, cls, cls_n, m, difficulty, extra, math_note)
+    return math_block + "\n" + diag_block
 
 
 def _compute_structure(marks):
     """Compute AP/TS paper structure that EXACTLY matches requested mark total."""
     m = max(10, int(marks))
 
-    # ── Small papers (< 40M): simplified 2-section Part B ─────────────
+    # ── Small papers (< 40M): simplified 2-section Part B ──────────────
     if m < 40:
         partA = max(4, round(m * 0.20))
         partB = m - partA
 
-        # Part A — exact budget (1M items)
         n_mcq   = max(1, round(partA * 0.50))
         n_fill  = max(1, round(partA * 0.25))
         n_match = partA - n_mcq - n_fill
@@ -1157,16 +1274,14 @@ def _compute_structure(marks):
             n_mcq   = partA - n_fill - 1
         actual_partA = n_mcq + n_fill + n_match
 
-        # Part B — VSQ (2M) + SA (2M each, all compulsory, no choice)
-        n_vsq   = max(1, round(partB * 0.50) // 2)
-        vsq_tot = n_vsq * 2
-        sa_rem  = partB - vsq_tot
+        n_vsq      = max(1, round(partB * 0.50) // 2)
+        vsq_tot    = n_vsq * 2
+        sa_rem     = partB - vsq_tot
         n_sa_given = max(1, sa_rem // 2)
-        sa_tot  = n_sa_given * 2
-        # absorb any 1M rounding gap into an extra VSQ
+        sa_tot     = n_sa_given * 2
         if vsq_tot + sa_tot < partB:
-            extra = (partB - vsq_tot - sa_tot) // 2
-            n_vsq += extra; vsq_tot = n_vsq * 2
+            extra_vsq = (partB - vsq_tot - sa_tot) // 2
+            n_vsq += extra_vsq; vsq_tot = n_vsq * 2
 
         return dict(
             m=m, partA=actual_partA, partB=partB, total=m, small=True,
@@ -1175,16 +1290,12 @@ def _compute_structure(marks):
             n_sa_given=n_sa_given, n_sa_att=n_sa_given, sa_total=sa_tot, marks_sa=2,
             n_la_given=0, n_la_att=0, la_total=0,
             n_app_given=0, n_app_att=0, app_total=0, marks_per_app=0,
-            iv_start=1, iv_end=n_vsq,
-            v_start=n_vsq+1, v_end=n_vsq+n_sa_given,
-            vi_start=0, vi_end=0, vii_start=0, vii_end=0,
         )
 
-    # ── Full papers (≥ 40M): complete 7-section AP/TS structure ───────
+    # ── Full papers (≥ 40M): complete 7-section AP/TS structure ────────
     partA = round(m * 0.20)
     partB = m - partA
 
-    # Part A — exact (1M per item)
     n_mcq   = round(partA * 0.50)
     n_fill  = round(partA * 0.25)
     n_match = partA - n_mcq - n_fill
@@ -1192,28 +1303,26 @@ def _compute_structure(marks):
         n_match = 1; n_fill = max(1, partA - n_mcq - 1)
     actual_partA = n_mcq + n_fill + n_match
 
-    # Part B — budget-safe, absorb leftover into VSQ
     vsq_bud = round(partB * 0.25)
     sa_bud  = round(partB * 0.20)
     la_bud  = round(partB * 0.30)
     app_bud = partB - vsq_bud - sa_bud - la_bud
 
-    n_vsq      = max(1, vsq_bud // 2)
-    n_sa_att   = max(1, sa_bud  // 4)
-    n_la_att   = max(1, la_bud  // 6)
-    mpa        = 10 if app_bud >= 10 else 8 if app_bud >= 8 else 4
-    n_app_att  = max(1, app_bud // mpa)
+    n_vsq     = max(1, vsq_bud // 2)
+    n_sa_att  = max(1, sa_bud  // 4)
+    n_la_att  = max(1, la_bud  // 6)
+    mpa       = 10 if app_bud >= 10 else 8 if app_bud >= 8 else 4
+    n_app_att = max(1, app_bud // mpa)
 
     vsq_tot = n_vsq    * 2
     sa_tot  = n_sa_att * 4
     la_tot  = n_la_att * 6
     app_tot = n_app_att * mpa
     leftover = partB - (vsq_tot + sa_tot + la_tot + app_tot)
-    # Absorb leftover into VSQ (2M chunks)
     if leftover >= 2:
-        extra = leftover // 2
-        n_vsq   += extra
-        vsq_tot += extra * 2
+        extra_vsq = leftover // 2
+        n_vsq   += extra_vsq
+        vsq_tot += extra_vsq * 2
     actual_partB = vsq_tot + sa_tot + la_tot + app_tot
 
     n_sa_given  = n_sa_att + 2
@@ -1221,1349 +1330,408 @@ def _compute_structure(marks):
     n_app_given = n_app_att + 1
 
     return dict(
-        m=m, partA=actual_partA, partB=actual_partB, total=actual_partA+actual_partB,
-        small=False,
+        m=m, partA=actual_partA, partB=actual_partB,
+        total=actual_partA + actual_partB, small=False,
         n_mcq=n_mcq, n_fill=n_fill, n_match=n_match,
         n_vsq=n_vsq, vsq_total=vsq_tot,
         n_sa_given=n_sa_given, n_sa_att=n_sa_att, sa_total=sa_tot, marks_sa=4,
         n_la_given=n_la_given, n_la_att=n_la_att, la_total=la_tot,
         n_app_given=n_app_given, n_app_att=n_app_att, app_total=app_tot, marks_per_app=mpa,
-        iv_start=1, iv_end=n_vsq,
-        v_start=n_vsq+1, v_end=n_vsq+n_sa_given,
-        vi_start=n_vsq+n_sa_given+1, vi_end=n_vsq+n_sa_given+n_la_given,
-        vii_start=n_vsq+n_sa_given+n_la_given+1,
-        vii_end=n_vsq+n_sa_given+n_la_given+n_app_given,
     )
 
 
-def _simple_state_board(subject, chapter, board, cls, marks, difficulty, extra, math_notation):
-    chap_str = chapter or "as per syllabus"
-    diff_mix = {
-        "Easy":   "50% recall/understand, 30% apply, 20% analyse",
-        "Medium": "25% recall, 40% apply, 25% analyse, 10% evaluate",
-        "Hard":   "10% recall, 20% understand, 35% apply, 25% analyse, 10% evaluate",
-    }.get(difficulty, "25% recall, 40% apply, 25% analyse, 10% evaluate")
+# ─────────────────────────────────────────────────────────────────────
+# MASTER BUILD_PROMPT
+# ─────────────────────────────────────────────────────────────────────
+def build_prompt(class_name, subject, chapter, board, exam_type,
+                 difficulty, marks, suggestions):
+    m   = max(10, int(marks) if str(marks).isdigit() else 100)
+    cls = str(class_name or "10").strip()
 
-    s = _compute_structure(marks)
-    m = s['total']  # exact total
+    diff     = _difficulty_profile(difficulty)
+    notation = _notation_rules(subject)
+    chap_str = chapter.strip() if chapter and chapter.strip() else "Full Syllabus"
+    teacher  = f"\nSPECIAL INSTRUCTIONS FROM EXAMINER: {suggestions.strip()}\n" if (suggestions or "").strip() else ""
 
-    if m <= 30:   time_str = "1 Hour"
-    elif m <= 60: time_str = "2 Hours"
-    else:         time_str = "3 Hours 15 Minutes"
+    board_l = (board or "").lower()
+    if any(k in board_l for k in ["ntse", "nso", "imo", "ijso"]):
+        return _prompt_competitive(board, subject, chap_str, cls, m, diff, notation, teacher)
+    elif exam_type == "competitive":
+        exam_name = (board or "").upper()
+        return _prompt_competitive(exam_name, subject, chap_str, cls, m, diff, notation, teacher)
+    else:
+        return _prompt_board(subject, chap_str, board or "AP State Board", cls, m, diff, notation, teacher)
 
-    match_word = "pairs" if s['n_match'] != 1 else "pair"
 
-    # --- Small paper: simplified structure ---
+# ─────────────────────────────────────────────────────────────────────
+# BOARD EXAM PROMPT  (AP / Telangana SSC — scales to any mark total)
+# ─────────────────────────────────────────────────────────────────────
+def _prompt_board(subject, chap, board, cls, m, diff, notation, teacher):
+    s    = _compute_structure(m)
+    time = _time_for_marks(m)
+    mw   = "pair" if s['n_match'] == 1 else "pairs"
+
+    # ── Common header instructions printed on real AP/TS papers ────────
+    instr = (
+        "GENERAL INSTRUCTIONS:\n"
+        "1. Answer all questions under Part A on the question paper itself. Attach it to the answer booklet.\n"
+        "2. Read instructions carefully. Answer only the required number of questions in each section.\n"
+        "3. Figures to the right indicate marks allotted to each question.\n"
+        "4. Draw neat, labelled diagrams wherever necessary.\n"
+        "5. In case of any ambiguity, the English version shall be treated as final.\n"
+    )
+
     if s.get('small'):
-        return f"""You are an experienced {board} Class {cls} examiner. Generate a complete, ready-to-print exam paper.
-{extra}
-PAPER DETAILS
-Subject : {subject}
-Chapter : {chap_str}
-Class   : {cls}   Board: {board}
-Total   : {m} marks   Difficulty: {difficulty} ({diff_mix})
-
-STRUCTURE (follow exactly):
-
-PART A — OBJECTIVE ({s['partA']} marks)
-Section I   — {s['n_mcq']} MCQ × 1 mark = {s['n_mcq']} marks  [Q1–Q{s['n_mcq']}]
-Section II  — {s['n_fill']} Fill-in-the-blank × 1 mark = {s['n_fill']} marks
-Section III — 1 Match-the-following ({s['n_match']} {match_word}) = {s['n_match']} marks
-                    Subtotal = {s['partA']} marks
-
-PART B — WRITTEN ({s['partB']} marks)
-Section IV  — {s['n_vsq']} Very Short Answer (ALL compulsory) × 2 marks = {s['vsq_total']} marks
-Section V   — {s['n_sa_given']} Short Answer (ALL compulsory) × 2 marks = {s['sa_total']} marks
-                    Subtotal = {s['partB']} marks
-               GRAND TOTAL = {m} marks ✓
-{math_notation}
-FORMATTING:
-- MCQ: 4 options (A)(B)(C)(D), line ends (   )
-- Fill-blank: __________
-- Match: pipe table with {s['n_match']} data rows
-- All questions about "{chap_str}" only
-- Every question ends with correct [N Mark(s)] tag
-
-After all questions write ANSWER KEY with complete solutions.
-
-BEGIN:
-
-{subject} — {chap_str}
-{board} | Class {cls}   Total Marks: {m}   Time: {time_str}
-
-PART A — OBJECTIVE  ({s['partA']} Marks)
-(Answer on this sheet.)
-
-Section I — Multiple Choice Questions  [1 Mark each]
-"""
-
-    # --- Full paper: complete AP/TS 7-section structure ---
-    return f"""You are an experienced {board} Class {cls} examiner. Generate a complete, ready-to-print exam paper.
-{extra}
-PAPER DETAILS
-Subject   : {subject}
-Chapter   : {chap_str}
-Class     : {cls}   Board: {board}
-Total     : {m} marks   Difficulty: {difficulty} ({diff_mix})
-
-STRUCTURE (follow exactly — scaled from {m}-mark AP/TS blueprint):
-
-PART A — OBJECTIVE ({s['partA']} marks)
-Section I   — {s['n_mcq']} MCQ × 1 mark = {s['n_mcq']} marks  [Q1–Q{s['n_mcq']}]
-Section II  — {s['n_fill']} Fill-in-the-blank × 1 mark = {s['n_fill']} marks  [Q{s['n_mcq']+1}–Q{s['n_mcq']+s['n_fill']}]
-Section III — 1 Match-the-following ({s['n_match']} {match_word}) = {s['n_match']} marks  [Q{s['n_mcq']+s['n_fill']+1}]
-                              Subtotal = {s['partA']} marks
-
-PART B — WRITTEN ({s['partB']} marks)
-Section IV  — {s['n_vsq']} Very Short Answer (ALL compulsory) × 2 marks = {s['vsq_total']} marks  [Q{s['iv_start']}–Q{s['iv_end']}]
-Section V   — {s['n_sa_given']} Short Answer given, attempt any {s['n_sa_att']} × 4 marks = {s['sa_total']} marks  [Q{s['v_start']}–Q{s['v_end']}]
-Section VI  — {s['n_la_given']} Long Answer given, attempt any {s['n_la_att']} × 6 marks = {s['la_total']} marks  [Q{s['vi_start']}–Q{s['vi_end']}, each with OR option]
-Section VII — {s['n_app_given']} Application/Problem given, attempt any {s['n_app_att']} × {s['marks_per_app']} marks = {s['app_total']} marks  [Q{s['vii_start']}–Q{s['vii_end']}]
-                              Subtotal = {s['partB']} marks
-                         GRAND TOTAL = {m} marks ✓
-{math_notation}
-FORMATTING RULES:
-- Every question ends with correct [N Mark(s)] tag
-- MCQ: exactly 4 options (A)(B)(C)(D), line ends with (   )
-- Fill-blank: use __________ for the blank
-- Match: pipe table with exactly {s['n_match']} data rows
-- Every Section VI question needs an OR alternative
-- Diagrams: write [DIAGRAM: description] on its own line
-- All questions must be about "{chap_str}" only
-
-After all questions write:
-
-ANSWER KEY
-
-Give complete answers with full worked solutions.
-
-BEGIN:
-
-{subject} — {chap_str}
-{board} | Class {cls}   Total Marks: {m}   Time: {time_str}
-
-PART A — OBJECTIVE  ({s['partA']} Marks)
-(Answer on this sheet. Submit after 30 minutes.)
-
-Section I — Multiple Choice Questions  [1 Mark each]
-"""
-
-
-def _simple_lower_class(subject, chapter, board, cls, marks, difficulty, extra, math_notation):
-    chap_str = chapter or "as per syllabus"
-    return f"""You are a {board} Class {cls} examiner. Generate a complete exam paper.
-{extra}
-Subject: {subject}  |  Chapter: {chap_str}  |  Class: {cls}  |  Total: 50 marks
-Difficulty: {difficulty}
-{math_notation}
-STRUCTURE:
-Section A — Objective (10 marks): 5 MCQ [Q1–5] + 3 Fill-blank [Q6–8] + 1 Match 2-pair [Q9] = 10 marks
-Section B — Very Short Answer (20 marks): 10 questions × 2 marks [ALL compulsory, Q1–10]
-Section C — Short Answer (10 marks): 4 questions, attempt any 2 × 5 marks [Q11–14]
-Section D — Long Answer (10 marks): 2 questions, attempt any 1 × 10 marks [Q15–16]
-Total = 50 marks
-
-RULES:
-- All questions about "{chap_str}" only
-- MCQ: 4 options (A)(B)(C)(D), line ends with (   )
-- Fill-blank: use __________ for the blank
-- Every question ends with mark tag [1 Mark] [2 Marks] [5 Marks] [10 Marks]
-
-After questions, write ANSWER KEY with full answers.
-
-BEGIN:
-
-Subject: {subject}   Class: {cls}   Total: 50 Marks   Board: {board}
-
-Section A — Objective  (10 Marks)
-"""
-
-
-def _simple_competitive(exam, subject, chapter, cls, marks, difficulty, extra, math_notation):
-    chap_str = chapter or "full syllabus"
-
-    if exam == "NTSE":
-        subj_l = (subject or "").lower()
-        if "mat" in subj_l or "mental" in subj_l or "reasoning" in subj_l:
-            return f"""Generate a complete NTSE MAT (Mental Ability Test) practice paper.
-{extra}Class: {cls}   Total: 100 questions × 1 mark = 100 marks   Time: 2 hours   No negative marking
-Difficulty: {difficulty}
-
-QUESTION TYPE DISTRIBUTION (must total 100):
-Q1–12: Verbal Analogy (12)
-Q13–22: Number/Letter Series (10)
-Q23–32: Non-Verbal Analogy — describe figures in text (10)
-Q33–40: Coding-Decoding (8)
-Q41–46: Blood Relations (6)
-Q47–52: Direction & Distance (6)
-Q53–58: Ranking & Ordering (6)
-Q59–64: Clock & Calendar (6)
-Q65–70: Venn Diagrams (6)
-Q71–76: Mirror/Water Image — describe in text (6)
-Q77–82: Classification/Odd-One-Out (6)
-Q83–88: Pattern Completion — describe in text (6)
-Q89–94: Mathematical Operations (6)
-Q95–100: Mixed Reasoning (6)
-
-FORMAT: Q[n]. [question] [1 Mark]
-(A) opt   (B) opt   (C) opt   (D) opt
-
-ANSWER KEY after all 100 questions: Q1.(B) Q2.(A) ... (10 per line). Then explain Q1–Q20 reasoning.
-
-BEGIN:
-Exam: NTSE MAT Practice   Class: {cls}   Marks: 100   Time: 2 Hours
-
-Q1–Q12 — Verbal Analogy  [1 Mark each]
-"""
-        return f"""Generate a complete NTSE SAT practice paper.
-{extra}Class: {cls}   Topic: {chap_str}   Total: 100 × 1 mark = 100 marks   Time: 2 hours
-{math_notation}
-SECTION DISTRIBUTION:
-Science Q1–Q40: Physics Q1–13, Chemistry Q14–26, Biology Q27–40
-Social Science Q41–Q80: History Q41–53, Geography Q54–66, Civics Q67–73, Economics Q74–80
-Mathematics Q81–Q100: all Class {cls} topics
-
-FORMAT: Q[n]. [question] [1 Mark]
-(A) opt   (B) opt   (C) opt   (D) opt
-
-ANSWER KEY after all 100 questions. Explain Maths answers Q81–Q100 step by step.
-
-BEGIN:
-Exam: NTSE SAT Practice   Class: {cls}   Marks: 100   Time: 2 Hours
-
-Science — Physics (Q1–Q13)  [1 Mark each]
-"""
-
-    if exam in ("NSO", "IMO"):
-        label = "Science" if exam == "NSO" else "Mathematics"
+        # ── Small paper (< 40M) ───────────────────────────────────────
         struct = (
-            "Section 1 — Logical Reasoning Q1–10 (10 × 1M)\n"
-            f"Section 2 — {label} Q11–45 (35 × 1M)\n"
-            "Section 3 — Achiever's Section Q46–50 (5 × 3M)\n"
-            "Total = 60 marks"
-        ) if exam == "NSO" else (
-            "Section 1 — Logical Reasoning Q1–10 (10 × 1M)\n"
-            "Section 2 — Mathematical Reasoning Q11–35 (25 × 1M)\n"
-            "Section 3 — Everyday Mathematics Q36–45 (10 × 1M)\n"
-            "Section 4 — Achiever's Section Q46–50 (5 × 3M)\n"
-            "Total = 60 marks"
+            f"PART A — OBJECTIVE  ({s['partA']} Marks)\n"
+            f"  Section I   — MCQ: {s['n_mcq']} questions × 1 mark  =  {s['n_mcq']} marks\n"
+            f"  Section II  — Fill in the Blank: {s['n_fill']} questions × 1 mark  =  {s['n_fill']} marks\n"
+            f"  Section III — Match the Following: {s['n_match']} {mw}  =  {s['n_match']} marks\n"
+            f"  PART A TOTAL = {s['partA']} marks\n\n"
+            f"PART B — WRITTEN  ({s['partB']} Marks)\n"
+            f"  Section IV — Very Short Answer: {s['n_vsq']} questions × 2 marks = {s['vsq_total']} marks  [ALL compulsory]\n"
+            f"  Section V  — Short Answer: {s['n_sa_given']} questions × 2 marks = {s['sa_total']} marks  [ALL compulsory]\n"
+            f"  PART B TOTAL = {s['partB']} marks\n\n"
+            f"  ★ GRAND TOTAL = {m} marks  ★"
         )
-        return f"""Generate a complete {exam} practice paper.
-{extra}Class: {cls}   Topic: {chap_str}   60 marks   1 hour   No negative marking
-Difficulty: {difficulty}
-{math_notation}
-STRUCTURE:
-{struct}
-
-Section 1: Pure reasoning only — no direct subject content.
-Achiever's Section: Hard HOT questions, 3 marks each, need 3+ reasoning steps.
-
-FORMAT: Q[n]. [question] [mark]
-(A) opt   (B) opt   (C) opt   (D) opt
-
-ANSWER KEY: Q1.(B) Q2.(A) ... (10 per line). For Achiever's questions explain why correct and why best wrong option is wrong.
-
-BEGIN:
-Exam: {exam} Practice   Class: {cls}   Topic: {chap_str}   Marks: 60   Time: 1 Hour
-
-Section 1 — Logical Reasoning  [Q1–Q10 | 1 Mark each]
-"""
-
-    # IJSO
-    return f"""Generate a complete IJSO/NSEJS Stage 1 practice paper.
-{extra}Class: {cls}   Topic: {chap_str}   80 questions   Marking: +3 correct / −1 wrong   Time: 2 hours
-Difficulty: {difficulty}
-{math_notation}
-STRUCTURE:
-Physics Q1–Q27 (27 questions)
-Chemistry Q28–Q54 (27 questions)
-Biology Q55–Q80 (26 questions)
-Total = 80 questions
-
-Every question requires conceptual understanding, not just recall.
-Wrong options must represent specific named misconceptions.
-
-FORMAT: Q[n]. [question] [+3/−1]
-(A) opt   (B) opt   (C) opt   (D) opt
-
-ANSWER KEY: list all 80. Then for each: correct letter + one sentence why correct + why best distractor is wrong.
-
-BEGIN:
-Exam: IJSO/NSEJS Stage 1 Practice   Class: {cls}   Marking: +3/−1/0   Time: 2 Hours
-
-Physics (Q1–Q27)  [+3/−1 each]
-"""
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# AP / TS STATE BOARD ROUTER
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_ap_ts(subject, chap, board, cls_str, cls_n,
-                  m, difficulty, extra, math_note):
-    pat = _PATTERN_AP_TS
-    if cls_n <= 8:
-        return _prompt_ap_ts_6_8(subject, chap, board, cls_str,
-                                  m, difficulty, extra, math_note, pat)
-    return _prompt_ap_ts_9_10(subject, chap, board, cls_str,
-                               m, difficulty, extra, math_note, pat, user_marks=m)
-
-
-
-# ========================================================================
-# AP/TS CLASS 9-10  SSC  (100-mark official pattern)
-# Board-accurate: exact section counts, topic-locked, chapter content banks
-# ========================================================================
-
-# Per-chapter content banks for Mathematics
-_MATH_CHAPTER_TOPICS = {
-    "trigonometry": {
-        "concepts": [
-            "sin, cos, tan, cot, sec, cosec as ratios in a right triangle",
-            "Trigonometric ratios of standard angles: 0 deg, 30 deg, 45 deg, 60 deg, 90 deg",
-            "Fundamental identities: sin2+cos2=1, 1+tan2=sec2, 1+cot2=cosec2",
-            "Complementary angle relations: sin(90-T)=cosT, tan(90-T)=cotT, etc.",
-            "Finding one ratio given another using identities",
-            "Evaluating expressions using standard angle values",
-            "Proving trigonometric identities algebraically",
-        ],
-        "mcq": [
-            ("The value of sin 30 + cos 60 is", ["1", "0", "1/2", "sq3/2"], 0),
-            ("tan 45 equals", ["0", "1", "sq3", "1/sq3"], 1),
-            ("If sin T = 3/5, then cos T equals", ["4/5", "3/4", "5/4", "5/3"], 0),
-            ("sin2 60 + cos2 60 equals", ["1", "0", "3/4", "1/4"], 0),
-            ("The value of sec2 45 - tan2 45 is", ["1", "0", "2", "sq2"], 0),
-            ("(1 - sin2 T) equals", ["cos2 T", "tan2 T", "sec2 T", "cosec2 T"], 0),
-            ("tan T in terms of sin T and cos T is", ["sinT/cosT", "cosT/sinT", "1/sinT", "1/cosT"], 0),
-            ("cosec 30 equals", ["2", "1", "1/2", "sq3"], 0),
-            ("The value of sin 0 + cos 90 is", ["0", "1", "2", "sq2"], 0),
-            ("If tan T = 1 then T equals", ["45 deg", "30 deg", "60 deg", "90 deg"], 0),
-        ],
-        "fill": [
-            "sin2 T + cos2 T = __________",
-            "tan(90 deg - T) = __________",
-            "The value of cos 0 deg is __________",
-            "sec2 T - tan2 T = __________",
-            "sin 60 deg = __________",
-        ],
-        "match_a": ["sin2 T + cos2 T", "1 + tan2 T", "sin(90 deg - T)", "tan T", "cosec T"],
-        "match_b": ["1", "sec2 T", "cos T", "sinT / cosT", "1 / sin T"],
-        "vsq": [
-            "If sin A = 1/2, find the values of cos A and tan A. [2 Marks]",
-            "Evaluate: 2 tan2 45 + cos2 30 - sin2 60 [2 Marks]",
-            "If tan T = 3/4, find sin T and cos T. [2 Marks]",
-            "Show that sin 30 cos 60 + cos 30 sin 60 = sin 90. [2 Marks]",
-            "Find the value of (sin 30 + cos 30) - (sin 60 + cos 60). [2 Marks]",
-            "If A = 45 deg, verify that sin 2A = 2 sin A cos A. [2 Marks]",
-            "Evaluate: cos2 45 / sin2 30 [2 Marks]",
-            "If tan(A+B) = sq3 and tan(A-B) = 1/sq3, 0 < A+B <= 90, A > B, find A and B. [2 Marks]",
-            "Prove that cosec2 T - cot2 T = 1. [2 Marks]",
-            "Evaluate: (sin 45 + cos 45)^2 [2 Marks]",
-        ],
-        "sa": [
-            "Prove that (sin T + cosec T)^2 + (cos T + sec T)^2 = 7 + tan2 T + cot2 T. [4 Marks]",
-            "If tan T + cot T = 5, find the value of tan2 T + cot2 T. [4 Marks]",
-            "Prove: (1 + tan2 T)/(1 + cot2 T) = tan2 T [4 Marks]",
-            "If sin T + cos T = sq2 cos T, prove that cos T - sin T = sq2 sin T. [4 Marks]",
-            "If sin T = cos T, find the value of 2 tan T + cos2 T. [4 Marks]",
-            "Prove: sinT/(1 - cosT) + sinT/(1 + cosT) = 2 cosecT [4 Marks]",
-        ],
-        "la": [
-            "Prove that (sinA - cosecA)^2 + (cosA - secA)^2 = cot2 A + tan2 A - 1. [6 Marks]",
-            "Prove: (sinT + cosT)(tanT + cotT) = secT + cosecT [6 Marks]",
-            "If cosecT - sinT = m and secT - cosT = n, prove that (m^2 n)^(2/3) + (mn^2)^(2/3) = 1. [6 Marks]",
-            "If tanA = n tanB and sinA = m sinB, prove that cos2 A = (m^2 - 1)/(n^2 - 1). [6 Marks]",
-            "Prove: cosA/(1 - tanA) + sinA/(1 - cotA) = sinA + cosA [6 Marks]",
-            "If x = a secT + b tanT and y = a tanT + b secT, prove that x^2 - y^2 = a^2 - b^2. [6 Marks]",
-        ],
-        "app": [
-            ("Verify the three fundamental identities for T = 30 deg, 45 deg and 60 deg.",
-             ["Calculate sin2(30)+cos2(30), and comment.", "Calculate 1+tan2(45) and sec2(45) and compare.", "Calculate 1+cot2(60) and cosec2(60) and compare.", "State the three identities proved."]),
-            ("Evaluate without using tables:",
-             ["sin2 30 + cos2 60", "cos2 45 + sin2 30 + sin2 60", "sin30 cos60 + cos30 sin60", "(tan2 60 - tan2 45)/(1 + tan2 60 tan2 45)"]),
-        ],
-    },
-    "applications of trigonometry": {
-        "concepts": [
-            "Angle of elevation: angle measured upward from horizontal to line of sight",
-            "Angle of depression: angle measured downward from horizontal to line of sight",
-            "Height and distance problems using tan T = opposite/adjacent",
-            "Problems with two angles of elevation from two positions",
-            "Problems with an observer at a height above ground",
-            "Use of sq3 = 1.732 in numerical answers",
-        ],
-        "mcq": [
-            ("The angle of elevation of the top of a tower from a point 20 m away is 45 deg. Height of tower is", ["20 m","10 m","40 m","20sq3 m"], 0),
-            ("A ladder 10 m long makes 60 deg with the ground. Height reached on the wall is", ["5sq3 m","5 m","10 m","5sq2 m"], 0),
-            ("Angle of depression of a boat from top of 50 m cliff is 30 deg. Distance of boat from base is", ["50sq3 m","50 m","100 m","25sq3 m"], 0),
-            ("Shadow of a 6 m pole is 6sq3 m. Angle of elevation of sun is", ["30 deg","45 deg","60 deg","90 deg"], 0),
-            ("A kite flies at 60 m. String makes 60 deg with horizontal. String length is", ["40sq3 m","60sq2 m","120 m","40 m"], 0),
-            ("From top of 50 m tower, angle of depression of point is 45 deg. Distance of point from base is", ["50 m","25 m","100 m","50sq3 m"], 0),
-            ("Pole casts 2sq3 m shadow when sun elevation is 60 deg. Height of pole is", ["6 m","2 m","4 m","2sq3 m"], 0),
-            ("From a point 40 m from base, elevation of top of pole is 30 deg. Height of pole is", ["40/sq3 m","40sq3 m","20 m","80 m"], 0),
-            ("Observer 1.5 m tall, 28.5 m from building, elevation of top is 45 deg. Building height is", ["30 m","28.5 m","31.5 m","29 m"], 0),
-            ("From top of cliff 150 m high, depression of ship is 30 deg. Distance of ship from base is", ["150sq3 m","150 m","75sq3 m","300 m"], 0),
-        ],
-        "fill": [
-            "The angle of elevation is measured __________ from the horizontal line of sight",
-            "The angle of depression is measured __________ from the horizontal line of sight",
-            "If angle of elevation of sun is 45 deg, shadow of a pole equals __________ its height",
-            "tan(angle of elevation) = height / __________",
-            "When the angle of depression equals the angle of elevation, the two points are at __________ height",
-        ],
-        "match_a": ["Angle of elevation", "Angle of depression", "tan 30 deg", "tan 60 deg", "tan 45 deg"],
-        "match_b": ["1", "1/sq3", "sq3", "Angle above horizontal", "Angle below horizontal"],
-        "vsq": [
-            "From a point 15 m away, angle of elevation of top of a tower is 60 deg. Find height. [2 Marks]",
-            "A ladder 10 m leans against a wall at 30 deg with the wall. Find distance of foot from wall. [2 Marks]",
-            "Angle of depression of car from top of 50 m cliff is 30 deg. Find distance of car from base. [2 Marks]",
-            "From a point, angles of elevation of bottom and top of a transmission tower on a 20 m building are 45 deg and 60 deg. Find tower height. [2 Marks]",
-            "A 1.5 m boy stands from a 30 m building with angle of elevation 30 deg. Find his distance from building. [2 Marks]",
-            "A kite flies at 75 m. String makes 60 deg with horizontal. Find length of string. [2 Marks]",
-            "Shadow of a building is 20 m when sun elevation is 60 deg. Find height of building. [2 Marks]",
-            "From a 7 m building, elevation of top of tower is 60 deg and depression of foot is 45 deg. Find height of tower. [2 Marks]",
-            "Two poles of equal height stand 80 m apart. From a point between them, elevations are 60 deg and 30 deg. Find height of poles. [2 Marks]",
-            "A statue 1.6 m stands on a pedestal. Elevation of top of statue is 60 deg and of top of pedestal is 45 deg. Find height of pedestal. [2 Marks]",
-        ],
-        "sa": [
-            "From top of a hill, angles of depression of two consecutive km stones due east are 45 deg and 30 deg. Find height of hill. [4 Marks]",
-            "Two ships on either side of 200 m lighthouse. Angles of depression are 60 deg and 45 deg. Find distance between ships. [4 Marks]",
-            "A man on deck 10 m above water observes top of hill at 60 deg elevation and base at 30 deg depression. Find distance and height of hill. [4 Marks]",
-            "Angles of elevation of a tower from points P and Q, 4 m and 9 m from base, are complementary. Find height. [4 Marks]",
-            "From two points A and B on same side of tower, elevations are 30 deg and 60 deg. AB = 48 m. Find height of tower. [4 Marks]",
-            "A boy at A observes top of building at 60 deg. Walks 40 m to B, angle becomes 75 deg. Find height of building. [4 Marks]",
-        ],
-        "la": [
-            "A man on tower observes car at 30 deg depression. Six seconds later angle is 60 deg. Find time for car to reach base. [6 Marks]",
-            "Elevation of jet from point A due north is 60 deg. From B due west of A, it is 30 deg. AB = 1800 m. Find height of jet. [6 Marks]",
-            "From window 10 m above street, elevation of top of building across is 60 deg and depression of foot is 45 deg. Find width of road and height of building. [6 Marks]",
-            "A round balloon of radius r subtends angle a at eye of observer. Elevation of centre is T. Prove distance of centre = r cosecT sin(a/2). [6 Marks]",
-            "Two poles AB and CD of heights a and b stand on ground. P between them: angles of elevation of tops are equal. Find height and position of P. [6 Marks]",
-            "From a point P on ground, elevation of top of tower is T. On walking a metres towards tower, elevation is phi. Prove height = a tanT tan phi / (tan phi - tanT). [6 Marks]",
-        ],
-        "app": [
-            ("A student uses angles of elevation from two points to find building height.",
-             ["Draw a neat labelled diagram showing points A, B and the building.", "From A the angle is 30 deg and from B (20 m closer) it is 60 deg. Find height of building.", "Find distance of B from base.", "Verify distance AB = 20 m using your answers."]),
-            ("A lighthouse 80 m tall. Two boats on opposite sides. Angles of depression 45 deg and 30 deg.",
-             ["Draw a neat labelled diagram.", "Find distance of boat 1 from base.", "Find distance of boat 2 from base.", "Find total distance between the two boats."]),
-        ],
-    },
-    "similar triangles": {
-        "concepts": [
-            "Basic Proportionality Theorem (Thales): DE || BC => AD/DB = AE/EC",
-            "Converse of BPT",
-            "AA, SSS, SAS similarity criteria",
-            "Ratio of areas of similar triangles = square of ratio of corresponding sides",
-            "Pythagoras theorem and its converse",
-            "Altitude on hypotenuse of right triangle creates similar triangles",
-        ],
-        "mcq": [
-            ("In △ABC, DE || BC. If AD=3 cm, DB=6 cm, AE=4 cm, then EC is", ["8 cm","6 cm","2 cm","12 cm"], 0),
-            ("Ratio of areas of two similar triangles is 25:36. Ratio of corresponding sides is", ["5:6","25:36","6:5","sq25:sq36"], 0),
-            ("△ABC~△PQR and AB/PQ=2/3. Ratio Area(ABC):Area(PQR) is", ["4:9","2:3","9:4","3:2"], 0),
-            ("Which criterion CANNOT prove similarity?", ["RHS","AA","SSS","SAS"], 0),
-            ("Hypotenuse 13 cm, one side 5 cm. Third side is", ["12 cm","8 cm","10 cm","11 cm"], 0),
-            ("Perimeters of similar triangles are 30 cm and 20 cm. Side of first is 12 cm. Corresponding side of second is", ["8 cm","10 cm","15 cm","6 cm"], 0),
-            ("△ABC~△DEF, angle A=47 deg, angle E=83 deg. Angle C equals", ["50 deg","47 deg","83 deg","90 deg"], 0),
-            ("A 6 m pole casts 4 m shadow. Tower casts 28 m shadow. Height of tower is", ["42 m","36 m","24 m","18 m"], 0),
-            ("In △PQR, PS=2 cm, PQ=6 cm, ST||QR. Ratio PT:TR is", ["1:2","2:1","1:3","3:1"], 0),
-            ("Ratio of areas of two similar triangles is 16:25. Ratio of altitudes is", ["4:5","16:25","2:5","8:25"], 0),
-        ],
-        "fill": [
-            "If DE || BC in triangle ABC, then AD/DB = __________ (BPT)",
-            "Ratio of areas of similar triangles = ratio of __________ of corresponding sides",
-            "In a right triangle, square of hypotenuse = __________ of squares of other two sides",
-            "If △ABC~△PQR, AB=3 cm, PQ=6 cm, ratio of perimeters is __________",
-            "All congruent figures are similar but similar figures are not necessarily __________",
-        ],
-        "match_a": ["Basic Proportionality Theorem", "Area theorem for similar triangles", "Pythagoras theorem", "AAA similarity", "Altitude on hypotenuse"],
-        "match_b": ["All three angles equal", "AD/DB = AE/EC", "c^2 = a^2 + b^2", "Area ratio = (side ratio)^2", "Creates triangles similar to original"],
-        "vsq": [
-            "In △PQR, ST||QR. PS=x, SQ=x-2, PT=x+2, TR=x-1. Find x. [2 Marks]",
-            "△ABC: angle A=50, angle B=60. △DEF: angle D=50, angle F=70. Are they similar? State criterion. [2 Marks]",
-            "Areas of two similar triangles are 100 cm2 and 49 cm2. Side of larger is 15 cm. Find corresponding side of smaller. [2 Marks]",
-            "In right-angled △ABC at B, AB=8 cm, BC=6 cm. Find AC. [2 Marks]",
-            "△ABC~△PQR, perimeters 48 cm and 32 cm. Find ratio of corresponding medians. [2 Marks]",
-            "D on AB, E on AC: AD=5, DB=10, AE=4, EC=8. Show DE||BC. [2 Marks]",
-            "Girl height 90 cm walks from 3.6 m lamp at 1.2 m/s. Find shadow length after 4 s. [2 Marks]",
-            "In △PQR, MN||QR. PM=4, MQ=6, PN=2. Find NR. [2 Marks]",
-            "Isosceles △ABC right-angled at C. Prove AB^2 = 2AC^2. [2 Marks]",
-            "State AAA similarity criterion for triangles. [2 Marks]",
-        ],
-        "sa": [
-            "Prove BPT: line parallel to one side divides other two sides in same ratio. [4 Marks]",
-            "ABCD trapezium, AD||BC, diagonals meet at O. Prove AO/OC = BO/OD. [4 Marks]",
-            "△PQR right-angled at P, M on QR, PM perpendicular to QR. Show PM^2 = QM x MR. [4 Marks]",
-            "Areas of △ABC and △PQR are 64 cm2 and 121 cm2. QR=15.4 cm. Find BC. [4 Marks]",
-            "D on BC of △ABC with angle ADC = angle BAC. Show CA^2 = CB x CD. [4 Marks]",
-            "AD is altitude of △ABC. AD^2 = BD x CD. Prove △ABC is right-angled at A. [4 Marks]",
-        ],
-        "la": [
-            "State and prove Basic Proportionality Theorem with neat diagram. [6 Marks]",
-            "State and prove converse of BPT. [6 Marks]",
-            "Prove: ratio of areas of similar triangles = ratio of squares of corresponding sides. [6 Marks]",
-            "State and prove Pythagoras theorem with neat diagram. [6 Marks]",
-            "In △ABC, AD median, E midpoint of AD, BE produced meets AC at F. Prove AF = (1/3)AC. [6 Marks]",
-            "ABCD trapezium AB||DC, diagonals meet at O, EF through O parallel to AB. Prove EO = FO. [6 Marks]",
-        ],
-        "app": [
-            ("Construct △ABC: BC=6 cm, AB=5 cm, angle ABC=60 deg. Construct similar triangle with sides (3/4) of △ABC.",
-             ["Draw △ABC with given measurements. Write all steps.", "Mark ray BX at acute angle to BC.", "Mark 4 equal parts on BX, join B4 to C.", "Draw B3C' parallel to B4C. Draw C'A' parallel to CA. Measure and state ratio of sides."]),
-            ("A 1.6 m girl stands 3.2 m from lamp post, shadow 4.8 m.",
-             ["Draw a neat labelled diagram.", "Identify the two similar triangles and state why they are similar.", "Set up the proportion and find height of lamp post.", "Verify your answer."]),
-            ("In △ABC, right angle at B. D on AB, E on BC. Prove AE^2 + CD^2 = AC^2 + DE^2.",
-             ["Draw a neat diagram.", "Apply Pythagoras in right △ABE.", "Apply Pythagoras in right △DBC.", "Add the equations and simplify to get the result."]),
-        ],
-    },
-    "tangents and secants to a circle": {
-        "concepts": [
-            "Tangent to a circle: perpendicular to radius at point of contact",
-            "Length of tangent from external point = sqrt(d^2 - r^2)",
-            "Two tangents from an external point are equal in length",
-            "Angle between tangent and chord = angle in alternate segment",
-            "Secant-tangent relation: PA^2 = PB x PC",
-            "Quadrilateral circumscribing a circle: AB + CD = BC + DA",
-        ],
-        "mcq": [
-            ("Tangent to a circle is __________ to the radius at point of contact", ["perpendicular","parallel","equal","bisecting"], 0),
-            ("From point 13 cm from centre, radius 5 cm. Tangent length is", ["12 cm","8 cm","10 cm","13 cm"], 0),
-            ("Two tangents PA and PB from P. PA = 10 cm. PB equals", ["10 cm","5 cm","20 cm","15 cm"], 0),
-            ("If angle APB = 80 deg (tangents PA PB), then angle AOB equals", ["100 deg","80 deg","40 deg","160 deg"], 0),
-            ("Number of tangents from a point inside a circle is", ["0","1","2","infinite"], 0),
-            ("TP and TQ tangents from T, angle PTQ = 70 deg. Angle POQ equals", ["110 deg","70 deg","140 deg","35 deg"], 0),
-            ("Tangent PT and secant PAB from P: PA=4 cm, PB=9 cm. PT equals", ["6 cm","5 cm","36 cm","13 cm"], 0),
-            ("Circle touches all four sides of quadrilateral ABCD. AB=12, CD=8, BC=10. AD equals", ["10 cm","6 cm","8 cm","14 cm"], 0),
-            ("Two concentric circles radii 5 cm and 3 cm. Length of chord of outer tangent to inner circle is", ["8 cm","4 cm","6 cm","10 cm"], 0),
-            ("Angle between tangent to circle and chord through contact point equals angle in", ["alternate segment","same segment","semicircle","major segment"], 0),
-        ],
-        "fill": [
-            "The tangent to a circle is __________ to the radius at the point of contact",
-            "Two tangents drawn from an external point to a circle are __________ in length",
-            "From a point 5 cm from a circle of radius 3 cm, tangent length = __________",
-            "PA^2 = PB x PC where PA is tangent and PBC is a __________ from P",
-            "If a quadrilateral circumscribes a circle: AB + CD = __________",
-        ],
-        "match_a": ["Tangent-radius relationship", "Tangents from external point", "Tangent-chord angle", "Secant-tangent theorem", "Cyclic quadrilateral circumscribing circle"],
-        "match_b": ["AB + CD = BC + DA", "PA^2 = PB x PC", "Angle in alternate segment", "Equal lengths", "90 degrees"],
-        "vsq": [
-            "Find tangent length from point 13 cm from centre of circle of radius 5 cm. [2 Marks]",
-            "PA and PB tangents from P to circle. PA = 10 cm. Find PB. State the theorem used. [2 Marks]",
-            "OQ = 13 cm, radius = 5 cm, PQ tangent at P. Find PQ. [2 Marks]",
-            "Two concentric circles radii 5 cm and 3 cm. Find length of chord of outer tangent to inner. [2 Marks]",
-            "State and prove: tangent is perpendicular to radius at point of contact. [2 Marks]",
-            "Tangent PT and secant PAB from P: PA=6, PB=4. Find PB and PC. [2 Marks]",
-            "Quadrilateral ABCD circumscribes circle. AB=12, BC=10, CD=8. Find AD. [2 Marks]",
-            "PA and PB tangents from P. Angle APB = 70 deg. Find angle AOB. [2 Marks]",
-            "Chord of circle of radius 10 cm makes 30 deg at centre. Find tangent length at one end. [2 Marks]",
-            "Tangent PT and secant PAB from P: PT=8 cm, PA=4 cm. Find AB. [2 Marks]",
-        ],
-        "sa": [
-            "Prove tangents from an external point to a circle are equal in length. [4 Marks]",
-            "Circle inscribed in △ABC touches BC at D, CA at E, AB at F. AB=12, BC=8, CA=10. Find AF, BD, CE. [4 Marks]",
-            "Prove: if two circles touch internally/externally, point of contact lies on line joining centres. [4 Marks]",
-            "PA and PB tangents from P. Prove angle APB + angle AOB = 180 deg. [4 Marks]",
-            "Tangent PT and secant PAB from external P. Prove PT^2 = PA x PB. [4 Marks]",
-            "Two tangents PA and PB from P to circle, angle APB = 60 deg, radius = r. Find OP and tangent length. [4 Marks]",
-        ],
-        "la": [
-            "State and prove: tangent at any point of circle is perpendicular to radius through that point. [6 Marks]",
-            "State and prove: tangents from external point are equal. Draw neat diagram. [6 Marks]",
-            "Prove: if circle touches all four sides of quadrilateral, sum of opposite sides are equal. [6 Marks]",
-            "Prove: angle between tangent to circle and chord through contact = angle in alternate segment. [6 Marks]",
-            "Draw tangents to circle of radius 4 cm from point 8 cm away. Write steps and find tangent length. [6 Marks]",
-            "Two tangents PA and PB from P, angle between them 60 deg, radius r. Find OP, tangent length, and area of quadrilateral PAOB. [6 Marks]",
-        ],
-        "app": [
-            ("Circle of radius 5 cm inscribed in right triangle with sides 12 cm, 13 cm, 5 cm.",
-             ["Find tangent lengths from each vertex using tangent properties.", "Verify tangent lengths add to side lengths correctly.", "Find area of triangle using base and height.", "Verify: Area = inradius x semi-perimeter. What is the inradius here?"]),
-            ("Two circles of radii 7 cm and 3 cm touch externally.",
-             ["Draw the configuration and mark all tangent lines.", "Find length of common external tangent.", "Find length of common internal tangent.", "Find distance between centres and verify."]),
-        ],
-    },
-    "mensuration": {
-        "concepts": [
-            "Surface area and volume: cube, cuboid, cylinder, cone, sphere, hemisphere",
-            "Frustum of cone: l = sqrt(h^2+(r1-r2)^2), LSA = pi(r1+r2)l, V = (pi*h/3)(r1^2+r2^2+r1*r2)",
-            "Combination of solids (cone + cylinder, hemisphere + cylinder, etc.)",
-            "Conversion of solids: melting and recasting -- volumes are equal",
-            "Cost problems: cost = rate x area or volume",
-        ],
-        "mcq": [
-            ("Volume of sphere of radius r is", ["(4/3)pi*r^3","(2/3)pi*r^3","4*pi*r^2","pi*r^3"], 0),
-            ("CSA of cone of radius r and slant height l is", ["pi*r*l","pi*r^2","2*pi*r*l","pi*r*(r+l)"], 0),
-            ("TSA of cylinder of radius r height h is", ["2*pi*r*(r+h)","2*pi*r*h","pi*r^2*h","pi*r*(r+2h)"], 0),
-            ("Volume of hemisphere of radius r is", ["(2/3)pi*r^3","(4/3)pi*r^3","(1/3)pi*r^3","(3/2)pi*r^3"], 0),
-            ("Volume of cone of radius r and height h is", ["(1/3)pi*r^2*h","pi*r^2*h","(2/3)pi*r^3","(1/2)pi*r^2*h"], 0),
-            ("Slant height of frustum: h=8, r1=10, r2=6. Slant height l is", ["sqrt(80)","sqrt(100)","sqrt(116)","10"], 0),
-            ("TSA of hemisphere of radius r is", ["3*pi*r^2","2*pi*r^2","4*pi*r^2","pi*r^2"], 0),
-            ("A solid sphere of radius 3 cm melted into small spheres of radius 0.5 cm. Number of small spheres is", ["216","27","72","108"], 0),
-            ("Volume of frustum: r1=6, r2=3, h=4. Volume is", ["84*pi","76*pi","36*pi","108*pi"], 0),
-            ("Cylinder r=7 cm, h=20 cm. Volume (pi=22/7) is", ["3080 cm3","2200 cm3","4400 cm3","1540 cm3"], 0),
-        ],
-        "fill": [
-            "Volume of a sphere = __________",
-            "Curved surface area of a cone = __________",
-            "Volume of frustum = (pi*h/3)(r1^2 + r2^2 + r1*r2) where h is the __________",
-            "Total surface area of a hemisphere = __________",
-            "When one solid is melted and recast as another, their __________ remain equal",
-        ],
-        "match_a": ["Volume of sphere", "CSA of cylinder", "Volume of cone", "TSA of hemisphere", "CSA of cone"],
-        "match_b": ["pi*r*l", "3*pi*r^2", "(1/3)*pi*r^2*h", "2*pi*r*h", "(4/3)*pi*r^3"],
-        "vsq": [
-            "Find volume of sphere of radius 7 cm. (pi=22/7) [2 Marks]",
-            "Cone radius 7 cm, slant height 25 cm. Find CSA. [2 Marks]",
-            "Cylinder radius 7 cm, height 20 cm. Find volume. [2 Marks]",
-            "Hemisphere radius 10.5 cm. Find TSA. [2 Marks]",
-            "Solid sphere radius 3 cm melted into small spheres radius 0.5 cm. Find number. [2 Marks]",
-            "Frustum: r1=8, r2=4, h=6 cm. Find volume. [2 Marks]",
-            "Cone: volume=1570 cm3, height=15 cm. Find radius. [2 Marks]",
-            "Two spheres radii 1 cm and 6 cm melted into one. Find radius of new sphere. [2 Marks]",
-            "Cuboid 8x5x3 cm melted to form cylinder radius 2 cm. Find height. [2 Marks]",
-            "Metallic sphere radius 4.2 cm recast into cylinders radius 0.7 cm, height 2.4 cm. Find number. [2 Marks]",
-        ],
-        "sa": [
-            "Solid = cone (height 12 cm, radius 3 cm) on hemisphere (radius 3 cm). Find TSA and volume. [4 Marks]",
-            "Tent: cylindrical up to 3 m height, conical top slant height 5 m, diameter 14 m. Find canvas needed. [4 Marks]",
-            "Bucket (frustum): radii 15 cm and 5 cm, depth 24 cm. Find capacity and metal sheet needed. [4 Marks]",
-            "A wooden article: hemisphere scooped from each end of cylinder (h=10, r=3.5 cm). Find TSA. [4 Marks]",
-        ],
-        "la": [
-            "Solid = cone (h=4 cm) on hemisphere (r=2.1 cm). Find volume and TSA of solid. [6 Marks]",
-            "45 gulab jamuns, each = cylinder with 2 hemispherical ends, length 5 cm, diameter 2.8 cm. 30% syrup by volume. Find total syrup. [6 Marks]",
-            "Frustum (r1=12, r2=3, h=12) full of ice cream for 10 children in cones (r=3, h=12) with hemispherical tops. Find depth of ice cream in each cone. [6 Marks]",
-            "Water flows through cylindrical pipe (diameter 1.4 cm) at 3 km/h into rectangular tank 1.1m x 44cm. Time to fill 40 cm deep. [6 Marks]",
-        ],
-        "app": [
-            ("A building = cuboid (8m x 6m x 4m) with conical top (r=4m, slant h=5m). Sheet metal needed.",
-             ["Find TSA of cuboidal portion (exclude top face).", "Find CSA of cone.", "Find total sheet metal required.", "If sheet costs Rs 80 per m2, find total cost."]),
-        ],
-    },
-    "statistics": {
-        "concepts": [
-            "Mean of grouped data: direct method, assumed mean method, step-deviation method",
-            "Mode formula: l + [(f1-f0)/(2f1-f0-f2)] x h",
-            "Median formula: l + [(n/2 - cf)/f] x h",
-            "Ogive: less-than and more-than cumulative frequency curves",
-            "Empirical relation: Mode = 3 Median - 2 Mean",
-        ],
-        "mcq": [
-            ("Class mark of class interval 10-20 is", ["15","10","20","12.5"], 0),
-            ("Mean of first 10 natural numbers is", ["5.5","5","10","6"], 0),
-            ("In mode formula l+[(f1-f0)/(2f1-f0-f2)]xh, f1 is", ["frequency of modal class","frequency before modal class","frequency after modal class","total frequency"], 0),
-            ("In median formula, cf stands for", ["cumulative frequency before median class","class frequency","cumulative frequency of median class","total frequency"], 0),
-            ("Empirical relation between mean, median and mode is", ["Mode = 3 Median - 2 Mean","Mode = 2 Median - 3 Mean","Mean = 3 Mode - 2 Median","Median = 3 Mode - 2 Mean"], 0),
-            ("If mean=25 and mode=22, then median is", ["24","23","25","26"], 0),
-            ("A less-than ogive is drawn using", ["upper class limits","lower class limits","class marks","mid-values"], 0),
-            ("Modal class for data 0-10(f=5), 10-20(f=12), 20-30(f=8), 30-40(f=3) is", ["10-20","20-30","0-10","30-40"], 0),
-            ("For median, n/2 = 20, cf = 14, f = 12, l = 30, h = 10. Median is", ["35","30","34","40"], 0),
-            ("An ogive is a graph of", ["cumulative frequency","frequency","relative frequency","class marks"], 0),
-        ],
-        "fill": [
-            "Class mark of 20-30 is __________",
-            "Mode = 3 Median - __________ x Mean",
-            "In median formula, h is the __________",
-            "If mean=25 and mode=22, then median = __________",
-            "An ogive is a __________ frequency curve",
-        ],
-        "match_a": ["Direct method", "Step-deviation method", "Mode formula", "Median formula", "Empirical relation"],
-        "match_b": ["Mode = 3 Median - 2 Mean", "l + [(f1-f0)/(2f1-f0-f2)]xh", "l + [(n/2-cf)/f]xh", "Sum(fi*xi)/Sum(fi)", "Sum(fi*ui)/Sum(fi) x h + a"],
-        "vsq": [
-            "Find mean of 5, 10, 15, 20, 25. [2 Marks]",
-            "Find mode of: 2, 3, 5, 2, 7, 3, 2. [2 Marks]",
-            "Mean=30, Median=27. Find mode using empirical formula. [2 Marks]",
-            "Find class marks of intervals: 0-8, 8-16, 16-24, 24-32. [2 Marks]",
-            "Modal class: l=20, f0=5, f1=8, f2=3, h=10. Find mode. [2 Marks]",
-            "Median: l=25, n/2=20, cf=15, f=10, h=5. Find median. [2 Marks]",
-            "Find mean by step-deviation: 0-10(f=5), 10-20(f=10), 20-30(f=15). a=15, h=10. [2 Marks]",
-            "Mode=36, Mean=30. Find median using empirical relation. [2 Marks]",
-            "n=40, cumulative frequencies: 5, 15, 25, 35, 40. Identify the median class. [2 Marks]",
-            "Define: (a) class mark (b) modal class (c) cumulative frequency [2 Marks]",
-        ],
-        "sa": [
-            "Find mean weight: 40-45(f=5), 45-50(f=15), 50-55(f=20), 55-60(f=8), 60-65(f=2). Use assumed mean method. [4 Marks]",
-            "Find mode: 0-20(f=5), 20-40(f=10), 40-60(f=12), 60-80(f=9), 80-100(f=4). [4 Marks]",
-            "Find median of marks: 0-10(5), 10-20(10), 20-30(25), 30-40(30), 40-50(15), 50-60(10), 60-70(5). [4 Marks]",
-            "Draw less-than ogive: 0-10(5), 10-20(8), 20-30(12), 30-40(10), 40-50(5). [4 Marks]",
-        ],
-        "la": [
-            "Find mean, median and mode for: 0-20(6), 20-40(8), 40-60(10), 60-80(9), 80-100(7). Verify empirical relation. [6 Marks]",
-            "Draw less-than and more-than ogives and find median from their intersection for: 10-20(5), 20-30(8), 30-40(20), 40-50(15), 50-60(7), 60-70(5). [6 Marks]",
-        ],
-        "app": [
-            ("Daily wages of 50 workers given in table. Find:",
-             ["Mean wage by step-deviation method.", "Modal wage (identify modal class, apply formula).", "Median wage using formula.", "Verify empirical relation: Mode ~= 3 Median - 2 Mean."]),
-        ],
-    },
-    "probability": {
-        "concepts": [
-            "Classical probability = number of favourable outcomes / total equally likely outcomes",
-            "Complementary events: P(E) + P(not E) = 1",
-            "Range: 0 <= P(E) <= 1; impossible event P=0, certain event P=1",
-            "Sample space for dice, coins, cards, numbered balls",
-            "Events involving two dice, two coins simultaneously",
-        ],
-        "mcq": [
-            ("A die thrown once. Probability of a prime number is", ["1/2","1/3","2/3","1/6"], 0),
-            ("Card drawn from 52. Probability of a red ace is", ["1/26","1/13","2/52","1/52"], 0),
-            ("Two coins tossed. Probability of at least one head is", ["3/4","1/4","1/2","2/4"], 0),
-            ("Probability of number > 4 on a die is", ["1/3","2/3","1/6","1/2"], 0),
-            ("Bag has 3 red, 4 blue balls. Probability of drawing red is", ["3/7","4/7","3/4","1/2"], 0),
-            ("Cards 1-25 shuffled. Probability of a multiple of 5 is", ["1/5","5/25","4/25","6/25"], 0),
-            ("Two dice thrown. Probability of sum = 7 is", ["1/6","7/36","6/36","5/36"], 0),
-            ("Letters of MATHEMATICS on cards. Probability of a vowel is", ["4/11","5/11","3/11","2/5"], 0),
-            ("Probability of getting a face card from 52 is", ["3/13","1/13","12/52","4/13"], 0),
-            ("A bag has 5 red, 7 blue, 3 green. One drawn. Probability of not blue is", ["8/15","7/15","5/15","1/3"], 0),
-        ],
-        "fill": [
-            "Probability of an impossible event is __________",
-            "P(E) + P(not E) = __________",
-            "Probability of a certain event is __________",
-            "Total number of outcomes when a die is rolled = __________",
-            "Probability that drawn card from 52 is a king = __________",
-        ],
-        "match_a": ["Probability range", "Complementary events", "Impossible event", "Certain event", "Classical probability"],
-        "match_b": ["Favourable/Total outcomes", "P = 0", "P = 1", "0 <= P <= 1", "P(E) + P(E') = 1"],
-        "vsq": [
-            "A die thrown. P(number < 3) and P(factor of 6). [2 Marks]",
-            "Card drawn from 52. P(king) and P(red card). [2 Marks]",
-            "Two coins tossed. P(two heads) and P(at least one tail). [2 Marks]",
-            "Bag has 5 red, 7 blue. Ball drawn. P(red) and P(not red). [2 Marks]",
-            "Number chosen from 1-20. P(prime) and P(composite). [2 Marks]",
-            "Die thrown twice. P(same number both times). [2 Marks]",
-            "Cards 1-25 shuffled. Card drawn. P(multiple of 5). [2 Marks]",
-            "Wheel numbered 1-10 spun. P(even), P(prime), P(multiple of 3). [2 Marks]",
-            "From 52 cards: P(heart) and P(face card). [2 Marks]",
-            "MATHEMATICS letters on cards. Card picked. P(vowel). [2 Marks]",
-        ],
-        "sa": [
-            "Cards numbered 1-50. P(prime), P(multiple of 7), P(perfect square), P(two-digit number). [4 Marks]",
-            "Die thrown once. P(prime), P(not prime), P(odd prime), P(factor of 12). [4 Marks]",
-            "Two dice thrown. P(sum=7), P(sum>=10), P(doublet), P(sum<5). [4 Marks]",
-            "Cards of one suit removed from 52. From remaining: P(red card), P(king), P(queen of removed suit). [4 Marks]",
-        ],
-        "la": [
-            "From 52 well-shuffled cards: P(face card), P(not face card), P(red face card), P(black king), P(diamond), P(numbered card). [6 Marks]",
-            "Box has discs 1-90. P(two-digit), P(perfect square), P(divisible by 5), P(not divisible by 10). [6 Marks]",
-        ],
-        "app": [
-            ("Spinner has 8 equal sectors numbered 1-8.",
-             ["List the complete sample space.", "Find P(prime number on spinner).", "Find P(factor of 8).", "Are the events 'prime' and 'factor of 8' mutually exclusive? Explain with working."]),
-        ],
-    },
-}
-
-
-def _get_chapter_bank(chap: str) -> dict:
-    """Return content bank for given chapter.
-    Strategy: exact match first, then longest-key substring match (prevents
-    'trigonometry' matching 'applications of trigonometry')."""
-    cl = chap.lower().strip()
-    # 1. Exact match
-    if cl in _MATH_CHAPTER_TOPICS:
-        return _MATH_CHAPTER_TOPICS[cl]
-    # 2. Check if chap IS a key (case-insensitive already handled above)
-    # 3. Longest-key-first substring: the INPUT must contain the key
-    #    (e.g. "applications of trigonometry" contains "trigonometry" but we
-    #     want to match it to its specific longer key first)
-    keys_longest_first = sorted(_MATH_CHAPTER_TOPICS.keys(), key=len, reverse=True)
-    for key in keys_longest_first:
-        if key in cl:  # key is substring of chapter name
-            return _MATH_CHAPTER_TOPICS[key]
-    # 4. Key contains chapter name as substring
-    for key in keys_longest_first:
-        if cl in key:
-            return _MATH_CHAPTER_TOPICS[key]
-    # 5. Word overlap fallback
-    chap_words = set(cl.split())
-    best_key, best_score = None, 0
-    for key in _MATH_CHAPTER_TOPICS:
-        score = len(chap_words & set(key.split()))
-        if score > best_score:
-            best_score, best_key = score, key
-    return _MATH_CHAPTER_TOPICS.get(best_key, {}) if best_score >= 1 else {}
-
-
-def _build_math_guidance(chap, cls_str, board, bank):
-    """Build fully-expanded subject guidance with real sample questions."""
-    if not bank:
-        return (f"SUBJECT: Mathematics  |  CHAPTER: {chap}  |  Class {cls_str}  |  {board}\n\n"
-                f"TOPIC RULE: Every question MUST be exclusively about \"{chap}\" as per {board} "
-                f"Class {cls_str} textbook. Any off-topic question = paper rejected.\n\n"
-                f"Cover: definitions, formulae, theorems, numericals, proofs, applications "
-                f"within \"{chap}\" only.\nNumericals: Formula -> Substitution -> Steps -> Answer with unit.\n"
-                f"Proofs: Given / To Prove / Steps with Reasons numbered.\n"
-                f"MCQ options: all 4 distinct, plausible from student errors.")
-
-    concepts_str = "\n".join(f"  * {c}" for c in bank["concepts"])
-
-    # MCQ samples
-    mcq_lines = []
-    for i, (stem, opts, ans) in enumerate(bank["mcq"]):
-        opt_str = "   ".join(f"({chr(65+j)}) {o}" for j, o in enumerate(opts))
-        mcq_lines.append(f"  {i+1}. {stem} [1 Mark]\n     {opt_str}   (   )")
-    mcq_block = "\n".join(mcq_lines)
-
-    # Fill blank samples
-    fill_block = "\n".join(f"  {i+11}. {q} [1 Mark]" for i, q in enumerate(bank["fill"]))
-
-    # Match samples
-    match_block = "  | Group A | Group B |\n  |---|---|\n"
-    match_block += "\n".join(f"  | {a} | {b} |" for a, b in zip(bank["match_a"], bank["match_b"]))
-
-    # VSQ samples
-    vsq_block = "\n".join(f"  {i+1}. {q}" for i, q in enumerate(bank["vsq"]))
-
-    # SA samples
-    sa_block = "\n".join(f"  {i+11}. {q}" for i, q in enumerate(bank["sa"]))
-
-    # LA samples
-    la_pairs = []
-    for i, q in enumerate(bank["la"]):
-        n = 17 + i
-        la_pairs.append(f"  {n}. (i) {q}\n       OR\n      (ii) [Alternative {chap} proof/problem] [6 Marks]")
-    la_block = "\n".join(la_pairs)
-
-    # App samples
-    app_lines = []
-    for i, item in enumerate(bank["app"]):
-        n = 23 + i
-        if isinstance(item, tuple):
-            intro, parts = item
-            sub = "\n".join(f"       ({chr(97+j)}) {p}" for j, p in enumerate(parts))
-            app_lines.append(f"  {n}. {intro} [10 Marks]\n{sub}")
-        else:
-            app_lines.append(f"  {n}. {item} [10 Marks]")
-    app_block = "\n".join(app_lines)
-
-    return f"""SUBJECT: Mathematics  |  CHAPTER: {chap}  |  Class {cls_str}  |  {board}
-
-CORE CONCEPTS TO COVER (spread across all sections):
-{concepts_str}
-
-ABSOLUTE TOPIC RULE:
-  Every question in the paper (all 36 slots) MUST test "{chap}" ONLY.
-  Questions from any other chapter will cause the paper to be REJECTED.
-
-USE THESE READY QUESTION STARTERS (modify values/wording as needed):
-
--- SECTION I: MCQ (choose these 10, adjust numbers for difficulty) --
-{mcq_block}
-
--- SECTION II: FILL IN THE BLANKS (use these 5) --
-{fill_block}
-
--- SECTION III: MATCH THE FOLLOWING --
-{match_block}
-
--- SECTION IV: VSQ (use these 10) --
-{vsq_block}
-
--- SECTION V: SA (6 questions given) --
-{sa_block}
-
--- SECTION VI: LA WITH OR (6 questions given) --
-{la_block}
-
--- SECTION VII: APPLICATION (3 questions given) --
-{app_block}
-
-QUALITY RULES:
-  * Numericals: Formula -> Substitution (show values + units) -> Steps -> Final answer
-  * Proofs: Given | To Prove | Construction (if needed) | Numbered steps with Reasons
-  * MCQ wrong options: answers from a specific named error, not random values
-  * All 4 MCQ options must be numerically distinct"""
-
-
-def _prompt_ap_ts_9_10(subject, chap, board, cls_str,
-                        m, difficulty, extra, math_note, pat, user_marks=100):
-    subj_l = (subject or "").lower()
-
-    diff_mix = {
-        "Easy":   "Bloom's: 50% Remember/Understand, 30% Apply, 20% Analyse",
-        "Medium": "Bloom's: 25% Remember/Understand, 40% Apply, 25% Analyse, 10% Evaluate",
-        "Hard":   "Bloom's: 10% Remember, 20% Understand, 35% Apply, 25% Analyse, 10% Evaluate",
-    }.get(difficulty, "Bloom's: 25% Remember/Understand, 40% Apply, 25% Analyse, 10% Evaluate")
-
-    if "math" in subj_l:
-        bank = _get_chapter_bank(chap)
-        subject_guidance = _build_math_guidance(chap, cls_str, board, bank)
-
-    elif any(k in subj_l for k in ["physics","chemistry","science","biology"]):
-        subject_guidance = (
-            f"SUBJECT: {subject}  |  CHAPTER: {chap}  |  Class {cls_str}  |  {board}\n\n"
-            f"TOPIC RULE: Every question (ALL slots) MUST be exclusively about \"{chap}\".\n"
-            f"Questions from any other chapter = REJECTED.\n\n"
-            f"SECTION QUALITY RULES:\n"
-            f"* MCQ: Wrong options must be plausible — wrong formula, sign error, unit confusion, or step missing.\n"
-            f"  One option should represent the most common student error.\n"
-            f"* Fill-Blanks: Scientific terms, values of constants, names of laws/scientists specific to \"{chap}\".\n"
-            f"* VSQ (2M): One calculation (show formula + substitution) OR define + give one property/example.\n"
-            f"* SA (4M): Include at least one numerical. Format: Given|Find|Formula|Substitution|Answer with unit.\n"
-            f"* LA (6M): Explanation with diagram + 2 examples OR derivation with full working + application.\n"
-            f"* Application (10M): Multi-part practical scenario:\n"
-            f"  Part(a) 3M diagram labelling / identification\n"
-            f"  Part(b) 4M calculation with full working\n"
-            f"  Part(c) 3M conceptual explanation or comparison\n"
-            f"* Chemical equations: MUST be balanced with state symbols (s) (l) (g) (aq).\n"
-            f"* Diagrams: write [DIAGRAM: detailed description] on its own line only.\n"
-            f"* All quantities must have correct SI units in answers.\n"
-            f"ANSWER KEY: VSQ — brief model answer. SA/LA — full worked solutions. Application — complete step-by-step.")
-
-    elif any(k in subj_l for k in ["social","history","geography","civics","economics"]):
-        subject_guidance = (
-            f"SUBJECT: {subject}  |  CHAPTER: {chap}  |  Class {cls_str}  |  {board}\n\n"
-            f"TOPIC RULE: Every single question (all {s['total'] if False else 'all'} slots) MUST be exclusively about \"{chap}\".\n"
-            f"Questions from any other chapter will cause the paper to be REJECTED.\n\n"
-            f"SECTION QUALITY RULES:\n"
-            f"* MCQ: Test factual recall AND application. Wrong options = plausible confusions from the same chapter.\n"
-            f"* Fill-Blanks: Specific names, dates, terms, or places from \"{chap}\" (not vague fillers).\n"
-            f"* Match: Personalities ↔ Events, Places ↔ Features, Terms ↔ Definitions (all from \"{chap}\").\n"
-            f"* VSQ (2M): State one precise fact OR define one term. Answer in 2-3 sentences. No padding.\n"
-            f"* SA (4M): 4-5 distinct substantive points with sub-headings. Each point ≥ 1 full sentence.\n"
-            f"* LA (6M): Introduction (1 para) → 5-6 developed points → Conclusion. Use headings.\n"
-            f"* Application (10M): Multi-part question: map/data interpretation OR case study from \"{chap}\".\n"
-            f"  Part (a) 3M — short identify/locate, Part (b) 4M — explain/compare, Part (c) 3M — analyse/evaluate.\n"
-            f"ANSWER KEY: VSQ and SA — complete model answers. LA — structured key points. Application — full working.")
-
-    elif "english" in subj_l:
-        subject_guidance = (
-            f"SUBJECT: English  |  {board} Class {cls_str}\n"
-            f"NOTE: English papers have NO Part A (no objective section).\n"
-            f"Full {s['partB'] if False else '80'}-mark written paper:\n"
-            f"  Section A -- Reading Comprehension (20 marks): unseen passage (approx 300 words) + 5 comprehension questions\n"
-            f"  Section B -- Writing Skills (20 marks):\n"
-            f"    -- Formal letter OR Notice OR Report (10 marks) + Essay/Article/Speech (10 marks)\n"
-            f"  Section C -- Grammar & Vocabulary (20 marks):\n"
-            f"    -- Gap-fill (5 marks), Sentence transformation (5 marks), Word forms/Error correction (10 marks)\n"
-            f"  Section D -- Literature (40 marks): Based on prescribed {board} Class {cls_str} textbooks\n"
-            f"    -- Short answer from prose/poem (5×2M=10), Long answer prose (1×6M=6), Poetry analysis (1×4M=4),\n"
-            f"       Character sketch/Theme (1×6M=6), Long answer drama/supplementary (1×6M=6+8=14 marks)\n"
-            f"ANSWER KEY: Full model answers for all sections including model letter/essay.\n"
-            f"DO NOT generate Part A objective section for English.")
-
     else:
-        subject_guidance = (
-            f"SUBJECT: {subject}  |  CHAPTER: {chap}  |  Class {cls_str}  |  {board}\n"
-            f"TOPIC RULE: Every question must be exclusively about \"{chap}\" as per the {board} Class {cls_str} textbook.\n"
-            f"* MCQ wrong options must come from plausible student errors on this topic.\n"
-            f"* VSQ: define terms, state facts, write formulae.\n"
-            f"* SA/LA: structured answers with headings and specific examples from the chapter.\n"
-            f"* Application: multi-part practical/case-study question.")
+        # ── Full paper (≥ 40M) ────────────────────────────────────────
+        struct = (
+            f"PART A — OBJECTIVE  ({s['partA']} Marks)\n"
+            f"  Section I   — MCQ: {s['n_mcq']} questions × 1 mark  =  {s['n_mcq']} marks\n"
+            f"  Section II  — Fill in the Blank: {s['n_fill']} questions × 1 mark  =  {s['n_fill']} marks\n"
+            f"  Section III — Match the Following: {s['n_match']} {mw}  =  {s['n_match']} marks\n"
+            f"  PART A TOTAL = {s['partA']} marks\n\n"
+            f"PART B — WRITTEN  ({s['partB']} Marks)\n"
+            f"  Section IV  — Very Short Answer: {s['n_vsq']} questions × 2 marks = {s['vsq_total']} marks  [ALL compulsory]\n"
+            f"  Section V   — Short Answer: Give {s['n_sa_given']} questions, attempt any {s['n_sa_att']} × 4 marks = {s['sa_total']} marks\n"
+            f"  Section VI  — Long Answer: Give {s['n_la_given']} questions, attempt any {s['n_la_att']} × 6 marks = {s['la_total']} marks  [each must have an OR alternative]\n"
+            f"  Section VII — Application / Problem: Give {s['n_app_given']} questions, attempt any {s['n_app_att']} × {s['marks_per_app']} marks = {s['app_total']} marks\n"
+            f"  PART B TOTAL = {s['partB']} marks\n\n"
+            f"  ★ GRAND TOTAL = {m} marks  ★"
+        )
 
-    s = _compute_structure(user_marks)
-    actual = s['total']
-    if actual <= 30:
-        time_str = "1 Hour"
-    elif actual <= 60:
-        time_str = "2 Hours"
-    else:
-        time_str = "3 Hours 15 Minutes"
-    match_word = "pairs" if s['n_match'] != 1 else "pair"
-    total_q = s['n_mcq'] + s['n_fill'] + 1 + s['n_vsq'] + s['n_sa_given'] + s['n_la_given'] + s['n_app_given']
-
-    return f"""You are an experienced senior question-paper setter for {board} Class {cls_str} SSC.
-You have 15+ years setting official board papers. Financial penalties apply for off-topic or mis-formatted papers.
-Accuracy, topic adherence, and correct marks are non-negotiable.
-{extra}
-PAPER SPECIFICATION
+    return f"""You are a senior {board} Class {cls} question-paper setter with 20 years of experience.
+Generate a complete, board-accurate, ready-to-print examination paper followed immediately by its answer key.
+{teacher}
+━━━ PAPER METADATA ━━━
 Subject  : {subject}
 Chapter  : {chap}
-Class    : {cls_str}    Board: {board}
-Total    : {actual} marks    Difficulty: {difficulty}
-Cognitive: {diff_mix}
+Board    : {board}
+Class    : {cls}
+Total    : {m} marks
+Time     : {time}
+Difficulty: {diff}
 
-MANDATORY PAPER STRUCTURE -- MUST BE REPRODUCED EXACTLY:
-PART A -- OBJECTIVE ({s['partA']} marks) -- collected after 30 minutes:
-  Section I    {s['n_mcq']} MCQ x 1 mark = {s['mcq_marks']} marks  [Q1-Q{s['n_mcq']}]
-  Section II   {s['n_fill']} Fill x 1 mark = {s['fill_marks']} marks  [Q{s['n_mcq']+1}-Q{s['n_mcq']+s['n_fill']}]
-  Section III  1 Match ({s['n_match']} {match_word}) = {s['match_marks']} marks  [Q{s['n_mcq']+s['n_fill']+1}]
-                              Subtotal = {s['partA']} marks
+━━━ MANDATORY STRUCTURE — follow exactly, do NOT deviate ━━━
+{struct}
 
-PART B -- WRITTEN ({s['partB']} marks):
-  Section IV   {s['n_vsq']} VSQ ALL compulsory x 2 marks = {s['vsq_total']} marks  [Q{s['iv_start']}-Q{s['iv_end']}]
-  Section V    {s['n_sa_given']} SA given, attempt any {s['n_sa_att']} x 4 marks = {s['sa_total']} marks  [Q{s['v_start']}-Q{s['v_end']}]
-  Section VI   {s['n_la_given']} LA given, attempt any {s['n_la_att']} x 6 marks = {s['la_total']} marks  [Q{s['vi_start']}-Q{s['vi_end']}, each with OR]
-  Section VII  {s['n_app_given']} Application, attempt any {s['n_app_att']} x {s['marks_per_app']} marks = {s['app_total']} marks  [Q{s['vii_start']}-Q{s['vii_end']}]
-                              Subtotal = {s['partB']} marks
-                         GRAND TOTAL = {actual} marks ✓
+━━━ CONTENT QUALITY RULES ━━━
+1. Every question MUST be strictly about "{chap}" — no questions outside this scope.
+2. MCQ options (A)(B)(C)(D): wrong options must reflect real student misconceptions, not random guesses.
+3. Fill-in-the-blank: blank marked as __________ (ten underscores). One blank per sentence.
+4. Match the Following: pipe table with header row | Group A | Group B | and exactly {s['n_match']} data rows.
+5. Every Section VI Long Answer question MUST have an alternate "OR" question on a different sub-topic.
+6. Application / problem questions: multi-step, realistic contexts, no plug-and-chug.
+7. End every question with its mark allocation in square brackets: [1 Mark], [2 Marks], [4 Marks], [6 Marks], [{s.get('marks_per_app',10)} Marks].
 
-SUBJECT AND CHAPTER GUIDANCE:
-{subject_guidance}
-{math_note}
+━━━ {notation.upper().split(chr(10))[0]} ━━━
+{notation}
 
-MANDATORY FORMAT RULES:
-R1. MARKS TAG: Every question ends with the correct [N Marks] tag.
-R2. MCQ: Exactly 4 options (A)(B)(C)(D). Last item on line is (   ).
-    Example:  1. The value of sin 30 is [1 Mark]
-              (A) 1/2   (B) 1   (C) sq3/2   (D) 1/sq2   (   )
-R3. FILL-BLANK: Use ten underscores __________ for blank.
-R4. MATCH: Pipe table, exactly {s['n_match']} data rows.
-    | Group A | Group B |
-    |---|---|
-    | term1 | value1 |
-    ... ({s['n_match']} rows total)
-R5. LA: Every LA question MUST have an OR alternative.
-R6. DIAGRAMS: [DIAGRAM: description] on its own line only. No other figure text.
-R7. NO REPETITION: All {total_q} question slots unique.
+━━━ ANSWER KEY RULES ━━━
+After writing ALL questions, print exactly this line by itself:
+ANSWER KEY
+Then provide:
+• Section I: Q1.(A)  Q2.(C)  … (all MCQ answers on one line per question)
+• Section II: numbered fill-blank answers
+• Section III: matching pairs table
+• Sections IV–VII: full worked solution for every question, showing all steps.
+  — For calculations: show every algebraic step on its own line.
+  — For explanations: use numbered sub-points.
+  — For diagrams: repeat [DIAGRAM: …] tag and describe key labels.
 
-VERIFY BEFORE OUTPUTTING:
-  Section I   = exactly {s['n_mcq']} MCQ, each 4 options, ends (   )
-  Section II  = exactly {s['n_fill']} fill-blanks
-  Section III = exactly 1 match with {s['n_match']} rows
-  Section IV  = exactly {s['n_vsq']} VSQ
-  Section V   = exactly {s['n_sa_given']} SA
-  Section VI  = exactly {s['n_la_given']} LA each with OR
-  Section VII = exactly {s['n_app_given']} application questions
-  ALL questions about "{chap}" -- zero from other chapters
-  Marks: {s['mcq_marks']}+{s['fill_marks']}+{s['match_marks']}+{s['vsq_total']}+{s['sa_total']}+{s['la_total']}+{s['app_total']} = {actual}
+━━━ OUTPUT FORMAT ━━━
+Start the paper immediately with the header below (no preamble, no "Sure!", no AI commentary):
 
-ANSWER KEY FORMAT (write after all questions, separated by a page break line):
-Write "ANSWER KEY" then give COMPLETE solutions for ALL sections.
-  * Section I: Answer only e.g. "1. (B)  2. (A)  3. (C) ..."
-  * Section II: The exact fill answer.
-  * Section III: All correct pairs listed.
-  * Section IV: 2-4 sentence model answer or worked steps.
-  * Section V: Full structured model answer with headings.
-  * Section VI: Full answer with all steps / sub-parts.
-  * Section VII: Complete step-by-step working, every sub-part answered.
+{subject}
+{board}  |  Class {cls}  |  Total Marks: {m}  |  Time: {time}
 
-QUALITY MANDATE:
-  * Questions must test UNDERSTANDING, not just rote memorisation.
-  * At least 1 question per section must involve applying the concept to a new situation.
-  * MCQ distractors must be wrong for a specific, nameable reason (not just random).
-  * SA and LA questions must demand more than textbook reproduction.
-  * Application/VII questions must be realistic, multi-step scenarios.
-  * Every value in numericals must have correct units.
+{instr}
+PART A — OBJECTIVE  ({s['partA']} Marks)
+(Answer on this sheet. Submit this sheet after completing Part A.)
 
-BEGIN. No preamble. No meta-commentary. Start with the paper header immediately.
-
-{subject} -- {chap}
-{board} | Class {cls_str}   Total Marks: {actual}   Time: {time_str}
-
-PART A -- OBJECTIVE  ({s['partA']} Marks)
-(Answer on this question paper itself. Hand in after 30 minutes.)
-
-Section I -- Multiple Choice Questions  [1 Mark each]
-
+Section I — Multiple Choice Questions  [1 Mark each]
 """
 
 
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_ap_ts_6_8(subject, chap, board, cls_str,
-                       m, difficulty, extra, math_note, pat):
+# ─────────────────────────────────────────────────────────────────────
+# COMPETITIVE EXAM PROMPT
+# ─────────────────────────────────────────────────────────────────────
+def _prompt_competitive(exam, subject, chap, cls, m, diff, notation, teacher):
+    exam_u = (exam or "").upper().strip()
     subj_l = (subject or "").lower()
-    diff_mix = {
-        "Easy":   "Simple recall and recognition. Age-appropriate language for Class {cls_str}.",
-        "Medium": "Mix of recall, understanding, and short application.",
-        "Hard":   "Conceptual questions requiring explanation, comparison, and analysis.",
-    }.get(difficulty, "Mix of recall, understanding and short application.")
+    time   = _time_for_marks(m)
 
-    if "math" in subj_l:
-        subject_guidance = "Maths: Objective items test formulas/definitions. VSQ: short computation with working. SA: multi-step word problem — show formula → substitution → steps → answer with unit. LA: longer proof or complex word problem."
-    elif "science" in subj_l:
-        subject_guidance = "Science: Objective tests definitions. VSQ: label/define/name. SA: explain with diagram or short experiment. LA: detailed explanation with fully labelled diagram."
-    else:
-        subject_guidance = f"{subject}: Questions follow the board textbook. Simple to complex progression."
+    # ── NTSE ─────────────────────────────────────────────────────────
+    if exam_u == "NTSE":
+        is_mat = any(k in subj_l for k in ["mat", "mental", "reasoning", "ability"])
+        if is_mat:
+            return f"""You are a NTSE exam paper setter. Generate a complete NTSE MAT (Mental Ability Test) practice paper for Class {cls}.
+{teacher}
+━━━ PAPER METADATA ━━━
+Exam     : NTSE — MAT (Mental Ability Test)
+Class    : {cls}
+Total    : 100 questions × 1 mark = 100 marks
+Time     : 2 Hours
+Marking  : Stage 1: +1/0   Stage 2: +1/−⅓
+Difficulty: {diff}
 
-    return f"""You are a {board} Class {cls_str} examiner setting a Summative Assessment paper.
-{extra}
-Subject: {subject}  |  Topic: {chap}  |  Class: {cls_str}  |  Total Marks: 50
-Difficulty: {difficulty} — {diff_mix}
+━━━ MANDATORY STRUCTURE (100 questions, 1 mark each) ━━━
+Q1–12   : Verbal Analogy (12 questions)
+Q13–22  : Number & Letter Series (10 questions)
+Q23–32  : Non-Verbal Analogy — describe the visual pattern in words (10 questions)
+Q33–40  : Coding-Decoding (8 questions)
+Q41–46  : Blood Relations (6 questions)
+Q47–52  : Direction & Distance (6 questions)
+Q53–58  : Ranking & Arrangement (6 questions)
+Q59–64  : Clock & Calendar (6 questions)
+Q65–70  : Venn Diagrams (6 questions)
+Q71–76  : Mirror/Water Image — describe image in words (6 questions)
+Q77–82  : Odd One Out / Classification (6 questions)
+Q83–88  : Pattern Completion — describe pattern in words (6 questions)
+Q89–94  : Mathematical Operations (6 questions)
+Q95–100 : Mixed / Analytical Reasoning (6 questions)
 
-━━━ MANDATORY STRUCTURE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Section A — Objective  (10 marks):  5 MCQ (Q1–5) + 3 Fill-blank (Q6–8) + 1 Match 2-pair (Q9) = 10 marks
-Section B — VSQ        (20 marks): 10 questions (Q1–10) × 2 marks = 20 marks  [ALL compulsory]
-Section C — SA         (10 marks):  4 questions (Q11–14) given, attempt any 2 × 5 marks = 10 marks
-Section D — LA         (10 marks):  2 questions (Q15–16) given, attempt any 1 × 10 marks = 10 marks
-TOTAL = 50 marks ✓
+━━━ CONTENT QUALITY RULES ━━━
+{diff}
+1. Every question must test pure reasoning, NOT subject knowledge.
+2. Non-verbal questions: describe figures using letters, numbers, shapes — no actual images needed.
+3. Wrong options must be answers you'd get with a specific common error in reasoning.
+4. Questions should be solvable in ≤90 seconds each.
 
-{subject_guidance}
-{math_note}
-━━━ FORMAT (follow exactly) ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MCQ: 1. [question] [1 Mark]
-     (A) opt   (B) opt   (C) opt   (D) opt   (   )
-Fill-blank: 6. [complete sentence with __________ for the blank] [1 Mark]
-Match: 9. Match Group A with Group B: [2 Marks]  (pipe table, 2 data rows)
-VSQ: 1. [question] [2 Marks]
-SA:  11. [question] [5 Marks]
-LA:  15. [question] [10 Marks]
+━━━ ANSWER KEY ━━━
+After ALL 100 questions, print:
+ANSWER KEY
+List: Q1.(B)  Q2.(D)  Q3.(A)  … (10 per line)
+Then explain the reasoning for Q1–Q20 fully (one paragraph each).
 
-MARKS LABEL: Every question must end with [X Mark] or [X Marks] — matching section values.
+━━━ OUTPUT ━━━
+Start immediately — no preamble:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BEGIN — write header then Section A directly:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NTSE — Mental Ability Test (MAT) Practice Paper
+Class: {cls}   Total Marks: 100   Time: 2 Hours   Marking: Stage 1 (+1/0)
 
-Subject: {subject}   Class: {cls_str}   Total Marks: 50
-Board: {board}
+General Instructions:
+1. All questions are compulsory.
+2. Each question carries 1 mark. No negative marking at Stage 1.
+3. Choose the most appropriate option from (A), (B), (C), (D).
+4. Time allowed: 2 Hours.
 
-Section A — Objective  (10 Marks)
+Q1–Q12  —  Verbal Analogy  [1 Mark each]
+"""
+        # SAT
+        return f"""You are a NTSE SAT exam paper setter. Generate a complete NTSE SAT (Scholastic Aptitude Test) practice paper for Class {cls}.
+{teacher}
+━━━ PAPER METADATA ━━━
+Exam     : NTSE — SAT (Scholastic Aptitude Test)
+Topic    : {chap}
+Class    : {cls}
+Total    : 100 questions × 1 mark = 100 marks
+Time     : 2 Hours
+Marking  : Stage 1: +1/0   Stage 2: +1/−⅓
+Difficulty: {diff}
 
+━━━ MANDATORY STRUCTURE (100 questions) ━━━
+Science (Q1–Q40):
+  Physics    Q1–Q14  (14 questions)
+  Chemistry  Q15–Q27 (13 questions)
+  Biology    Q28–Q40 (13 questions)
+Social Science (Q41–Q80):
+  History    Q41–Q54 (14 questions)
+  Geography  Q55–Q66 (12 questions)
+  Civics     Q67–Q73  (7 questions)
+  Economics  Q74–Q80  (7 questions)
+Mathematics (Q81–Q100):
+  Class {cls} topics  (20 questions)
+
+━━━ CONTENT QUALITY RULES ━━━
+{diff}
+1. Questions must test NCERT Class {cls} syllabus — concept-based, not textbook definitions.
+2. All Science questions require application of concepts, not mere recall.
+3. Mathematics questions: multi-step problems only.
+4. Social Science: causality, comparison, map-skills — not pure dates/names.
+
+{notation}
+
+━━━ ANSWER KEY ━━━
+After ALL 100 questions, print:
+ANSWER KEY
+List all 100: Q1.(B) Q2.(D) … (10 per line)
+Then give full step-by-step solutions for Q81–Q100 (Maths).
+
+━━━ OUTPUT ━━━
+Start immediately — no preamble:
+
+NTSE — Scholastic Aptitude Test (SAT) Practice Paper
+Class: {cls}   Total Marks: 100   Time: 2 Hours   Topic: {chap}
+
+General Instructions:
+1. All questions carry 1 mark. No negative marking at Stage 1.
+2. Choose the most appropriate answer from (A), (B), (C), (D).
+
+Science — Physics  (Q1–Q14)  [1 Mark each]
 """
 
+    # ── NSO ──────────────────────────────────────────────────────────
+    if exam_u == "NSO":
+        return f"""You are an NSO (National Science Olympiad — SOF) paper setter. Generate a complete NSO practice paper for Class {cls}.
+{teacher}
+━━━ PAPER METADATA ━━━
+Exam     : NSO — National Science Olympiad (SOF)
+Topic    : {chap}
+Class    : {cls}
+Total    : 60 marks
+Time     : 1 Hour
+Marking  : No negative marking
+Difficulty: {diff}
 
-# ═══════════════════════════════════════════════════════════════════════
-# COMPETITIVE EXAM ROUTER
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_competitive(exam, subject, chap, cls_str,
-                        m, difficulty, extra, math_note):
-    comp = _PATTERN_COMP.get("exams", {}).get(exam, {})
-    exam_full = comp.get("full_name", exam)
-    dispatch = {"NTSE": _prompt_ntse, "NSO": _prompt_nso,
-                "IMO": _prompt_imo, "IJSO": _prompt_ijso}
-    fn = dispatch.get(exam, _prompt_generic_comp)
-    return fn(comp, exam_full, subject, chap, cls_str,
-              m, difficulty, extra, math_note)
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# NTSE — 100-mark MAT or SAT
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_ntse(comp, exam_full, subject, chap, cls_str,
-                 m, difficulty, extra, math_note):
-    subj_l = (subject or "").lower()
-    is_mat = any(k in subj_l for k in ["mat","mental","reasoning","ability"])
-
-    if is_mat:
-        return f"""You are an experienced NTSE MAT question setter. Generate a complete, ready-to-use practice paper.
-
-EXAM: {exam_full} — Mental Ability Test (MAT)
-Class: {cls_str}   Total: 100 Questions × 1 mark = 100 marks   Time: 2 Hours   No negative marking
-Difficulty: {difficulty}
-{extra}
-━━━ QUESTION TYPE DISTRIBUTION (total must equal 100) ━━━
-Q1–12    Verbal Analogy                    12 questions
-Q13–22   Series (Number / Letter)          10 questions
-Q23–32   Non-Verbal Analogy (describe)     10 questions
-Q33–40   Coding–Decoding                    8 questions
-Q41–46   Blood Relations                    6 questions
-Q47–52   Direction & Distance               6 questions
-Q53–58   Ranking & Ordering                 6 questions
-Q59–64   Clock & Calendar                   6 questions
-Q65–70   Venn Diagrams                      6 questions
-Q71–76   Mirror / Water Image (text only)   6 questions
-Q77–82   Classification / Odd-One-Out       6 questions
-Q83–88   Pattern Completion (text only)     6 questions
-Q89–94   Mathematical Operations            6 questions
-Q95–100  Mixed Reasoning                    6 questions
-TOTAL = 100 ✓
-
-━━━ QUALITY RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Every question is 100% self-contained — no reference to figures not described in text.
-• All 4 options are plausible. Wrong options must represent specific reasoning errors.
-• Increase difficulty within each type (Q1 easier than Q12 within Verbal Analogy, etc.).
-• For visual-based types (mirror image, pattern): describe the figure and relationships clearly in words.
-
-FORMAT (every question):
-Q[n]. [full question text] [1 Mark]
-(A) option   (B) option   (C) option   (D) option
-
-ANSWER KEY after all 100 questions:
-Q1.(B)  Q2.(A)  Q3.(D)  ... (10 per line)
-Then for Q1–Q20: one-line explanation of the reasoning rule used.
-
-BEGIN the paper now. Write the header then Q1 directly:
-
-Exam: {exam_full} — MAT
-Class: {cls_str}   Marks: 100   Time: 2 Hours   No Negative Marking
-
-INSTRUCTIONS: Each question carries 1 mark. No negative marking.
-
-Q1–Q12 — Verbal Analogy  [1 Mark each]
-
-"""
-
-    # SAT paper
-    topic = chap if chap and chap != "as per syllabus" else "Class 10 full syllabus"
-    return f"""You are an experienced NTSE SAT question setter. Generate a complete, ready-to-use practice paper.
-
-EXAM: {exam_full} — Scholastic Aptitude Test (SAT)
-Class: {cls_str}   Topic: {topic}   Total: 100 Q × 1 mark = 100 marks   Time: 2 Hours
-Difficulty: {difficulty}   No negative marking at Stage 1
-{extra}
-━━━ MANDATORY SECTION DISTRIBUTION ━━━━━━━━━━━━━━━━━━━━━
-SCIENCE    Q1–Q40   (40 questions)
-  Physics     Q1–Q13   13 questions — Motion, Force, Light, Electricity, Magnetism, Sound
-  Chemistry   Q14–Q26  13 questions — Matter, Atoms, Molecules, Reactions, Acids/Bases, Periodic Table
-  Biology     Q27–Q40  14 questions — Cell, Life Processes, Reproduction, Heredity, Environment
-SOCIAL SCI  Q41–Q80  (40 questions)
-  History     Q41–Q53  13 questions — Revolution, Nationalism, Industrialisation, World Wars
-  Geography   Q54–Q66  13 questions — Resources, Agriculture, Physical features, Climate
-  Civics      Q67–Q73   7 questions — Constitution, Parliament, Rights, Federalism
-  Economics   Q74–Q80   7 questions — Development, Poverty, Food Security, Globalisation
-MATHEMATICS Q81–Q100 (20 questions)
-  All Class 10 topics: Number, Algebra, Geometry, Trig, Mensuration, Stats, Probability
-TOTAL = 100 ✓
-{math_note}
-━━━ QUALITY RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Use NCERT Class 10 terminology and facts exactly.
-• 30% recall, 50% understanding/application, 20% multi-step analysis.
-• Wrong options represent specific misconceptions or calculation errors.
-
-FORMAT: Q[n]. [question] [1 Mark]
-(A) option   (B) option   (C) option   (D) option
-
-ANSWER KEY: List Q1.(B) Q2.(C) ... (10 per line). Then explain all Maths answers (Q81–Q100) step by step.
-
-BEGIN the paper now:
-
-Exam: {exam_full} — SAT
-Class: {cls_str}   Topic: {topic}   Marks: 100   Time: 2 Hours   No Negative Marking
-
-SCIENCE — Physics  (Q1–Q13)  [1 Mark each]
-
-"""
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# NSO — 50 questions, 60 marks, 1 hour
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_nso(comp, exam_full, subject, chap, cls_str,
-                m, difficulty, extra, math_note):
-    topic = chap if chap and chap != "as per syllabus" else f"Class {cls_str} Science"
-    return f"""You are an expert NSO (Science Olympiad Foundation) question setter. Generate a complete practice paper.
-
-EXAM: {exam_full}   Class: {cls_str}   Topic: {topic}   Difficulty: {difficulty}
-Total: 50 questions | 60 marks | 1 hour | No negative marking
-{extra}
-━━━ MANDATORY STRUCTURE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Section 1 — Logical Reasoning   Q1–Q10   10 × 1 mark = 10 marks
-Section 2 — Science             Q11–Q45  35 × 1 mark = 35 marks
-Section 3 — Achiever's Section  Q46–Q50   5 × 3 marks = 15 marks
+━━━ MANDATORY STRUCTURE ━━━
+Section 1 — Logical Reasoning     : Q1–Q10    (10 questions × 1 mark = 10 marks)
+Section 2 — Science                : Q11–Q45   (35 questions × 1 mark = 35 marks)
+Section 3 — Achiever's Section     : Q46–Q50   (5 questions × 3 marks = 15 marks)
 TOTAL = 60 marks ✓
-{math_note}
-━━━ SECTION RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 1 (Q1–10): Pure reasoning — analogy, series, coding, odd-one-out, direction. NO science content.
-SECTION 2 (Q11–45): Strictly Class {cls_str} science syllabus on "{topic}".
-  • 30% easy (definition/fact), 50% conceptual application, 20% slightly challenging.
-  • Wrong options = plausible misconceptions, not obviously wrong distractors.
-SECTION 3 (Q46–50): HOT questions — significantly harder, 3 marks each.
-  • Multi-step inference, experimental scenarios, data interpretation.
-  • A student who only knows the topic cannot solve these by recall alone.
 
-FORMAT:
-Q[n]. [question] [marks]
-(A) opt   (B) opt   (C) opt   (D) opt
+━━━ CONTENT QUALITY RULES ━━━
+{diff}
+Section 1: Pure logical reasoning — no science knowledge needed.
+Section 2: Class {cls} Science (topic: {chap}) — apply concepts, not recall definitions.
+Section 3 (Achiever's): Extremely challenging HOT questions. Each requires 3+ reasoning steps.
+  Wrong options must be answers obtained by a specific error in logic.
 
-ANSWER KEY: Q1.(B) Q2.(A) ... (10 per line). For Q46–50: explain why correct AND why the best wrong option is wrong.
+{notation}
 
-BEGIN:
+━━━ ANSWER KEY ━━━
+After ALL 50 questions, print:
+ANSWER KEY
+Q1.(B) Q2.(D) … (10 per line, all 50)
+Then for Section 3 (Q46–Q50): give full explanations including why the best wrong option is wrong.
 
-Exam: {exam_full}
-Class: {cls_str}   Topic: {topic}   Total Marks: 60   Time: 1 Hour
+━━━ OUTPUT ━━━
+Start immediately:
+
+NSO Practice Paper — Class {cls}
+Topic: {chap}   Total Marks: 60   Time: 1 Hour   No Negative Marking
+
+Instructions:
+1. Section 3 questions carry 3 marks each. Sections 1 and 2 carry 1 mark each.
+2. No negative marking.
 
 Section 1 — Logical Reasoning  [Q1–Q10 | 1 Mark each]
-
 """
 
+    # ── IMO ──────────────────────────────────────────────────────────
+    if exam_u == "IMO":
+        return f"""You are an IMO (International Mathematics Olympiad — SOF) paper setter. Generate a complete IMO practice paper for Class {cls}.
+{teacher}
+━━━ PAPER METADATA ━━━
+Exam     : IMO — International Mathematics Olympiad (SOF)
+Topic    : {chap}
+Class    : {cls}
+Total    : 60 marks
+Time     : 1 Hour
+Marking  : No negative marking
+Difficulty: {diff}
 
-# ═══════════════════════════════════════════════════════════════════════
-# IMO — 50 questions, 60 marks, 1 hour
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_imo(comp, exam_full, subject, chap, cls_str,
-                m, difficulty, extra, math_note):
-    topic = chap if chap and chap != "as per syllabus" else f"Class {cls_str} Mathematics"
-    return f"""You are an expert IMO (Science Olympiad Foundation) question setter. Generate a complete practice paper.
-
-EXAM: {exam_full}   Class: {cls_str}   Topic: {topic}   Difficulty: {difficulty}
-Total: 50 questions | 60 marks | 1 hour | No negative marking
-{extra}
-━━━ MANDATORY STRUCTURE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Section 1 — Logical Reasoning      Q1–Q10   10 × 1 mark = 10 marks
-Section 2 — Mathematical Reasoning Q11–Q35  25 × 1 mark = 25 marks
-Section 3 — Everyday Mathematics   Q36–Q45  10 × 1 mark = 10 marks
-Section 4 — Achiever's Section     Q46–Q50   5 × 3 marks = 15 marks
+━━━ MANDATORY STRUCTURE ━━━
+Section 1 — Logical Reasoning       : Q1–Q10   (10 × 1 mark = 10 marks)
+Section 2 — Mathematical Reasoning  : Q11–Q35  (25 × 1 mark = 25 marks)
+Section 3 — Everyday Mathematics    : Q36–Q45  (10 × 1 mark = 10 marks)
+Section 4 — Achiever's Section      : Q46–Q50  (5 × 3 marks = 15 marks)
 TOTAL = 60 marks ✓
-{math_note}
-━━━ SECTION RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SEC 1 (Q1–10): Number analogies, letter series, Venn diagrams, ranking. NO direct maths computation.
-SEC 2 (Q11–35): Class {cls_str} maths on "{topic}". 30% formula application, 50% two-step, 20% multi-step. Wrong options = arithmetic/sign/formula errors.
-SEC 3 (Q36–45): Real-life word problems. Contexts: shopping, measurement, speed-distance-time, profit-loss, percentage, area. One numeric answer per question.
-SEC 4 (Q46–50): 3 marks each. Require 3+ reasoning steps. Combinatorics, geometric deduction, number theory, or multi-concept integration.
 
-FORMAT:
-Q[n]. [question] [marks]
-(A) opt   (B) opt   (C) opt   (D) opt
+━━━ CONTENT QUALITY RULES ━━━
+{diff}
+Section 1: Pure logical reasoning — no maths knowledge needed.
+Section 2: Class {cls} Mathematics (topic: {chap}) — problem-solving, NOT formula application.
+Section 3: Real-world maths application — percentages, ratios, measurements, data interpretation.
+Section 4 (Achiever's): Competition-level. Each question must require insight or a non-obvious approach.
+  Wrong options must be answers from common algebraic errors or overlooked constraints.
 
-ANSWER KEY: Q1.(B) Q2.(A) ... (10 per line). For Q46–50: full step-by-step working.
+{notation}
 
-BEGIN:
+━━━ ANSWER KEY ━━━
+After ALL 50 questions, print:
+ANSWER KEY
+Q1.(B) Q2.(D) … (10 per line, all 50)
+Then for Section 4 (Q46–Q50): full step-by-step solutions showing the key insight.
 
-Exam: {exam_full}
-Class: {cls_str}   Topic: {topic}   Total Marks: 60   Time: 1 Hour
+━━━ OUTPUT ━━━
+Start immediately:
+
+IMO Practice Paper — Class {cls}
+Topic: {chap}   Total Marks: 60   Time: 1 Hour   No Negative Marking
+
+Instructions:
+1. Section 4 questions carry 3 marks each. Sections 1–3 carry 1 mark each.
+2. No negative marking.
 
 Section 1 — Logical Reasoning  [Q1–Q10 | 1 Mark each]
-
 """
 
+    # ── IJSO ─────────────────────────────────────────────────────────
+    if exam_u == "IJSO":
+        return f"""You are an IJSO/NSEJS paper setter. Generate a complete IJSO Stage 1 (NSEJS) practice paper for Class {cls}.
+{teacher}
+━━━ PAPER METADATA ━━━
+Exam     : IJSO / NSEJS Stage 1 — Integrated Science
+Topic    : {chap}
+Class    : {cls}
+Total    : 80 questions
+Marking  : +3 correct / −1 wrong / 0 skipped
+Max Score: 240 marks
+Time     : 2 Hours
+Difficulty: {diff}
 
-# ═══════════════════════════════════════════════════════════════════════
-# IJSO / NSEJS — 80 MCQ, +3/−1, 2 hours
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_ijso(comp, exam_full, subject, chap, cls_str,
-                 m, difficulty, extra, math_note):
-    topic = chap if chap and chap != "as per syllabus" else "Integrated Physics, Chemistry, Biology — Class 9-10 level"
-    return f"""You are a senior question setter at IAPT for NSEJS (National Standard Examination in Junior Science). Generate a complete Stage 1 practice paper.
+━━━ MANDATORY STRUCTURE ━━━
+Physics   : Q1–Q27   (27 questions)
+Chemistry : Q28–Q54  (27 questions)
+Biology   : Q55–Q80  (26 questions)
+TOTAL = 80 questions ✓
 
-EXAM: {exam_full} (NSEJS Stage 1)   Class: {cls_str}   Difficulty: {difficulty}
-Topic focus: {topic}
-Total: 80 questions | Marking: +3 correct / −1 wrong / 0 unattempted | Time: 2 Hours
-{extra}
-━━━ MANDATORY STRUCTURE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHYSICS    Q1–Q27    27 questions   [+3/−1 each]
-CHEMISTRY  Q28–Q54   27 questions   [+3/−1 each]
-BIOLOGY    Q55–Q80   26 questions   [+3/−1 each]
-TOTAL = 80 ✓
-{math_note}
-━━━ QUALITY STANDARDS (prestigious national olympiad) ━━
-LEVEL: Conceptual Class 9–10. Every question requires genuine understanding. Pure recall is insufficient.
-PHYSICS (Q1–27): Motion equations, Newton's laws, optics (lenses/mirrors), electricity (Ohm, circuits, power), magnetism. Include 5+ numericals requiring 2+ steps. At least 3 graph/data-reading questions.
-CHEMISTRY (Q28–54): Stoichiometry, mole concept, reaction types, acid-base indicators, periodic trends, carbon compounds. Include 3+ calculation questions. Balanced equations required.
-BIOLOGY (Q55–80): Cell organelles, nutrition/respiration/transport/excretion mechanisms, reproductive systems, heredity ratios, ecology. Include 4+ questions based on experimental observation ("If... then what is observed?").
-DISTRACTORS: Each wrong option must represent a specific, named misconception. No obviously wrong options.
+━━━ CONTENT QUALITY RULES ━━━
+{diff}
+1. Every question requires genuine conceptual understanding — pure recall questions are forbidden.
+2. Each wrong option must represent a specific named misconception or a calculation error.
+3. Questions must be suitable for Class 10 students appearing for NSEJS.
+4. Physics: mechanics, optics, electricity, heat. Chemistry: reactions, solutions, periodic table, acids/bases. Biology: cell biology, genetics, ecology, physiology.
+5. At least 30% of questions should involve numerical calculation.
+6. Multi-concept questions (crossing subject boundaries) allowed in Physics and Chemistry.
 
-FORMAT:
-Q[n]. [full question] [+3/−1]
-(A) option   (B) option   (C) option   (D) option
+{notation}
 
-ANSWER KEY:
-Q1.(B) Q2.(C) ... (10 per line, all 80)
-Then for EVERY question: [correct letter] — one sentence: why correct + why best distractor is wrong.
+━━━ ANSWER KEY ━━━
+After ALL 80 questions, print:
+ANSWER KEY
+List: Q1.(B) Q2.(C) … (10 per line, all 80)
+Then for each question give: (i) correct answer with one-sentence justification, (ii) why the most tempting wrong option is wrong.
 
-BEGIN:
+━━━ OUTPUT ━━━
+Start immediately:
 
-Exam: {exam_full} — NSEJS Stage 1 Practice
-Class: {cls_str}   Topic: {topic}   Marking: +3/−1/0   Time: 2 Hours
+IJSO / NSEJS Stage 1 Practice Paper
+Class: {cls}   Topic: {chap}   Total: 80 Questions   Marking: +3/−1/0   Time: 2 Hours
 
-PHYSICS  (Q1–Q27)  [+3/−1 each]
+Instructions:
+1. Each correct answer = +3 marks. Incorrect answer = −1 mark. No response = 0 marks.
+2. Choose the single best answer from (A), (B), (C), (D).
 
+Physics  (Q1–Q27)  [+3/−1 each]
 """
 
+    # ── Fallback for unknown competitive exam ─────────────────────────
+    return _prompt_board(subject or "General", chap, exam_u or "Competitive", cls, m, diff, notation, teacher)
 
-# ═══════════════════════════════════════════════════════════════════════
-# GENERIC COMPETITIVE FALLBACK
-# ═══════════════════════════════════════════════════════════════════════
-def _prompt_generic_comp(exam, subject, chap, cls_str,
-                          m, difficulty, extra, math_note):
-    n_q   = max(25, m // 4)
-    topic = chap if chap and chap != "as per syllabus" else f"Class {cls_str} {subject}"
-    return f"""Generate a {exam} practice paper — {n_q} MCQ questions on {subject}, Class {cls_str}.
-Topic: {topic}   Difficulty: {difficulty}   Total marks: {n_q}
-{extra}{math_note}
-• 4 options per question (A)(B)(C)(D). Exactly one correct. Plausible distractors.
-• Questions numbered Q1–Q{n_q}. Each ends with [1 Mark].
-• Difficulty increases from Q1 to Q{n_q}.
-
-FORMAT: Q[n]. [question] [1 Mark]
-(A) opt   (B) opt   (C) opt   (D) opt
-
-ANSWER KEY after all questions: Q1.(B) Q2.(A) ... + one-sentence explanation per answer.
-
-BEGIN:
-
-Exam: {exam} Practice Paper
-Subject: {subject}   Class: {cls_str}   Topic: {topic}   Marks: {n_q}
-
-"""
 
 
 
@@ -3281,6 +2449,7 @@ def download_pdf():
         chapter     = (data.get("chapter") or "").strip()
         board       = (data.get("board") or "").strip()
         include_key = str(data.get("includeKey", "false")).lower() == "true"
+        marks       = data.get("marks") or ""
 
         if not paper_text.strip():
             return jsonify({"success": False, "error": "No paper text provided"}), 400
@@ -3317,7 +2486,8 @@ def download_pdf():
         pdf_bytes = create_exam_pdf(
             paper_text, subject, chapter,
             board=board, answer_key=answer_key,
-            include_key=include_key, diagrams=diagrams)
+            include_key=include_key, diagrams=diagrams,
+            marks=marks)
 
         parts    = [p for p in [board, subject, chapter] if p]
         filename = ("_".join(parts) + ".pdf").replace(" ", "_").replace("/", "-")
@@ -3356,4 +2526,4 @@ def chapters():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)fix bugs

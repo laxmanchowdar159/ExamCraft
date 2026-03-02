@@ -1,7 +1,5 @@
 // =====================================================================
-// ExamCraft — Frontend Controller v3
-// Board scope: One Chapter | All Chapters
-// Competitive scope: One Topic | Full Subject | All Subjects
+// ExamCraft — Frontend Controller v4  (bug-fixed)
 // =====================================================================
 
 let curriculumData   = {};
@@ -9,12 +7,10 @@ let currentPaper     = '';
 let currentAnswerKey = '';
 let currentMeta      = {};
 
-// Current competitive scope state
-let compScope = 'topic'; // 'topic' | 'subject' | 'all'
-let boardScope = 'single'; // 'single' | 'all'
+let compScope  = 'topic';   // 'topic' | 'subject' | 'all'
+let boardScope = 'single';  // 'single' | 'all'
 
 // ── Theme System ──────────────────────────────────────────────────────
-// Multiple accent palettes that rotate for freshness
 const THEMES = [
   { name: 'Violet',  accent: '#6d5bff', a2: '#9f8dff', a3: '#c4b8ff', glow: 'rgba(109,91,255,0.4)',  dim: 'rgba(109,91,255,0.12)', orb1:'#4c1d95', orb2:'#1e3a8a', orb3:'#0c4a6e', orb4:'#581c87', orb5:'#1e1b4b' },
   { name: 'Teal',    accent: '#14b8a6', a2: '#2dd4bf', a3: '#5eead4', glow: 'rgba(20,184,166,0.4)',  dim: 'rgba(20,184,166,0.12)',  orb1:'#134e4a', orb2:'#1e3a5f', orb3:'#0c4a3e', orb4:'#164e63', orb5:'#0f2027' },
@@ -30,11 +26,11 @@ let isDark = true;
 function applyTheme(themeIdx, dark) {
   const t = THEMES[themeIdx];
   const r = document.documentElement;
-  r.style.setProperty('--accent',       t.accent);
-  r.style.setProperty('--accent-2',     t.a2);
-  r.style.setProperty('--accent-3',     t.a3);
-  r.style.setProperty('--accent-glow',  t.glow);
-  r.style.setProperty('--accent-dim',   t.dim);
+  r.style.setProperty('--accent',      t.accent);
+  r.style.setProperty('--accent-2',    t.a2);
+  r.style.setProperty('--accent-3',    t.a3);
+  r.style.setProperty('--accent-glow', t.glow);
+  r.style.setProperty('--accent-dim',  t.dim);
   if (dark) {
     r.style.setProperty('--orb1', t.orb1);
     r.style.setProperty('--orb2', t.orb2);
@@ -45,13 +41,10 @@ function applyTheme(themeIdx, dark) {
   r.setAttribute('data-theme', dark ? 'dark' : 'light');
   const label = document.getElementById('themeLabel');
   if (label) label.textContent = t.name;
-  localStorage.setItem('themeIdx', themeIdx);
-  localStorage.setItem('themeDark', dark ? '1' : '0');
+  try { localStorage.setItem('themeIdx', themeIdx); localStorage.setItem('themeDark', dark ? '1' : '0'); } catch {}
 }
 
-// ── Auto theme rotation every 45 seconds ─────────────────────────────
 let _autoThemeTimer = null;
-
 function startAutoThemeRotation() {
   clearInterval(_autoThemeTimer);
   _autoThemeTimer = setInterval(() => {
@@ -61,7 +54,7 @@ function startAutoThemeRotation() {
 }
 
 window.cycleTheme = function() {
-  clearInterval(_autoThemeTimer); // reset auto timer on manual click
+  clearInterval(_autoThemeTimer);
   currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
   applyTheme(currentThemeIdx, isDark);
   showToast(`Theme: ${THEMES[currentThemeIdx].name}`);
@@ -72,8 +65,6 @@ window.toggleDark = function() {
   isDark = !isDark;
   applyTheme(currentThemeIdx, isDark);
 };
-
-// Legacy alias so old code paths don't break
 window.toggleTheme = window.toggleDark;
 
 // ── Competitive exam info ─────────────────────────────────────────────
@@ -89,7 +80,7 @@ const HISTORY_KEY = 'examcraft_history_v2';
 const HISTORY_MAX = 8;
 
 function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; } }
-function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+function saveHistory(h) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch {} }
 
 function addToHistory(meta, paper, key) {
   const h = loadHistory();
@@ -103,7 +94,7 @@ function renderHistory() {
   if (!list) return;
   const h = loadHistory();
   if (!h.length) {
-    list.innerHTML = `<div class="history-empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>No papers yet</span></div>`;
+    list.innerHTML = `<div class="history-empty"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>No papers yet</span></div>`;
     return;
   }
   list.innerHTML = h.map((e, idx) => `
@@ -128,20 +119,20 @@ function renderHistory() {
     </div>`).join('');
 }
 
-window.clearHistory = function() { localStorage.removeItem(HISTORY_KEY); renderHistory(); showToast('History cleared'); };
+window.clearHistory = function() { try { localStorage.removeItem(HISTORY_KEY); } catch {} renderHistory(); showToast('History cleared'); };
 
 async function downloadFromHistory(idx, withKey) {
   const e = loadHistory()[idx]; if (!e) return;
-  await triggerPDFDownload({ paper: e.paper, answer_key: e.answerKey || '', subject: e.subject, chapter: e.chapter !== 'Full Syllabus' ? e.chapter : '', board: e.board, includeKey: withKey }, e.board, e.subject, e.chapter, withKey);
+  await triggerPDFDownload({ paper: e.paper, answer_key: e.answerKey || '', subject: e.subject, chapter: e.chapter !== 'Full Syllabus' ? e.chapter : '', board: e.board, includeKey: withKey, marks: e.marks }, e.board, e.subject, e.chapter, withKey);
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────
+// ── Sidebar summary ───────────────────────────────────────────────────
 function setSidebarValue(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || '—'; }
 
 function updateSidebar() {
   setSidebarValue('sb-class',   document.getElementById('class')?.value);
   setSidebarValue('sb-subject', document.getElementById('subject')?.value);
-  setSidebarValue('sb-marks',   document.getElementById('totalMarks')?.value);
+  setSidebarValue('sb-marks',   getTotalMarks());
   setSidebarValue('sb-difficulty', getDifficulty());
   setSidebarValue('sb-key', document.getElementById('includeKey')?.checked ? 'Yes' : 'No');
 
@@ -151,15 +142,9 @@ function updateSidebar() {
   else if (examType === 'competitive') boardText = document.getElementById('competitiveExam')?.value || '';
   setSidebarValue('sb-board', boardText);
 
-  // Scope and chapter/topic display
   if (examType === 'state-board') {
-    if (boardScope === 'all') {
-      setSidebarValue('sb-scope', 'All Chapters');
-      setSidebarValue('sb-chapter', '—');
-    } else {
-      setSidebarValue('sb-scope', 'One Chapter');
-      setSidebarValue('sb-chapter', document.getElementById('chapter')?.value || '—');
-    }
+    if (boardScope === 'all') { setSidebarValue('sb-scope', 'All Chapters'); setSidebarValue('sb-chapter', '—'); }
+    else { setSidebarValue('sb-scope', 'One Chapter'); setSidebarValue('sb-chapter', document.getElementById('chapter')?.value || '—'); }
   } else if (examType === 'competitive') {
     if (compScope === 'all')     { setSidebarValue('sb-scope', 'All Subjects'); setSidebarValue('sb-chapter', '—'); }
     else if (compScope === 'subject') { setSidebarValue('sb-scope', 'Full Subject'); setSidebarValue('sb-chapter', '—'); }
@@ -170,10 +155,16 @@ function updateSidebar() {
   }
 }
 
+// ── Marks helpers ─────────────────────────────────────────────────────
+function getTotalMarks() {
+  // Read from hidden input (reliable single source of truth)
+  return document.getElementById('totalMarks')?.value || '100';
+}
+
 // ── Curriculum ────────────────────────────────────────────────────────
 async function initCurriculum() {
   try {
-    const res = await fetch('/chapters');
+    const res  = await fetch('/chapters');
     const json = await res.json();
     if (json.success && json.data) curriculumData = json.data;
   } catch { console.warn('Curriculum fetch failed'); }
@@ -239,36 +230,31 @@ function updateChapters() {
 // ── Form Visibility ───────────────────────────────────────────────────
 function updateFormVisibility() {
   const examType = document.getElementById('examType')?.value;
-  const stateC  = document.getElementById('stateCard');
-  const compC   = document.getElementById('competitiveCard');
-  const scopeC  = document.getElementById('scopeCard');
+  const stateC   = document.getElementById('stateCard');
+  const compC    = document.getElementById('competitiveCard');
+  const scopeC   = document.getElementById('scopeCard');
   const chapCard = document.getElementById('chapterCard');
   const subjCard = document.getElementById('subjectCard');
   const boardScopeRow = document.getElementById('boardScopeRow');
   const compScopeRow  = document.getElementById('compScopeRow');
   const chapterLabel  = document.getElementById('chapterLabel');
 
-  // Step 2
   if (stateC) stateC.classList.toggle('collapsed', examType !== 'state-board');
   if (compC)  compC.classList.toggle('collapsed',  examType !== 'competitive');
 
-  // Step 3 scope — only show once type selected
   if (scopeC) {
     scopeC.classList.toggle('collapsed', !examType);
     if (boardScopeRow) boardScopeRow.style.display = (examType === 'state-board')  ? '' : 'none';
     if (compScopeRow)  compScopeRow.style.display  = (examType === 'competitive') ? '' : 'none';
   }
 
-  // Step 4 — what fields to show
   if (examType === 'state-board') {
-    // Board: always show subject; show chapter only if one-chapter scope
     if (subjCard) subjCard.style.display = '';
     if (chapCard) chapCard.style.display = boardScope === 'single' ? '' : 'none';
     if (chapterLabel) chapterLabel.textContent = 'Chapter';
     const subjLabel = document.getElementById('subjectLabel');
     if (subjLabel) subjLabel.textContent = 'Subject';
   } else if (examType === 'competitive') {
-    // Comp: show subject always; show chapter only if topic scope
     if (subjCard) subjCard.style.display = '';
     if (chapCard) chapCard.style.display = compScope === 'topic' ? '' : 'none';
     if (chapterLabel) chapterLabel.textContent = 'Topic';
@@ -281,23 +267,23 @@ function updateFormVisibility() {
 }
 
 // ── Paper Type Selection ──────────────────────────────────────────────
+// BUG FIX: was querying '.type-tile' (doesn't exist) — now '.type-card'
 window.selectType = function(val) {
-  document.querySelectorAll('.type-tile').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.type-card').forEach(t => t.classList.remove('active'));
   const tile = document.getElementById(val === 'state-board' ? 'tile-state' : 'tile-comp');
   if (tile) tile.classList.add('active');
   document.getElementById('examType').value = val;
 
-  // Reset scopes to defaults
   if (val === 'state-board') {
     boardScope = 'single';
     document.getElementById('scopeSelect').value = 'single';
-    document.querySelectorAll('#boardScopeRow .scope-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#boardScopeRow .scope-card').forEach(b => b.classList.remove('active'));
     const def = document.getElementById('bscope-single'); if (def) def.classList.add('active');
     setHint('Select Andhra Pradesh or Telangana, then choose paper scope.');
   } else {
     compScope = 'topic';
     document.getElementById('scopeSelect').value = 'single';
-    document.querySelectorAll('#compScopeRow .scope-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#compScopeRow .scope-card').forEach(b => b.classList.remove('active'));
     const def = document.getElementById('cscope-topic'); if (def) def.classList.add('active');
     setHint('Select competitive exam, then choose how broad the paper should be.');
   }
@@ -311,7 +297,7 @@ window.selectType = function(val) {
 window.selectBoardScope = function(val) {
   boardScope = val;
   document.getElementById('scopeSelect').value = val === 'all' ? 'all' : 'single';
-  document.querySelectorAll('#boardScopeRow .scope-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#boardScopeRow .scope-card').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById(val === 'all' ? 'bscope-all' : 'bscope-single');
   if (btn) btn.classList.add('active');
   updateFormVisibility();
@@ -323,14 +309,12 @@ window.selectBoardScope = function(val) {
 // ── Competitive Scope ─────────────────────────────────────────────────
 window.selectCompScope = function(val) {
   compScope = val;
-  // Map to the hidden scopeSelect value (all → all, else single)
   document.getElementById('scopeSelect').value = val === 'all' ? 'all' : 'single';
-  document.querySelectorAll('#compScopeRow .scope-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#compScopeRow .scope-card').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById(`cscope-${val}`);
   if (btn) btn.classList.add('active');
   updateFormVisibility();
   updateSidebar();
-
   const hints = {
     topic:   'One Topic — choose a subject and specific topic for a focused paper.',
     subject: 'Full Subject — choose a subject; all its topics will be covered.',
@@ -355,15 +339,19 @@ function updateCompInfo() {
 }
 
 // ── Class/Subject change handlers ─────────────────────────────────────
-window.onClassChange = async function() { await updateSubjects(); updateFormVisibility(); updateSidebar(); };
+window.onClassChange   = async function() { await updateSubjects(); updateFormVisibility(); updateSidebar(); };
 window.onSubjectChange = function() { updateChapters(); updateSidebar(); };
 
 // ── Difficulty ────────────────────────────────────────────────────────
-function getDifficulty() { const el = document.querySelector('input[name="difficulty"]:checked'); return el ? el.value : 'Medium'; }
+function getDifficulty() {
+  const el = document.querySelector('input[name="difficulty"]:checked');
+  return el ? el.value : 'Medium';
+}
 window.selectDiff = function(val, btn) {
   document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const radio = document.getElementById(val === 'Easy' ? 'r-easy' : val === 'Medium' ? 'r-med' : 'r-hard');
+  const radioId = val === 'Easy' ? 'r-easy' : val === 'Medium' ? 'r-med' : 'r-hard';
+  const radio = document.getElementById(radioId);
   if (radio) radio.checked = true;
   updateSidebar();
 };
@@ -372,11 +360,12 @@ window.selectDiff = function(val, btn) {
 window.selectMark = function(btn) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
-  const cw = document.getElementById('customMarkWrap'); if (cw) cw.style.display = 'none';
-  const hint = document.getElementById('marksAutoHint'); if (hint) hint.textContent = '';
+  const cw = document.getElementById('customMarkWrap');
+  if (cw) cw.style.display = 'none';
   document.getElementById('totalMarks').value = btn.dataset.val;
   updateSidebar();
 };
+
 window.toggleCustomMark = function(btn) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
@@ -384,24 +373,28 @@ window.toggleCustomMark = function(btn) {
   const ci = document.getElementById('customMarkInput');
   if (cw) { cw.style.display = 'flex'; if (ci) ci.focus(); }
 };
+
 window.applyCustomMark = function(val) {
   const num = parseInt(val, 10);
   if (num > 0) { document.getElementById('totalMarks').value = num; updateSidebar(); }
 };
 
 function applySmartMarkDefault(scope) {
+  // Don't override if custom is selected
   const customChip = document.getElementById('chipCustom');
   if (customChip && customChip.classList.contains('active')) return;
-  const target = scope === 'all' ? '100' : '100';
+
+  const target = '100';
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  document.getElementById('customMarkWrap').style.display = 'none';
+  const cw = document.getElementById('customMarkWrap');
+  if (cw) cw.style.display = 'none';
   const chip = document.querySelector(`.chip[data-val="${target}"]`);
   if (chip) chip.classList.add('active');
   document.getElementById('totalMarks').value = target;
   updateSidebar();
 }
 
-// ── Loading ───────────────────────────────────────────────────────────
+// ── Loading modal ─────────────────────────────────────────────────────
 let _stepInterval = null;
 function showLoading(show, titleText) {
   const modal = document.getElementById('loadingModal');
@@ -410,15 +403,20 @@ function showLoading(show, titleText) {
   if (titleText) { const t = document.getElementById('loaderTitle'); if (t) t.textContent = titleText; }
   clearInterval(_stepInterval);
   if (show) {
-    const ids = ['ls1','ls2','ls3','ls4','ls5'];
-    const delays = [0, 5000, 11000, 17000, 26000];
-    ids.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active','done'); });
-    const el0 = document.getElementById(ids[0]); if (el0) el0.classList.add('active');
+    const ids    = ['ls1','ls2','ls3','ls4','ls5'];
+    const delays = [0, 5000, 12000, 19000, 28000];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active','done');
+    });
+    const el0 = document.getElementById(ids[0]);
+    if (el0) el0.classList.add('active');
     ids.slice(1).forEach((id, idx) => {
       setTimeout(() => {
         const prev = document.getElementById(ids[idx]);
         if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
-        const cur = document.getElementById(id); if (cur) cur.classList.add('active');
+        const cur = document.getElementById(id);
+        if (cur) cur.classList.add('active');
       }, delays[idx + 1]);
     });
   }
@@ -428,14 +426,15 @@ function showLoading(show, titleText) {
 function showToast(msg) {
   const toast = document.getElementById('notificationToast');
   if (!toast) return;
-  toast.textContent = msg; toast.classList.add('show');
+  toast.textContent = msg;
+  toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 3500);
 }
 function setHint(text) { const el = document.getElementById('hintText'); if (el) el.textContent = text; }
 
-// ── Preview Tab ───────────────────────────────────────────────────────
+// ── Preview Tabs ──────────────────────────────────────────────────────
 window.switchPreviewTab = function(tab, btn) {
-  document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-paper').style.display = tab === 'paper' ? 'block' : 'none';
   document.getElementById('tab-key').style.display   = tab === 'key'   ? 'block' : 'none';
@@ -446,22 +445,23 @@ async function generatePaper() {
   const examType = document.getElementById('examType')?.value;
   if (!examType) { showToast('Please select a paper type first'); return; }
 
-  const cls       = document.getElementById('class')?.value;
-  const subject   = document.getElementById('subject')?.value;
-  const chapter   = document.getElementById('chapter')?.value;
-  const marks     = document.getElementById('totalMarks')?.value || '100';
+  const cls        = document.getElementById('class')?.value;
+  const subject    = document.getElementById('subject')?.value;
+  const chapter    = document.getElementById('chapter')?.value;
+  const marks      = getTotalMarks();
   const difficulty = getDifficulty();
   const suggestions = document.getElementById('suggestions')?.value || '';
 
-  const payload = { class: cls, subject, marks, difficulty, suggestions, examType,
-    includeKey: document.getElementById('includeKey')?.checked || false };
+  const payload = {
+    class: cls, subject, marks, difficulty, suggestions, examType,
+    includeKey: document.getElementById('includeKey')?.checked || false
+  };
 
   if (examType === 'state-board') {
     payload.state = document.getElementById('stateSelect')?.value || '';
     if (!payload.state)   { showToast('Please select a state board'); return; }
     if (!cls)             { showToast('Please select a class'); return; }
     if (!subject)         { showToast('Please select a subject'); return; }
-
     if (boardScope === 'single') {
       if (!chapter) { showToast('Please select a chapter'); return; }
       payload.chapter = chapter;
@@ -475,8 +475,7 @@ async function generatePaper() {
   if (examType === 'competitive') {
     payload.competitiveExam = document.getElementById('competitiveExam')?.value || '';
     if (!payload.competitiveExam) { showToast('Please select a competitive exam'); return; }
-    if (!cls)     { showToast('Please select a class'); return; }
-
+    if (!cls) { showToast('Please select a class'); return; }
     if (compScope === 'topic') {
       if (!subject) { showToast('Please select a subject'); return; }
       if (!chapter) { showToast('Please select a topic'); return; }
@@ -485,7 +484,6 @@ async function generatePaper() {
       if (!subject) { showToast('Please select a subject'); return; }
       payload.chapter = '';
     } else {
-      // all subjects
       payload.subject = subject || '';
       payload.chapter = '';
       payload.all_chapters = true;
@@ -494,10 +492,10 @@ async function generatePaper() {
   }
 
   showLoading(true, 'Crafting your paper…');
-  setHint('Generating — usually 20-45 seconds…');
+  setHint('Generating — usually 25-50 seconds…');
 
   try {
-    const res    = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const res    = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await res.json();
     showLoading(false);
 
@@ -511,7 +509,12 @@ async function generatePaper() {
     currentAnswerKey = result.answer_key || '';
 
     const boardText = result.board || payload.state || payload.competitiveExam || '';
-    currentMeta = { board: boardText, subject: payload.subject || result.subject || '', chapter: payload.chapter || result.chapter || 'Full Syllabus', marks, difficulty };
+    currentMeta = {
+      board: boardText,
+      subject: payload.subject || result.subject || '',
+      chapter: payload.chapter || result.chapter || 'Full Syllabus',
+      marks, difficulty
+    };
 
     const paperOut = document.getElementById('paperOutput');
     const keyOut   = document.getElementById('answerKeyOutput');
@@ -522,7 +525,10 @@ async function generatePaper() {
     if (keyTab) keyTab.style.display = currentAnswerKey ? 'inline-flex' : 'none';
 
     const panel = document.getElementById('resultsPanel');
-    if (panel) { panel.style.display = 'block'; setTimeout(() => panel.scrollIntoView({behavior:'smooth',block:'start'}), 120); }
+    if (panel) {
+      panel.style.display = 'block';
+      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    }
 
     setHint('Paper ready! Review below, then Download PDF.');
     showToast('Paper generated! ✓');
@@ -537,7 +543,11 @@ async function generatePaper() {
 async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
   showLoading(true, 'Rendering PDF…');
   try {
-    const res = await fetch('/download-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const res = await fetch('/download-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     if (!res.ok) {
       let errMsg = `Server error ${res.status}`;
       try { const j = await res.json(); errMsg = j.error || errMsg; } catch {}
@@ -560,7 +570,18 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
 window.downloadPDF = async function(withKey) {
   if (!currentPaper?.trim()) { showToast('Generate a paper first'); return; }
   const includeKey = withKey === true ? true : withKey === false ? false : (document.getElementById('includeKey')?.checked || false);
-  await triggerPDFDownload({ paper: currentPaper, answer_key: currentAnswerKey || '', subject: currentMeta.subject, chapter: currentMeta.chapter !== 'Full Syllabus' ? currentMeta.chapter : '', board: currentMeta.board, includeKey }, currentMeta.board, currentMeta.subject, currentMeta.chapter, includeKey);
+  await triggerPDFDownload(
+    {
+      paper: currentPaper,
+      answer_key: currentAnswerKey || '',
+      subject: currentMeta.subject,
+      chapter: currentMeta.chapter !== 'Full Syllabus' ? currentMeta.chapter : '',
+      board: currentMeta.board,
+      includeKey,
+      marks: currentMeta.marks
+    },
+    currentMeta.board, currentMeta.subject, currentMeta.chapter, includeKey
+  );
 };
 
 function copyPaper() {
@@ -571,8 +592,11 @@ function copyPaper() {
 // ── Init ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Restore theme
-  const savedIdx  = parseInt(localStorage.getItem('themeIdx') || '0', 10);
-  const savedDark = localStorage.getItem('themeDark') !== '0';
+  let savedIdx  = 0, savedDark = true;
+  try {
+    savedIdx  = parseInt(localStorage.getItem('themeIdx') || '0', 10);
+    savedDark = localStorage.getItem('themeDark') !== '0';
+  } catch {}
   currentThemeIdx = Math.min(savedIdx, THEMES.length - 1);
   isDark = savedDark;
   applyTheme(currentThemeIdx, isDark);
@@ -583,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('paperForm')?.addEventListener('submit', e => { e.preventDefault(); generatePaper(); });
 
+  // Set initial state
   updateFormVisibility();
   updateSidebar();
   applySmartMarkDefault('single');
