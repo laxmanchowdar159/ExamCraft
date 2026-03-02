@@ -22,13 +22,10 @@ from reportlab.lib.units import mm
 # ── Flask ────────────────────────────────────────────────────────────
 from flask import Flask, render_template, request, jsonify, send_file
 
-# ── Gemini ───────────────────────────────────────────────────────────
-try:
-    import google.generativeai as genai
-    GENAI_AVAILABLE = True
-except Exception:
-    genai = None
-    GENAI_AVAILABLE = False
+# ── Gemini (REST — no SDK needed, keeps Vercel bundle small) ─────────
+import requests as _requests
+GENAI_AVAILABLE = True   # always available via REST
+genai = None             # legacy compat reference (unused)
 
 app = Flask(__name__, template_folder="templates",
             static_folder="static", static_url_path="/static")
@@ -1002,55 +999,76 @@ def create_exam_pdf(text, subject, chapter, board="",
 # ═══════════════════════════════════════════════════════════════════════
 # GEMINI
 # ═══════════════════════════════════════════════════════════════════════
-_discovered_models = []
+# ── Preferred model order — REST API model strings ───────────────────
+_GEMINI_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-pro",
+]
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
 
 def discover_models():
-    global _discovered_models
-    if _discovered_models:
-        return _discovered_models
-    if not (GEMINI_KEY and GENAI_AVAILABLE):
+    """Return model list — uses static preferred list (no SDK needed)."""
+    if not GEMINI_KEY:
         return []
-    try:
-        genai.configure(api_key=GEMINI_KEY)
-        models = []
-        for m in genai.list_models():
-            if "generateContent" in (m.supported_generation_methods or []):
-                models.append(m.name.replace("models/", ""))
-        preferred = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash-exp"]
-        ordered   = [p for p in preferred if any(p in n for n in models)]
-        rest      = [n for n in models if not any(p in n for p in preferred)]
-        _discovered_models = ordered + rest
-        return _discovered_models
-    except Exception:
-        return ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro", "gemini-2.0-flash-exp"]
+    return _GEMINI_MODELS
 
 
 def call_gemini(prompt):
-    if not (GEMINI_KEY and GENAI_AVAILABLE):
-        return None, "Gemini not configured."
-    models_to_try = discover_models()
-    if not models_to_try:
-        return None, "No Gemini models discovered."
+    """Call Gemini via REST API. No SDK, no grpc — minimal footprint."""
+    if not GEMINI_KEY:
+        return None, "GEMINI_API_KEY not set."
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature":     0.2,
+            "maxOutputTokens": 16384,
+            "topP":            0.85,
+            "topK":            40,
+        },
+    }
+
     last_error = ""
-    for model_name in models_to_try:
+    for model_name in _GEMINI_MODELS:
+        url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={GEMINI_KEY}"
         for attempt in range(2):
             try:
-                model = genai.GenerativeModel(
-                    model_name,
-                    generation_config={"temperature": 0.2, "max_output_tokens": 16384, "top_p": 0.85, "top_k": 40})
-                response = model.generate_content(prompt)
-                if response and hasattr(response, "text") and response.text.strip():
-                    return response.text.strip(), None
-                last_error = f"{model_name}: empty response"
-                break
+                resp = _requests.post(url, json=payload, timeout=180)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    text = (data.get("candidates", [{}])[0]
+                                .get("content", {})
+                                .get("parts", [{}])[0]
+                                .get("text", "")).strip()
+                    if text:
+                        return text, None
+                    last_error = f"{model_name}: empty response"
+                    break
+                elif resp.status_code in (404, 400):
+                    # Model not available — try next
+                    last_error = f"{model_name}: HTTP {resp.status_code}"
+                    break
+                elif resp.status_code == 429:
+                    last_error = f"{model_name}: quota exceeded"
+                    time.sleep(0.5)
+                    break
+                else:
+                    last_error = f"{model_name}: HTTP {resp.status_code} — {resp.text[:200]}"
+                    if attempt == 0:
+                        time.sleep(1.5)
+                        continue
+                    break
             except Exception as e:
-                err = str(e)
-                last_error = f"{model_name} ({attempt+1}): {err}"
-                if "429" in err or "404" in err or "quota" in err.lower():
-                    time.sleep(0.3); break
+                last_error = f"{model_name} ({attempt+1}): {e}"
                 if attempt == 0:
-                    time.sleep(1.5); continue
+                    time.sleep(1.5)
+                    continue
                 break
+
     return None, last_error
 
 
@@ -1756,18 +1774,10 @@ def split_key(text):
 # Pipeline: Gemini SVG → wkhtmltoimage PNG @ 300dpi → embed in PDF
 # Falls back to pure ReportLab SVG renderer if wkhtmltoimage unavailable
 # ═══════════════════════════════════════════════════════════════════════
-import subprocess, tempfile, os
-from io import BytesIO
-
-# ── Check wkhtmltoimage availability once at startup ──────────────────
-def _has_wkhtmltoimage():
-    try:
-        r = subprocess.run(['which', 'wkhtmltoimage'], capture_output=True, timeout=3)
-        return r.returncode == 0
-    except Exception:
-        return False
-
-_WKHTML_AVAILABLE = _has_wkhtmltoimage()
+import tempfile
+# subprocess only imported lazily inside functions (not at module level)
+# wkhtmltoimage not available on Vercel — always use ReportLab SVG renderer
+_WKHTML_AVAILABLE = False
 
 
 # ── Subject → diagram type hints ─────────────────────────────────────
@@ -1937,6 +1947,7 @@ def svg_to_png_bytes(svg_str: str, target_width_px: int = 900) -> bytes | None:
 
         pngfile = htmlfile.replace('.html', '.png')
 
+        import subprocess
         result = subprocess.run([
             'wkhtmltoimage',
             '--format', 'png',
@@ -2526,4 +2537,4 @@ def chapters():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
-    app.run(host="0.0.0.0", port=port, debug=False)fix bugs
+    app.run(host="0.0.0.0", port=port, debug=False)
