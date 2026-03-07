@@ -558,56 +558,56 @@ def _styles():
                 setattr(base[name], k, v)
 
     # ── Paper header ──────────────────────────────────────────────────
-    S("PTitle",    fontName=B, fontSize=14, textColor=white,
-      alignment=TA_CENTER, leading=20, spaceAfter=0, spaceBefore=0)
-    S("PSubtitle", fontName=R, fontSize=9.5, textColor=HexColor("#d0e4f7"),
-      alignment=TA_CENTER, leading=14, spaceAfter=0)
-    S("PMeta",     fontName=R, fontSize=9, textColor=C_GREY,
-      alignment=TA_LEFT, leading=13, spaceAfter=0)
-    S("PMetaR",    fontName=R, fontSize=9, textColor=C_GREY,
-      alignment=TA_RIGHT, leading=13, spaceAfter=0)
-    S("PMetaC",    fontName=R, fontSize=9.5, textColor=C_BODY,
-      alignment=TA_CENTER, leading=14, spaceAfter=0)
-    S("PMetaBold", fontName=B, fontSize=9.5, textColor=C_NAVY,
-      alignment=TA_CENTER, leading=14, spaceAfter=0)
+    S("PTitle",    fontName=B, fontSize=12, textColor=white,
+      alignment=TA_CENTER, leading=17, spaceAfter=0, spaceBefore=0)
+    S("PSubtitle", fontName=R, fontSize=8.5, textColor=HexColor("#d0e4f7"),
+      alignment=TA_CENTER, leading=12, spaceAfter=0)
+    S("PMeta",     fontName=R, fontSize=8.5, textColor=C_GREY,
+      alignment=TA_LEFT, leading=12, spaceAfter=0)
+    S("PMetaR",    fontName=R, fontSize=8.5, textColor=C_GREY,
+      alignment=TA_RIGHT, leading=12, spaceAfter=0)
+    S("PMetaC",    fontName=R, fontSize=8.5, textColor=C_BODY,
+      alignment=TA_CENTER, leading=12, spaceAfter=0)
+    S("PMetaBold", fontName=B, fontSize=8.5, textColor=C_NAVY,
+      alignment=TA_CENTER, leading=12, spaceAfter=0)
 
     # ── Section banners ───────────────────────────────────────────────
-    S("SecBanner", fontName=B, fontSize=10.5, textColor=C_NAVY,
-      leading=15, spaceAfter=0, spaceBefore=0)
-    S("SecBannerKey", fontName=B, fontSize=11, textColor=white,
-      alignment=TA_CENTER, leading=16, spaceAfter=0, spaceBefore=0)
+    S("SecBanner", fontName=B, fontSize=9.5, textColor=C_NAVY,
+      leading=13, spaceAfter=0, spaceBefore=0)
+    S("SecBannerKey", fontName=B, fontSize=10, textColor=white,
+      alignment=TA_CENTER, leading=14, spaceAfter=0, spaceBefore=0)
 
     # ── Instructions ──────────────────────────────────────────────────
-    S("InstrHead", fontName=B, fontSize=9.5, textColor=C_NAVY,
-      leading=14, spaceAfter=2, spaceBefore=4)
-    S("Instr",     fontName=R, fontSize=9.5, textColor=C_BODY,
-      leading=14, spaceAfter=2, leftIndent=18, firstLineIndent=-18)
+    S("InstrHead", fontName=B, fontSize=8.5, textColor=C_NAVY,
+      leading=12, spaceAfter=2, spaceBefore=3)
+    S("Instr",     fontName=R, fontSize=8.5, textColor=C_BODY,
+      leading=12, spaceAfter=1, leftIndent=16, firstLineIndent=-16)
 
     # ── Question text ─────────────────────────────────────────────────
-    S("Q",    fontName=R, fontSize=11, textColor=C_STEEL,
-      alignment=TA_JUSTIFY, leading=17, spaceBefore=7, spaceAfter=2,
-      leftIndent=26, firstLineIndent=-26)
-    S("QCont",fontName=R, fontSize=11, textColor=C_STEEL,
-      alignment=TA_JUSTIFY, leading=17, spaceBefore=1, spaceAfter=2, leftIndent=26)
-    S("QSub", fontName=R, fontSize=11, textColor=C_STEEL,
-      alignment=TA_JUSTIFY, leading=17, spaceBefore=3, spaceAfter=2,
-      leftIndent=40, firstLineIndent=-14)
-    S("Opt",  fontName=R, fontSize=10.5, textColor=C_BODY,
-      leading=15, spaceAfter=1, leftIndent=0)
+    S("Q",    fontName=R, fontSize=9.5, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=14, spaceBefore=5, spaceAfter=1,
+      leftIndent=22, firstLineIndent=-22)
+    S("QCont",fontName=R, fontSize=9.5, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=14, spaceBefore=1, spaceAfter=1, leftIndent=22)
+    S("QSub", fontName=R, fontSize=9.5, textColor=C_STEEL,
+      alignment=TA_JUSTIFY, leading=14, spaceBefore=2, spaceAfter=1,
+      leftIndent=34, firstLineIndent=-12)
+    S("Opt",  fontName=R, fontSize=9, textColor=C_BODY,
+      leading=13, spaceAfter=1, leftIndent=0)
 
     # ── Answer key ────────────────────────────────────────────────────
-    S("KTitle",fontName=B, fontSize=13, textColor=white,
-      alignment=TA_CENTER, leading=19, spaceAfter=0, spaceBefore=0)
-    S("KSec",  fontName=B, fontSize=10.5, textColor=C_NAVY,
-      leading=14, spaceAfter=2, spaceBefore=6)
-    S("KQ",    fontName=B, fontSize=10.5, textColor=C_NAVY,
-      leading=14, spaceAfter=2, spaceBefore=5, leftIndent=24, firstLineIndent=-24)
-    S("KStep", fontName=R, fontSize=10.5, textColor=C_KSTEP,
-      leading=16, spaceAfter=2, leftIndent=24)
-    S("KSub",  fontName=R, fontSize=10.5, textColor=C_BODY,
-      leading=16, spaceAfter=2, leftIndent=36, firstLineIndent=-12)
-    S("KMath", fontName=I, fontSize=10.5, textColor=C_BODY,
-      leading=16, spaceAfter=2, leftIndent=32)
+    S("KTitle",fontName=B, fontSize=12, textColor=white,
+      alignment=TA_CENTER, leading=17, spaceAfter=0, spaceBefore=0)
+    S("KSec",  fontName=B, fontSize=9.5, textColor=C_NAVY,
+      leading=13, spaceAfter=1, spaceBefore=5)
+    S("KQ",    fontName=B, fontSize=9.5, textColor=C_NAVY,
+      leading=13, spaceAfter=1, spaceBefore=4, leftIndent=22, firstLineIndent=-22)
+    S("KStep", fontName=R, fontSize=9.5, textColor=C_KSTEP,
+      leading=14, spaceAfter=1, leftIndent=22)
+    S("KSub",  fontName=R, fontSize=9.5, textColor=C_BODY,
+      leading=14, spaceAfter=1, leftIndent=32, firstLineIndent=-11)
+    S("KMath", fontName=I, fontSize=9.5, textColor=C_BODY,
+      leading=14, spaceAfter=1, leftIndent=28)
 
     # ── Diagram label ─────────────────────────────────────────────────
     S("DiagLabel", fontName=I, fontSize=9, textColor=C_GREY,
@@ -638,7 +638,7 @@ class ExamCanvas:
 
         canvas.setFont(_f("Reg"), 7.5)
         canvas.setFillColor(C_GREY)
-        canvas.drawString(LM, 10, "ExamCraft  |  Generated Paper — For Internal Use")
+        canvas.drawString(LM, 10, "ExamCraft")
         canvas.drawRightString(RM, 10, f"Page  {doc.page}")
 
         canvas.restoreState()
@@ -910,9 +910,9 @@ def create_exam_pdf(text, subject, chapter, board="",
     register_fonts()
     st = _styles()
 
-    LM = BM = 20 * mm
-    RM = 20 * mm
-    TM = 16 * mm
+    LM = BM = 17 * mm
+    RM = 17 * mm
+    TM = 13 * mm
     PW = A4[0] - LM - RM
 
     buf = BytesIO()
