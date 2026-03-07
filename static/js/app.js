@@ -2,16 +2,16 @@
 // ExamCraft — Frontend Controller v4  (bug-fixed)
 // =====================================================================
 
-let curriculumData   = {};
-let currentPaper     = '';
-let currentAnswerKey = '';
-let currentMeta      = {};
+var curriculumData   = {};
+var currentPaper     = '';
+var currentAnswerKey = '';
+var currentMeta      = {};
 
-let compScope  = 'topic';   // 'topic' | 'subject' | 'all'
-let boardScope = 'single';  // 'single' | 'all'
+var compScope  = 'topic';   // 'topic' | 'subject' | 'all'
+var boardScope = 'single';  // 'single' | 'all'
 
 // ── Theme System ──────────────────────────────────────────────────────
-const THEMES = [
+const APP_THEMES = [
   { name: 'Violet',  accent: '#6d5bff', a2: '#9f8dff', a3: '#c4b8ff', glow: 'rgba(109,91,255,0.4)',  dim: 'rgba(109,91,255,0.12)', orb1:'#4c1d95', orb2:'#1e3a8a', orb3:'#0c4a6e', orb4:'#581c87', orb5:'#1e1b4b' },
   { name: 'Teal',    accent: '#14b8a6', a2: '#2dd4bf', a3: '#5eead4', glow: 'rgba(20,184,166,0.4)',  dim: 'rgba(20,184,166,0.12)',  orb1:'#134e4a', orb2:'#1e3a5f', orb3:'#0c4a3e', orb4:'#164e63', orb5:'#0f2027' },
   { name: 'Crimson', accent: '#e11d48', a2: '#fb7185', a3: '#fda4af', glow: 'rgba(225,29,72,0.4)',   dim: 'rgba(225,29,72,0.12)',   orb1:'#4c0519', orb2:'#3b0764', orb3:'#450a0a', orb4:'#4a044e', orb5:'#1c1917' },
@@ -20,11 +20,11 @@ const THEMES = [
   { name: 'Sky',     accent: '#0284c7', a2: '#38bdf8', a3: '#7dd3fc', glow: 'rgba(2,132,199,0.4)',   dim: 'rgba(2,132,199,0.12)',   orb1:'#0c4a6e', orb2:'#1e3a5f', orb3:'#0a3d62', orb4:'#164e63', orb5:'#0f2027' },
 ];
 
-let currentThemeIdx = 0;
+let appThemeIdx = 0;
 let isDark = true;
 
-function applyTheme(themeIdx, dark) {
-  const t = THEMES[themeIdx];
+function applyAppTheme(themeIdx, dark) {
+  const t = APP_THEMES[themeIdx];
   const r = document.documentElement;
   r.style.setProperty('--accent',      t.accent);
   r.style.setProperty('--accent-2',    t.a2);
@@ -45,25 +45,25 @@ function applyTheme(themeIdx, dark) {
 }
 
 let _autoThemeTimer = null;
-function startAutoThemeRotation() {
+function startAppThemeRotation() {
   clearInterval(_autoThemeTimer);
   _autoThemeTimer = setInterval(() => {
-    currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
-    applyTheme(currentThemeIdx, isDark);
+    appThemeIdx = (appThemeIdx + 1) % APP_THEMES.length;
+    applyAppTheme(appThemeIdx, isDark);
   }, 45000);
 }
 
 window.cycleTheme = function() {
   clearInterval(_autoThemeTimer);
-  currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
-  applyTheme(currentThemeIdx, isDark);
-  showToast(`Theme: ${THEMES[currentThemeIdx].name}`);
-  startAutoThemeRotation();
+  appThemeIdx = (appThemeIdx + 1) % APP_THEMES.length;
+  applyAppTheme(appThemeIdx, isDark);
+  showToast(`Theme: ${APP_THEMES[appThemeIdx].name}`);
+  startAppThemeRotation();
 };
 
 window.toggleDark = function() {
   isDark = !isDark;
-  applyTheme(currentThemeIdx, isDark);
+  applyAppTheme(appThemeIdx, isDark);
 };
 window.toggleTheme = window.toggleDark;
 
@@ -597,10 +597,10 @@ document.addEventListener('DOMContentLoaded', () => {
     savedIdx  = parseInt(localStorage.getItem('themeIdx') || '0', 10);
     savedDark = localStorage.getItem('themeDark') !== '0';
   } catch {}
-  currentThemeIdx = Math.min(savedIdx, THEMES.length - 1);
+  appThemeIdx = Math.min(savedIdx, APP_THEMES.length - 1);
   isDark = savedDark;
-  applyTheme(currentThemeIdx, isDark);
-  startAutoThemeRotation();
+  applyAppTheme(appThemeIdx, isDark);
+  startAppThemeRotation();
 
   renderHistory();
   initCurriculum();

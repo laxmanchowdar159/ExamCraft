@@ -347,11 +347,11 @@ _SYM = {
     r'\in':'∈', r'\notin':'∉', r'\ni':'∋',
     r'\subset':'⊂', r'\subseteq':'⊆', r'\supset':'⊃', r'\supseteq':'⊇',
     r'\cup':'∪', r'\cap':'∩', r'\emptyset':'∅', r'\varnothing':'∅',
-    r'\setminus':'\\',
+    r'\setminus':'∖',
     # Relations
     r'\leq':'≤', r'\geq':'≥', r'\le':'≤', r'\ge':'≥',
     r'\neq':'≠', r'\ne':'≠', r'\approx':'≈',
-    r'\equiv':'≡', r'\sim':'~', r'\simeq':'≃', r'\propto':'∝',
+    r'\equiv':'≡', r'\sim':'∼', r'\simeq':'≃', r'\propto':'∝',
     r'\ll':'≪', r'\gg':'≫',
     # Arrows
     r'\rightarrow':'→', r'\leftarrow':'←',
@@ -365,15 +365,15 @@ _SYM = {
     r'\neg':'¬', r'\lnot':'¬', r'\land':'∧', r'\lor':'∨',
     # Geometry
     r'\angle':'∠', r'\measuredangle':'∡', r'\sphericalangle':'∢',
-    r'\perp':'⊥', r'\parallel':'∥', r'\not\parallel':'∦',
+    r'\perp':'⊥', r'\parallel':'∥',
     r'\triangle':'△', r'\square':'□',
-    r'\cong':'≅', r'\ncong':'≇', r'\sim':'~',
+    r'\cong':'≅', r'\ncong':'≇',
     # Common
     r'\degree':'°', r'\circ':'°',
     r'\therefore':'∴', r'\because':'∵',
     r'\prime':'′', r'\doubleprime':'″',
     r'\%':'%', r'\$':'$', r'\#':'#',
-    # Trig (just ensure they pass through cleanly)
+    # Trig (ensure they pass through cleanly)
     r'\sin':'sin', r'\cos':'cos', r'\tan':'tan',
     r'\sec':'sec', r'\csc':'csc', r'\cot':'cot',
     r'\arcsin':'arcsin', r'\arccos':'arccos', r'\arctan':'arctan',
@@ -386,7 +386,7 @@ _SYM = {
     # Number sets
     r'\mathbb{R}':'ℝ', r'\mathbb{Z}':'ℤ', r'\mathbb{N}':'ℕ',
     r'\mathbb{Q}':'ℚ', r'\mathbb{C}':'ℂ',
-    # Brackets (just remove the commands, let the chars through)
+    # Brackets (remove commands, let chars through)
     r'\lfloor':'⌊', r'\rfloor':'⌋', r'\lceil':'⌈', r'\rceil':'⌉',
     r'\langle':'⟨', r'\rangle':'⟩',
     # Misc
@@ -492,6 +492,7 @@ def _process(text: str) -> str:
             p = p.replace('&', '&amp;')
             p = re.sub(r'&amp;(amp|lt|gt|quot|#\d+);', r'&\1;', p)
             p = re.sub(r'<', '&lt;', p)
+            p = re.sub(r'>', '&gt;', p)
             safe.append(p)
 
     out = ''.join(safe)
@@ -639,24 +640,31 @@ def _sec_banner(text, st, pw, is_key=False):
         p = Paragraph(f'<b>{text}</b>', st["SecBanner"])
         bg, line_c = C_LIGHT, C_NAVY2
 
-    # Left accent bar (3pt wide navy strip)
-    accent = Table([[""]], colWidths=[3])
+    # Left accent bar (6pt wide strip)
+    accent = Table([[""]], colWidths=[6])
     accent.setStyle(TableStyle([
         ("BACKGROUND",    (0,0),(-1,-1), C_ACCENT),
         ("TOPPADDING",    (0,0),(-1,-1), 0),
         ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+        ("LEFTPADDING",   (0,0),(-1,-1), 0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
     ]))
 
-    row = Table([[accent, p]], colWidths=[3, pw - 3])
+    row = Table([[accent, p]], colWidths=[6, pw - 6])
     row.setStyle(TableStyle([
         ("BACKGROUND",    (0,0),(-1,-1), bg),
         ("LINEBELOW",     (0,0),(-1,-1), 0.6, line_c),
         ("LINETOP",       (0,0),(-1,-1), 0.6, line_c),
+        # Accent column (col 0): zero padding so the 6pt column isn't squeezed
         ("LEFTPADDING",   (0,0),(0,-1),  0),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 8),
-        ("TOPPADDING",    (0,0),(-1,-1), 5),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 5),
-        ("LEFTPADDING",   (0,1),(1,-1),  8),
+        ("RIGHTPADDING",  (0,0),(0,-1),  0),
+        ("TOPPADDING",    (0,0),(0,-1),  0),
+        ("BOTTOMPADDING", (0,0),(0,-1),  0),
+        # Text column (col 1): comfortable padding
+        ("LEFTPADDING",   (1,0),(1,-1),  10),
+        ("RIGHTPADDING",  (1,0),(1,-1),  10),
+        ("TOPPADDING",    (1,0),(1,-1),  5),
+        ("BOTTOMPADDING", (1,0),(1,-1),  5),
         ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
     ]))
     return row
@@ -718,7 +726,14 @@ def _pipe_table(rows, st, pw):
 # ═══════════════════════════════════════════════════════════════════════
 def _is_sec_hdr(s):
     s = s.strip()
-    if re.match(r'^(SECTION|Section|PART|Part)\s+[A-Da-d](\s|[-:]|$)', s):
+    # PART A/B/C/D or SECTION A/B/C/D (single letter)
+    if re.match(r'^(SECTION|Section|PART|Part)\s+[A-Da-d](\s|[-:—]|$)', s):
+        return True
+    # Section I / II / III / IV / V / VI / VII (Roman numerals)
+    if re.match(r'^(SECTION|Section)\s+(I{1,3}|IV|V?I{0,3}|IX|XI{0,3}|X)(\s|[-:—]|$)', s):
+        return True
+    # Section 1 / 2 / 3 etc. (Arabic numerals)
+    if re.match(r'^(SECTION|Section)\s+\d+(\s|[-:—]|$)', s):
         return True
     return bool(re.match(r'^(GENERAL INSTRUCTIONS|General Instructions'
                          r'|Instructions|Note:|NOTE:)\s*$', s))
@@ -1108,7 +1123,7 @@ def create_exam_pdf(text, subject, chapter, board="",
             elems.append(Spacer(1, 3))
             continue
 
-        q_m = re.match(r'^(Q\.?\s*)?(\d+)[\.)\]]\s+(.+)', s)
+        q_m = re.match(r'^(Q\.?\s*)?(\d+)[\.)\]]\s*(.+)', s)
         if q_m and not in_instr:
             flush_opts()
             in_instr = False
@@ -1187,7 +1202,10 @@ def create_exam_pdf(text, subject, chapter, board="",
                 elems.append(Spacer(1, 3))
                 continue
 
-            if re.match(r'^(Section|SECTION|Part|PART)\s+[A-Da-d]\b', sk):
+            if (re.match(r'^(Section|SECTION|Part|PART)\s+[A-Da-d]\b', sk) or
+                    re.match(r'^(Section|SECTION)\s+(I{1,3}|IV|V?I{0,3}|IX|XI{0,3}|X)\b', sk) or
+                    re.match(r'^(Section|SECTION)\s+\d+\b', sk) or
+                    re.match(r'^(Section|SECTION)\s+\w+\s*[-:—]', sk)):
                 ks = _sec_banner(sk.rstrip(":"), st, PW, is_key=False)
                 elems += [Spacer(1, 6), ks, Spacer(1, 4)]
                 continue
