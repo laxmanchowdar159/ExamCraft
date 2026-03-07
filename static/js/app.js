@@ -93,8 +93,10 @@ function renderHistory() {
   const list = document.getElementById('historyList');
   if (!list) return;
   const h = loadHistory();
+  const cntEl = document.getElementById('histCount');
+  if (cntEl) cntEl.textContent = h.length;
   if (!h.length) {
-    list.innerHTML = `<div class="history-empty"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>No papers yet</span></div>`;
+    list.innerHTML = `<div class="history-empty"><div class="history-empty-icon">✦</div><span>No papers generated yet</span></div>`;
     return;
   }
   list.innerHTML = h.map((e, idx) => `
@@ -133,29 +135,39 @@ async function downloadFromHistory(idx, withKey) {
 function setSidebarValue(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || '—'; }
 
 function updateSidebar() {
-  setSidebarValue('sb-class',      document.getElementById('class')?.value);
-  setSidebarValue('sb-subject',    document.getElementById('subject')?.value);
-  setSidebarValue('sb-marks',      getTotalMarks());
-  setSidebarValue('sb-difficulty', getDifficulty());
-  setSidebarValue('sb-key',        document.getElementById('includeKey')?.checked ? 'Yes' : 'No');
-
   const examType = document.getElementById('examType')?.value;
+  const subject  = document.getElementById('subject')?.value;
+  const chapter  = document.getElementById('chapter')?.value;
+  const cls      = document.getElementById('class')?.value;
+  const marks    = getTotalMarks();
+  const diff     = getDifficulty();
+
   let boardText = '';
   if (examType === 'state-board')      boardText = document.getElementById('stateSelect')?.value || '';
   else if (examType === 'competitive') boardText = document.getElementById('competitiveExam')?.value || '';
-  setSidebarValue('sb-board', boardText);
 
+  let scopeText = '—';
   if (examType === 'state-board') {
-    if (boardScope === 'all') { setSidebarValue('sb-scope','All Chapters');  setSidebarValue('sb-chapter','—'); }
-    else                      { setSidebarValue('sb-scope','One Chapter');   setSidebarValue('sb-chapter', document.getElementById('chapter')?.value || '—'); }
+    scopeText = boardScope === 'all' ? 'All Chapters' : 'One Chapter';
   } else if (examType === 'competitive') {
-    if (compScope === 'all')            { setSidebarValue('sb-scope','All Subjects'); setSidebarValue('sb-chapter','—'); }
-    else if (compScope === 'subject')   { setSidebarValue('sb-scope','Full Subject'); setSidebarValue('sb-chapter','—'); }
-    else                                { setSidebarValue('sb-scope','One Topic');    setSidebarValue('sb-chapter', document.getElementById('chapter')?.value || '—'); }
-  } else {
-    setSidebarValue('sb-scope','—');
-    setSidebarValue('sb-chapter','—');
+    scopeText = compScope === 'all' ? 'All Subjects' : compScope === 'subject' ? 'Full Subject' : 'One Topic';
   }
+
+  // ── Update the "sel-step" selection panel ──────────────────
+  function setSelStep(n, val) {
+    const row = document.getElementById('ssel-' + n);
+    const vEl = document.getElementById('ssel-' + n + '-v');
+    if (!row || !vEl) return;
+    const filled = val && val !== '—';
+    vEl.textContent = val || '—';
+    row.classList.toggle('filled', filled);
+  }
+  setSelStep(1, examType === 'state-board' ? 'State Board' : examType === 'competitive' ? 'Competitive' : '');
+  setSelStep(2, boardText);
+  setSelStep(3, examType ? scopeText : '');
+  setSelStep(4, [subject, chapter && chapter !== 'Full Syllabus' ? chapter : null].filter(Boolean).join(' · ') || (cls ? 'Class ' + cls : ''));
+  setSelStep(5, marks && examType ? marks + ' marks · ' + diff : '');
+
   updateMarksChart();
 }
 
@@ -680,11 +692,14 @@ window.toggleMobileSidebar = function() {
   const ov = document.getElementById('mob-overlay');
   if (!sb) return;
   const open = sb.classList.toggle('mob-open');
-  if (ov) ov.classList.toggle('open', open);
+  if (ov) { ov.classList.toggle('open', open); }
+  // Prevent body scroll when sidebar open
+  document.body.style.overflow = open ? 'hidden' : '';
 };
 window.closeMobileSidebar = function() {
   document.getElementById('sidebar')?.classList.remove('mob-open');
   document.getElementById('mob-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -826,3 +841,189 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Close sidebar on overlay click ── */
   document.getElementById('mob-overlay')?.addEventListener('click', closeMobileSidebar);
 });
+
+/* ══════════════════════════════════════════════════════════════
+   TRIVIA GAME — Loading Screen Mini Game
+══════════════════════════════════════════════════════════════ */
+const TRIVIA_QS = [
+  { q:"Which instrument measures atmospheric pressure?", opts:["Barometer","Thermometer","Hygrometer","Anemometer"], a:0 },
+  { q:"The powerhouse of the cell is the…", opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"], a:2 },
+  { q:"Which planet is known as the Red Planet?", opts:["Venus","Jupiter","Saturn","Mars"], a:3 },
+  { q:"HCF of 12 and 18 is?", opts:["3","4","6","9"], a:2 },
+  { q:"Light travels at approximately… m/s", opts:["3×10⁸","3×10⁶","3×10⁷","3×10⁹"], a:0 },
+  { q:"Water boils at °C at standard pressure?", opts:["90","95","100","110"], a:2 },
+  { q:"The smallest prime number is?", opts:["0","1","2","3"], a:2 },
+  { q:"Chemical formula of water?", opts:["H₂O₂","HO","H₂O","H₃O"], a:2 },
+  { q:"Newton's 2nd law: F = ?", opts:["mv","ma","m/a","m+a"], a:1 },
+  { q:"The pH of pure water is?", opts:["5","6","7","8"], a:2 },
+  { q:"Number of bones in adult human body?", opts:["196","206","216","226"], a:1 },
+  { q:"Which gas do plants absorb for photosynthesis?", opts:["O₂","N₂","CO₂","H₂"], a:2 },
+  { q:"Sum of angles in a triangle?", opts:["90°","180°","270°","360°"], a:1 },
+  { q:"Speed = Distance ÷ ?", opts:["Force","Time","Mass","Area"], a:1 },
+  { q:"Ohm's Law: V = ?", opts:["I+R","I×R","I/R","I²R"], a:1 },
+  { q:"The unit of electric current is?", opts:["Volt","Ohm","Ampere","Watt"], a:2 },
+  { q:"Which organelle is site of protein synthesis?", opts:["Mitochondria","Ribosome","Vacuole","Nucleus"], a:1 },
+  { q:"Area of circle with radius r?", opts:["2πr","πr²","2πr²","πr"], a:1 },
+  { q:"An atom of carbon has how many protons?", opts:["4","6","8","12"], a:1 },
+  { q:"Refraction of light is caused by change in…?", opts:["Speed","Colour","Frequency","Amplitude"], a:0 },
+  { q:"Which blood group is universal donor?", opts:["A","B","AB","O"], a:3 },
+  { q:"Who proposed the theory of evolution?", opts:["Newton","Einstein","Darwin","Mendel"], a:2 },
+  { q:"LCM of 4 and 6 is?", opts:["8","10","12","24"], a:2 },
+  { q:"The human body has how many chromosomes?", opts:["23","44","46","48"], a:2 },
+  { q:"Current through 5Ω if voltage is 10V?", opts:["0.5A","1A","2A","5A"], a:2 },
+];
+
+let _gameScore = 0, _gameStreak = 0, _gameCurrent = 0, _gameActive = false;
+let _gameShuffled = [], _gameAnswered = false, _gameTimer = null;
+
+function _shuffleArr(arr) {
+  const a = [...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;
+}
+
+function initGame() {
+  _gameScore = 0; _gameStreak = 0; _gameCurrent = 0;
+  _gameShuffled = _shuffleArr(TRIVIA_QS);
+  _gameActive = true;
+  document.getElementById('gameScore').textContent = '0';
+  document.getElementById('gameStreak').textContent = '0';
+  loadGameQuestion();
+}
+
+function loadGameQuestion() {
+  if (!_gameActive) return;
+  _gameAnswered = false;
+  clearTimeout(_gameTimer);
+  const idx = _gameCurrent % _gameShuffled.length;
+  const q = _gameShuffled[idx];
+
+  const qEl = document.getElementById('gameQ');
+  const fb  = document.getElementById('gameFeedback');
+  if (!qEl) return;
+
+  qEl.classList.add('fade');
+  setTimeout(() => {
+    qEl.textContent = q.q;
+    qEl.classList.remove('fade');
+    fb.textContent = '';
+    fb.className = 'game-feedback';
+
+    // Shuffle options for display
+    const optIdxs = _shuffleArr([0,1,2,3]);
+    for (let i = 0; i < 4; i++) {
+      const btn = document.getElementById('go' + i);
+      if (!btn) continue;
+      btn.textContent = q.opts[optIdxs[i]];
+      btn.dataset.realIdx = optIdxs[i];
+      btn.className = 'game-opt';
+      btn.disabled = false;
+    }
+    // Progress
+    const fill = document.getElementById('gameProgressFill');
+    if (fill) fill.style.width = ((_gameCurrent % TRIVIA_QS.length) / TRIVIA_QS.length * 100) + '%';
+  }, 200);
+}
+
+window.answerQ = function(btnIdx) {
+  if (_gameAnswered || !_gameActive) return;
+  _gameAnswered = true;
+  const idx = _gameCurrent % _gameShuffled.length;
+  const q = _gameShuffled[idx];
+  const btn = document.getElementById('go' + btnIdx);
+  const chosen = parseInt(btn.dataset.realIdx);
+  const fb = document.getElementById('gameFeedback');
+
+  // Lock all buttons
+  for (let i = 0; i < 4; i++) {
+    const b = document.getElementById('go' + i);
+    b.disabled = true;
+    if (parseInt(b.dataset.realIdx) === q.a) b.classList.add('correct');
+  }
+
+  if (chosen === q.a) {
+    _gameScore++; _gameStreak++;
+    document.getElementById('gameScore').textContent = _gameScore;
+    document.getElementById('gameStreak').textContent = _gameStreak;
+    fb.textContent = ['Excellent! ✦', 'Correct! ★', 'Well done! ◈', 'Brilliant! ⬡'][Math.floor(Math.random()*4)];
+    fb.className = 'game-feedback correct-msg';
+  } else {
+    btn.classList.add('wrong');
+    _gameStreak = 0;
+    document.getElementById('gameStreak').textContent = '0';
+    fb.textContent = 'Not quite — the correct answer is highlighted above.';
+    fb.className = 'game-feedback wrong-msg';
+  }
+  _gameCurrent++;
+  _gameTimer = setTimeout(loadGameQuestion, 1800);
+};
+
+/* Populate the loading recap panel with current selections */
+function populateRecap() {
+  const examType = document.getElementById('examType')?.value;
+  const subject  = document.getElementById('subject')?.value;
+  const chapter  = document.getElementById('chapter')?.value;
+  const cls      = document.getElementById('class')?.value;
+  const marks    = getTotalMarks();
+  const diff     = getDifficulty();
+
+  let boardText = '';
+  if (examType === 'state-board')      boardText = document.getElementById('stateSelect')?.value || '';
+  else if (examType === 'competitive') boardText = document.getElementById('competitiveExam')?.value || '';
+
+  let scopeText = '';
+  if (examType === 'state-board')      scopeText = boardScope === 'all' ? 'Full Syllabus' : 'One Chapter';
+  else if (examType === 'competitive') scopeText = compScope === 'all' ? 'All Subjects' : compScope === 'subject' ? 'Full Subject' : 'One Topic';
+
+  const typeText = examType === 'state-board' ? 'State Board' : examType === 'competitive' ? 'Competitive' : '';
+  const subChap  = [subject, chapter && chapter !== 'Full Syllabus' ? chapter : null].filter(Boolean).join(' › ') || (cls ? 'Class ' + cls : '');
+
+  const map = {
+    'recap-type-val':    typeText,
+    'recap-board-val':   boardText || '—',
+    'recap-scope-val':   scopeText || '—',
+    'recap-subject-val': subChap   || '—',
+    'recap-marks-val':   marks + ' marks · ' + diff,
+  };
+  for (const [id, val] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  // Animate rows in with stagger
+  const rows = document.querySelectorAll('.recap-step');
+  rows.forEach((r, i) => {
+    r.classList.remove('show','highlight');
+    setTimeout(() => {
+      r.classList.add('show');
+      setTimeout(() => r.classList.add('highlight'), 120);
+    }, i * 160);
+  });
+}
+
+/* Override showLoading to trigger game + recap */
+const _origShowLoading = window.showLoading || function(){};
+window.showLoading = function(show, title) {
+  const modal = document.getElementById('loadingModal');
+  if (!modal) return;
+  modal.style.display = show ? 'flex' : 'none';
+
+  if (show) {
+    populateRecap();
+    initGame();
+    // Progress steps
+    const ids = ['ls1','ls2','ls3','ls4','ls5'];
+    ids.forEach(id => { const el = document.getElementById(id); if(el){el.classList.remove('active','done');} });
+    let _st = [];
+    const delays = [0,5000,12000,19000,28000];
+    ids.forEach((id,i) => {
+      _st.push(setTimeout(() => {
+        if(i>0){const p=document.getElementById(ids[i-1]);if(p){p.classList.remove('active');p.classList.add('done');}}
+        const cur=document.getElementById(id);if(cur)cur.classList.add('active');
+      }, delays[i]));
+    });
+    window._loadStepTimers = _st;
+  } else {
+    _gameActive = false;
+    clearTimeout(_gameTimer);
+    if (window._loadStepTimers) window._loadStepTimers.forEach(clearTimeout);
+  }
+};

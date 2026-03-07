@@ -2799,7 +2799,11 @@ def generate():
         suggestions      = (data.get("suggestions") or "").strip()
 
         if exam_type == "state-board" and state:
-            board = f"{state} State Board"
+            # Avoid "Andhra Pradesh State Board State Board" if state already has "State Board"
+            if "state board" in state.lower():
+                board = state.strip()
+            else:
+                board = f"{state} State Board"
         elif exam_type == "competitive" and competitive_exam:
             board = competitive_exam
         else:

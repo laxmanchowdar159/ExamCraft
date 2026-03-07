@@ -14,59 +14,121 @@
 </head>
 <body>
 
-<!-- Background -->
 <div id="bg-layer" aria-hidden="true">
-  <div class="bg-mesh"></div>
-  <div class="bg-grid"></div>
-  <div class="bg-orb orb-a"></div>
-  <div class="bg-orb orb-b"></div>
-  <div class="bg-orb orb-c"></div>
-  <div class="bg-noise"></div>
-  <div class="bg-glow"></div>
-  <div class="bg-lines"></div>
+  <div class="bg-mesh"></div><div class="bg-grid"></div>
+  <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
+  <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
 </div>
-
 <div id="cur-dot" aria-hidden="true"></div>
 <div id="cur-ring" aria-hidden="true"></div>
 <canvas id="confetti-canvas" aria-hidden="true"></canvas>
 <div id="notificationToast" role="status" aria-live="polite"></div>
 
-<!-- Loading Modal -->
+<!-- ═══ LOADING MODAL ═══════════════════════════════════════════ -->
 <div id="loadingModal" role="dialog" aria-modal="true" aria-label="Generating exam paper">
-  <div class="loader-box">
-    <div class="loader-seal">
-      <div class="orbital">
-        <div class="o-ring o-r1"></div>
-        <div class="o-ring o-r2"></div>
-        <div class="o-ring o-r3"></div>
-        <div class="o-emoji">✦</div>
+  <div class="loader-layout">
+
+    <!-- Left: Current selection recap -->
+    <div class="loader-left">
+      <div class="loader-left-inner">
+        <div class="loader-recap-title">Generating your<br><em>perfect paper</em></div>
+        <div class="loader-recap-sub">Gemini 2.5 Flash · LangChain · AP/TS Board</div>
+
+        <div class="recap-steps" id="recapSteps">
+          <div class="recap-step" id="recap-type">
+            <div class="recap-step-icon">I</div>
+            <div class="recap-step-info">
+              <div class="recap-step-label">Paper Type</div>
+              <div class="recap-step-val" id="recap-type-val">—</div>
+            </div>
+          </div>
+          <div class="recap-step" id="recap-board">
+            <div class="recap-step-icon">II</div>
+            <div class="recap-step-info">
+              <div class="recap-step-label">Board / Exam</div>
+              <div class="recap-step-val" id="recap-board-val">—</div>
+            </div>
+          </div>
+          <div class="recap-step" id="recap-scope">
+            <div class="recap-step-icon">III</div>
+            <div class="recap-step-info">
+              <div class="recap-step-label">Scope</div>
+              <div class="recap-step-val" id="recap-scope-val">—</div>
+            </div>
+          </div>
+          <div class="recap-step" id="recap-subject">
+            <div class="recap-step-icon">IV</div>
+            <div class="recap-step-info">
+              <div class="recap-step-label">Subject / Chapter</div>
+              <div class="recap-step-val" id="recap-subject-val">—</div>
+            </div>
+          </div>
+          <div class="recap-step" id="recap-marks">
+            <div class="recap-step-icon">V</div>
+            <div class="recap-step-info">
+              <div class="recap-step-label">Marks · Difficulty</div>
+              <div class="recap-step-val" id="recap-marks-val">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="loader-progress">
+          <div class="sb-lbl" style="margin-bottom:10px">AI Progress</div>
+          <div class="loader-steps">
+            <div class="load-step" id="ls1"><div class="ls-dot"></div><span>Parsing your requirements</span></div>
+            <div class="load-step" id="ls2"><div class="ls-dot"></div><span>Generating questions with AI</span></div>
+            <div class="load-step" id="ls3"><div class="ls-dot"></div><span>Writing the answer key</span></div>
+            <div class="load-step" id="ls4"><div class="ls-dot"></div><span>Formatting the paper layout</span></div>
+            <div class="load-step" id="ls5"><div class="ls-dot"></div><span>Building your PDF</span></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="loaderTitle" class="loader-title">Crafting your paper…</div>
-    <div class="loader-sub">Gemini 2.5 Flash · LangChain</div>
-    <div id="loaderJoke" class="loader-joke"></div>
-    <div class="load-steps">
-      <div class="load-step" id="ls1"><div class="ls-dot"></div><span>Parsing your requirements</span></div>
-      <div class="load-step" id="ls2"><div class="ls-dot"></div><span>Generating questions with AI</span></div>
-      <div class="load-step" id="ls3"><div class="ls-dot"></div><span>Writing the answer key</span></div>
-      <div class="load-step" id="ls4"><div class="ls-dot"></div><span>Formatting the paper layout</span></div>
-      <div class="load-step" id="ls5"><div class="ls-dot"></div><span>Building your PDF</span></div>
+
+    <!-- Right: Mini game -->
+    <div class="loader-right">
+      <div class="loader-orbital-wrap" id="gameOrbital">
+        <div class="orbital">
+          <div class="o-ring o-r1"></div><div class="o-ring o-r2"></div><div class="o-ring o-r3"></div>
+          <div class="o-emoji">✦</div>
+        </div>
+      </div>
+      <div class="loader-game-title" id="gameTitle">Trivia while you wait</div>
+      <div class="loader-game-sub" id="gameSub">Test your academic knowledge</div>
+      <div class="game-box" id="gameBox">
+        <div class="game-score-row">
+          <div class="game-score">Score: <span id="gameScore">0</span></div>
+          <div class="game-streak">Streak: <span id="gameStreak">0</span>🔥</div>
+        </div>
+        <div class="game-q" id="gameQ">Loading question...</div>
+        <div class="game-opts" id="gameOpts">
+          <button class="game-opt" id="go0" onclick="answerQ(0)"></button>
+          <button class="game-opt" id="go1" onclick="answerQ(1)"></button>
+          <button class="game-opt" id="go2" onclick="answerQ(2)"></button>
+          <button class="game-opt" id="go3" onclick="answerQ(3)"></button>
+        </div>
+        <div class="game-feedback" id="gameFeedback"></div>
+        <div class="game-progress-bar"><div class="game-progress-fill" id="gameProgressFill" style="width:0%"></div></div>
+      </div>
     </div>
+
   </div>
 </div>
+<!-- ═══ END MODAL ════════════════════════════════════════════════ -->
 
-<div id="mob-overlay"></div>
+<div id="mob-overlay" onclick="closeMobileSidebar()"></div>
 
 <div class="app">
 
-  <!-- Sidebar -->
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
   <aside id="sidebar">
     <div class="sb-inner">
 
+      <!-- Brand -->
       <div class="sb-brand">
         <div class="sb-brand-row">
           <div class="sb-logo" title="ExamCraft AI">✦</div>
-          <div class="sb-brand-text">
+          <div>
             <div class="sb-name">Exam<em>Craft</em></div>
             <div class="sb-sub">AI Examination System</div>
           </div>
@@ -74,8 +136,56 @@
         <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
       </div>
 
+      <!-- ★ Current Selection — PROMINENT TOP PANEL ★ -->
+      <div class="sb-selection">
+        <div class="sel-title">Current Selection</div>
+        <div class="sel-steps">
+          <div class="sel-step" id="ssel-1">
+            <div class="sel-step-num">I</div>
+            <div class="sel-step-label">Type</div>
+            <div class="sel-step-value" id="ssel-1-v">—</div>
+          </div>
+          <div class="sel-step" id="ssel-2">
+            <div class="sel-step-num">II</div>
+            <div class="sel-step-label">Board</div>
+            <div class="sel-step-value" id="ssel-2-v">—</div>
+          </div>
+          <div class="sel-step" id="ssel-3">
+            <div class="sel-step-num">III</div>
+            <div class="sel-step-label">Scope</div>
+            <div class="sel-step-value" id="ssel-3-v">—</div>
+          </div>
+          <div class="sel-step" id="ssel-4">
+            <div class="sel-step-num">IV</div>
+            <div class="sel-step-label">Subject</div>
+            <div class="sel-step-value" id="ssel-4-v">—</div>
+          </div>
+          <div class="sel-step" id="ssel-5">
+            <div class="sel-step-num">V</div>
+            <div class="sel-step-label">Marks</div>
+            <div class="sel-step-value" id="ssel-5-v">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mark Distribution Chart -->
+      <div class="sb-chart-wrap">
+        <div class="sb-chart-lbl">Mark Distribution</div>
+        <canvas id="marksChart"></canvas>
+      </div>
+
+      <!-- ★ History — Highlighted ★ -->
+      <div class="sb-hist">
+        <div class="hist-hdr">
+          <div class="hist-lbl">Recent Papers <span class="hist-count" id="histCount">0</span></div>
+          <button class="hist-clear" onclick="clearHistory()">Clear</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+
+      <!-- Progress Steps -->
       <div class="sb-progress">
-        <div class="sb-lbl">Progress</div>
+        <div class="sb-lbl">Workflow Progress</div>
         <div class="step active" id="step-1"><div class="step-num">I</div><span>Paper Type</span></div>
         <div class="step-conn" id="conn-1"></div>
         <div class="step" id="step-2"><div class="step-num">II</div><span>Board / Exam</span></div>
@@ -89,43 +199,17 @@
         <div class="step" id="step-6"><div class="step-num">VI</div><span>Generate &amp; Download</span></div>
       </div>
 
-      <div class="sb-card">
-        <div class="sb-card-lbl">Examination Dossier</div>
-        <div class="sum-row"><span class="sum-k">Board</span>    <span class="sum-v" id="sb-board">—</span></div>
-        <div class="sum-row"><span class="sum-k">Class</span>    <span class="sum-v" id="sb-class">—</span></div>
-        <div class="sum-row"><span class="sum-k">Subject</span>  <span class="sum-v" id="sb-subject">—</span></div>
-        <div class="sum-row"><span class="sum-k">Chapter</span>  <span class="sum-v" id="sb-chapter">—</span></div>
-        <div class="sum-row"><span class="sum-k">Scope</span>    <span class="sum-v" id="sb-scope">—</span></div>
-        <div class="sum-row"><span class="sum-k">Marks</span>    <span class="sum-v" id="sb-marks">—</span></div>
-        <div class="sum-row"><span class="sum-k">Level</span>    <span class="sum-v" id="sb-difficulty">—</span></div>
-        <div class="sum-row"><span class="sum-k">Ans. Key</span> <span class="sum-v" id="sb-key">—</span></div>
-      </div>
-
-      <div class="sb-chart-wrap">
-        <div class="sb-chart-lbl">Mark Distribution</div>
-        <canvas id="marksChart"></canvas>
-      </div>
-
-      <div class="sb-hist">
-        <div class="hist-hdr">
-          <div class="hist-lbl">Recent Papers</div>
-          <button class="hist-clear" onclick="clearHistory()">Clear</button>
-        </div>
-        <div id="historyList"></div>
-      </div>
-
       <div class="sb-footer">by Laxman Nimmagadda &middot; © 2026</div>
-
     </div>
   </aside>
 
-  <!-- Main -->
+  <!-- ═══ MAIN AREA ══════════════════════════════════════════════ -->
   <div class="main-area">
 
     <nav class="topbar">
       <div class="tb-left">
         <button class="mob-toggle" onclick="toggleMobileSidebar()" aria-label="Open menu">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
@@ -148,27 +232,21 @@
     </nav>
 
     <form id="paperForm" autocomplete="off" onsubmit="return false">
-      <input type="hidden" id="examType"    name="examType">
+      <input type="hidden" id="examType" name="examType">
       <input type="hidden" id="scopeSelect" name="scope" value="single">
-      <input type="hidden" id="totalMarks"  name="totalMarks" value="100">
+      <input type="hidden" id="totalMarks" name="totalMarks" value="100">
 
       <div class="form-area">
 
-        <!-- Hero -->
+        <!-- HERO -->
         <div class="hero">
           <div class="hero-kicker">
             <span class="hero-eye">AI-Powered Examination Tool</span>
             <span class="hero-divider">✦</span>
             <span class="hero-year">MMXXVI</span>
           </div>
-          <h1 class="hero-h1">
-            Generate a perfect<br>
-            <em>exam paper</em> in seconds
-          </h1>
-          <p class="hero-sub">
-            Curriculum-aligned papers for AP/TS State Board and national competitive exams.
-            Configure below, click Generate, receive your PDF instantly.
-          </p>
+          <h1 class="hero-h1">Generate a perfect<br><em>exam paper</em> in seconds</h1>
+          <p class="hero-sub">Curriculum-aligned papers for AP/TS State Board and national competitive exams. Configure below, click Generate, receive your PDF instantly.</p>
           <div class="joke-box">
             <div>
               <div class="joke-badge">Examination Wisdom</div>
@@ -212,8 +290,8 @@
             <label class="fl" for="stateSelect">State</label>
             <select id="stateSelect" onchange="updateSubjects(); updateSidebar(); setActiveStep(3);">
               <option value="">Choose state…</option>
-              <option value="Andhra Pradesh State Board">Andhra Pradesh</option>
-              <option value="Telangana State Board">Telangana</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Telangana">Telangana</option>
             </select>
           </div>
         </div>
@@ -234,9 +312,7 @@
               <option value="IJSO">IJSO (Junior Science)</option>
             </select>
           </div>
-          <div class="info-box" id="compInfoBox">
-            <div id="compInfoText"></div>
-          </div>
+          <div class="info-box" id="compInfoBox"><div id="compInfoText"></div></div>
         </div>
 
         <div class="sec-div"></div>
@@ -250,33 +326,23 @@
           <div id="boardScopeRow" style="display:none">
             <div class="scope-grid">
               <div class="scope-card active" id="bscope-single" onclick="selectBoardScope('single')" role="button" tabindex="0">
-                <span class="sc-ico">◻</span>
-                <div class="sc-name">One Chapter</div>
-                <div class="sc-desc">Focused single-chapter paper</div>
+                <span class="sc-ico">◻</span><div class="sc-name">One Chapter</div><div class="sc-desc">Focused single-chapter paper</div>
               </div>
               <div class="scope-card" id="bscope-all" onclick="selectBoardScope('all')" role="button" tabindex="0">
-                <span class="sc-ico">▣</span>
-                <div class="sc-name">All Chapters</div>
-                <div class="sc-desc">Full syllabus paper</div>
+                <span class="sc-ico">▣</span><div class="sc-name">All Chapters</div><div class="sc-desc">Full syllabus paper</div>
               </div>
             </div>
           </div>
           <div id="compScopeRow" style="display:none">
             <div class="scope-grid">
               <div class="scope-card active" id="cscope-topic" onclick="selectCompScope('topic')" role="button" tabindex="0">
-                <span class="sc-ico">◎</span>
-                <div class="sc-name">One Topic</div>
-                <div class="sc-desc">Specific focus area</div>
+                <span class="sc-ico">◎</span><div class="sc-name">One Topic</div><div class="sc-desc">Specific focus area</div>
               </div>
               <div class="scope-card" id="cscope-subject" onclick="selectCompScope('subject')" role="button" tabindex="0">
-                <span class="sc-ico">◉</span>
-                <div class="sc-name">Full Subject</div>
-                <div class="sc-desc">Entire subject covered</div>
+                <span class="sc-ico">◉</span><div class="sc-name">Full Subject</div><div class="sc-desc">Entire subject covered</div>
               </div>
               <div class="scope-card" id="cscope-all" onclick="selectCompScope('all')" role="button" tabindex="0">
-                <span class="sc-ico">⬤</span>
-                <div class="sc-name">All Subjects</div>
-                <div class="sc-desc">Complete syllabus</div>
+                <span class="sc-ico">⬤</span><div class="sc-name">All Subjects</div><div class="sc-desc">Complete syllabus</div>
               </div>
             </div>
           </div>
@@ -290,15 +356,13 @@
             <div class="sec-badge">IV</div>
             <div class="sec-title">Paper Details</div>
           </div>
-          <div class="frow" style="margin-bottom:14px">
+          <div class="frow" style="margin-bottom:16px">
             <div class="fg sel-w">
               <label class="fl" for="class">Class</label>
               <select id="class" onchange="onClassChange()">
                 <option value="">Select class…</option>
-                <option value="6">Class VI</option>
-                <option value="7">Class VII</option>
-                <option value="8">Class VIII</option>
-                <option value="9">Class IX</option>
+                <option value="6">Class VI</option><option value="7">Class VII</option>
+                <option value="8">Class VIII</option><option value="9">Class IX</option>
                 <option value="10">Class X</option>
               </select>
             </div>
@@ -376,7 +440,7 @@
 
       <div class="gen-wrap">
         <button type="button" class="gen-btn" onclick="generatePaper()">
-          <svg class="bolt" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg class="bolt" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
           <span>Generate &amp; Download PDF</span>
@@ -385,7 +449,6 @@
           <span class="ac">Gemini 2.5 Flash</span> · LangChain · ~25–50 s · Direct download
         </div>
       </div>
-
     </form>
 
     <div id="successPanel">
@@ -402,20 +465,17 @@
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Paper PDF
+            </svg>Paper PDF
           </button>
           <button class="succ-btn key" id="dlWithKey" style="display:none" onclick="downloadPDF(true)">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-            </svg>
-            + Answer Key
+            </svg>+ Answer Key
           </button>
           <button class="succ-btn new" onclick="generateAnother()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
-            </svg>
-            New Paper
+            </svg>New Paper
           </button>
         </div>
       </div>
