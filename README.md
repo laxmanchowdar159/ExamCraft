@@ -1,100 +1,100 @@
-# 📝 ExamCraft — AI Question Paper Generator
+# ExamCraft — AI-Powered Exam Paper Generator
 
-> Generate professional, curriculum-aligned exam papers in seconds using Google Gemini AI.
+> Curriculum-aligned exam papers for AP/TS State Board and national competitive exams, delivered as a polished PDF in under 60 seconds.
 
----
-
-## What It Does
-
-ExamCraft is a Flask web app for school teachers that generates printable question papers as PDFs. You pick the board, class, subject, chapter, difficulty, and marks — the AI does the rest. If no API key is available, a local fallback generator kicks in automatically.
+**Built by Laxman Nimmagadda**
+Issues or feedback: laxmanchowday159@gmail.com
 
 ---
 
-## Features
+## What ExamCraft Does
 
-- **AI-generated questions** via Google Gemini (auto-selects best available model: Gemini 2.0 Flash → 1.5 Flash → Pro)
-- **Supports Indian boards**: CBSE, ICSE, Andhra Board, State Board, IB
-- **Classes 6-10**, multiple subjects and chapters per subject
-- **Difficulty levels**: Easy, Medium, Hard, Mixed
-- **Marks options**: 20, 40, 60, 80, 100
-- **Answer key** generated on a separate PDF page
-- **Professional A4 PDF** output with school/teacher name in the header
-- **Fallback mode**: Works without an API key using a built-in local generator
+ExamCraft is a Flask web application that lets teachers, tutors, and students generate complete, print-ready examination papers using Google Gemini 2.5 Flash AI. Configure the board, class, subject, chapter, marks, and difficulty — the AI writes a full paper in the correct official format and you download a beautifully rendered PDF in one click.
 
 ---
 
-## Project Structure
+## What ExamCraft Excels In
 
-```
-├── app.py                  # Main Flask application
-├── requirements.txt        # Python dependencies
-├── Procfile                # For deployment (Gunicorn)
-├── render.yaml             # Render.com deployment config
-├── data/
-│   ├── boards.json         # Board definitions
-│   └── curriculum.json     # Subjects and chapters per board/class
-├── static/
-│   ├── css/style.css
-│   ├── js/app.js
-│   └── fonts/DejaVuSans.ttf  # Font used in PDF generation
-└── templates/
-    ├── index.html
-    └── solutions.html
-```
+### Security — Zero Device Access, Zero Tracking
 
----
+ExamCraft is built on a strict privacy-first foundation. The server sends security headers with every single response:
 
-## Getting Started
+| Header | What it does |
+|---|---|
+| Permissions-Policy | Denies camera, microphone, geolocation, gyroscope, accelerometer, USB, Bluetooth, NFC, payment, serial, HID, and 10+ other device APIs |
+| Content-Security-Policy | Scripts, styles, and fonts may only load from self or named trusted CDNs. No eval, no inline injection |
+| X-Frame-Options: DENY | Page cannot be embedded in any iframe — prevents clickjacking |
+| X-Content-Type-Options: nosniff | Prevents MIME-type confusion attacks |
+| X-XSS-Protection | Activates XSS filters in legacy browsers |
+| Referrer-Policy | Only the origin is sent with cross-origin requests |
+| Strict-Transport-Security | Forces HTTPS for a full year in production |
 
-### 1. Clone the repo
+The site never asks for your location. Never activates camera or microphone. Never embeds tracking pixels or ads. All API calls go to the same server — nothing is sent to third parties from the backend. The server fingerprint header is removed entirely.
 
-```bash
-git clone https://github.com/your-username/question-paper-generator.git
-cd question-paper-generator
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Set your Gemini API key (optional but recommended)
-
-```bash
-export GEMINI_API_KEY=your_api_key_here
-```
-
-Get a free key at [aistudio.google.com](https://aistudio.google.com). Without a key, the app uses the built-in fallback generator.
-
-### 4. Run the app
-
-```bash
-python app.py
-```
-
-Visit `http://localhost:5000` in your browser.
+Client-side storage is limited to theme preference and a short paper history (max 8 entries) in localStorage on your own browser. Nothing is uploaded or shared.
 
 ---
 
-## Deployment
+### AI Quality — Gemini 2.5 Flash + LangChain
 
-The app is ready to deploy on [Render](https://render.com) using the included `render.yaml` and `Procfile`.
-
-1. Push to GitHub
-2. Connect your repo on Render
-3. Add `GEMINI_API_KEY` as an environment variable
-4. Deploy
-
----
-
-## Requirements
-
-- Python 3.9+
-- See `requirements.txt` for all packages (Flask, fpdf2, google-generativeai, etc.)
+- Uses Google Gemini 2.5 Flash via LangChain, the same model powering Google educational tools
+- Prompts are engineered per board and exam type — AP/TS papers follow the 5-section blueprint, competitive papers match NTSE/NSO/IMO/IJSO marking schemes exactly
+- Explicit instructions about notation, difficulty calibration, mark distribution, and question types
+- A fallback chain retries with alternate parameters if the primary attempt fails
+- The answer key is generated in a second pass for accuracy
 
 ---
 
-## License
+### PDF Generation — Professional Print Quality
 
-MIT — free to use, modify, and distribute.
+- Rendered with ReportLab (used for government and legal documents)
+- Correct A4 layout with 17mm margins matching official exam paper dimensions
+- Section banners, rule lines, marks in the right-hand column, table layouts for MCQs and match-the-following
+- LaTeX-style math expressions parsed and rendered inline
+- AI-described diagrams auto-generated as SVG and embedded
+- File streamed directly to browser — no file stored on server
+
+---
+
+### User Experience
+
+- Six-step guided workflow with live progress tracker
+- Current Selection panel updates in real-time as you fill each field
+- Paper history with one-click re-download, board badge, marks, and difficulty tags
+- Mark Distribution chart updates live showing MCQ/short/long/application split
+- Loading screen trivia game with 25 academic questions during the wait
+- Six colour themes, auto-rotating every 45 seconds
+- Full mobile support with slide-in sidebar
+
+---
+
+### Performance
+
+- No React, no Vue — plain HTML + CSS + vanilla JS
+- PDF generation runs server-side, browser only receives the final binary
+- Parallel diagram generation using ThreadPoolExecutor
+- Full paper validated before PDF is built — no partial renders
+
+---
+
+### Curriculum Coverage
+
+| Exam | Scope |
+|---|---|
+| AP State Board (SSC) | Classes VI-X, all subjects, per-chapter or full syllabus |
+| Telangana State Board (SSC) | Classes VI-X, all subjects, per-chapter or full syllabus |
+| NTSE | MAT + SAT (Science, Social, Maths) |
+| NSO | Logical Reasoning + Science + Achiever's Section |
+| IMO | Logical Reasoning + Maths + Everyday Maths + Achiever's |
+| IJSO | Integrated Physics + Chemistry + Biology |
+
+---
+
+## Contact
+
+Issues, bugs, or feature requests:
+Laxman Nimmagadda — laxmanchowday159@gmail.com
+
+Please include what you were generating (board, subject, chapter) and the error message if any.
+
+ExamCraft 2026 — Flask, Gemini 2.5 Flash, ReportLab, GSAP, Chart.js

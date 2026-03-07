@@ -41,6 +41,86 @@ genai = None
 app = Flask(__name__, template_folder="templates",
             static_folder="static", static_url_path="/static")
 
+# ═══════════════════════════════════════════════════════════════════════
+# SECURITY HEADERS — applied to every response
+# Denies all device permissions (camera, mic, geolocation, etc.)
+# Prevents clickjacking, MIME-sniffing, XSS injection, and iframe embedding
+# ═══════════════════════════════════════════════════════════════════════
+@app.after_request
+def apply_security_headers(response):
+    # Content-Security-Policy — allow only known safe sources
+    # - Scripts: self + trusted CDNs (GSAP, Chart.js, Lenis, Google Fonts)
+    # - Styles: self + Google Fonts
+    # - Fonts: self + Google Fonts
+    # - Connect: self only (all API calls go to our own server)
+    # - No eval(), no inline event handlers via unsafe-eval
+    # - No object/embed/frame/worker from anywhere
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' "
+        "https://cdnjs.cloudflare.com "
+        "https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' "
+        "https://fonts.googleapis.com; "
+        "font-src 'self' "
+        "https://fonts.gstatic.com; "
+        "connect-src 'self'; "
+        "img-src 'self' data:; "
+        "media-src 'none'; "
+        "object-src 'none'; "
+        "frame-src 'none'; "
+        "frame-ancestors 'none'; "
+        "worker-src 'none'; "
+        "manifest-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    response.headers["Content-Security-Policy"] = csp
+
+    # Permissions Policy — explicitly deny every device API
+    # This is the key header that prevents any prompt for camera/mic/location
+    permissions = (
+        "camera=(), "
+        "microphone=(), "
+        "geolocation=(), "
+        "gyroscope=(), "
+        "accelerometer=(), "
+        "magnetometer=(), "
+        "usb=(), "
+        "midi=(), "
+        "payment=(), "
+        "fullscreen=(self), "
+        "picture-in-picture=(), "
+        "display-capture=(), "
+        "screen-wake-lock=(), "
+        "web-share=(), "
+        "clipboard-read=(), "
+        "clipboard-write=(self), "
+        "ambient-light-sensor=(), "
+        "battery=(), "
+        "bluetooth=(), "
+        "serial=(), "
+        "nfc=(), "
+        "hid=()"
+    )
+    response.headers["Permissions-Policy"] = permissions
+
+    # Anti-clickjacking — page cannot be embedded in any iframe
+    response.headers["X-Frame-Options"]           = "DENY"
+    # Prevent MIME-type sniffing attacks
+    response.headers["X-Content-Type-Options"]    = "nosniff"
+    # Enable XSS filter in older browsers
+    response.headers["X-XSS-Protection"]          = "1; mode=block"
+    # Only send referrer to same origin
+    response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
+    # Force HTTPS in production (ignored on HTTP dev servers)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # Remove server fingerprint
+    response.headers.pop("Server", None)
+    response.headers["X-Powered-By"] = "ExamCraft"
+
+    return response
+
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1317,14 +1397,14 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Tier 3: gemini-2.5-flash-preview  stable alias for 2.5-flash
 # Tier 4: gemini-1.5-flash          legacy wide-availability fallback
 # NOTE: gemini-2.0-flash series shows 0/0 remaining — excluded
-_PRIMARY_MODEL   = "gemini-2.5-flash"
-_FALLBACK_MODEL  = "gemini-2.5-flash-lite"
+_PRIMARY_MODEL   = "gemini-2.0-flash"
+_FALLBACK_MODEL  = "gemini-1.5-flash"
 _GEMINI_MODELS   = [
-    "gemini-2.5-flash",                  # Tier 1 — best output quality
-    "gemini-2.5-flash-lite",             # Tier 2 — most RPM headroom (10/min)
-    "gemini-2.5-flash-preview-05-20",    # Tier 3 — explicit preview alias
-    "gemini-1.5-flash",                  # Tier 4 — stable legacy fallback
-    "gemini-1.5-pro",                    # Tier 5 — last resort
+    "gemini-2.0-flash",                  # Tier 1 — stable, fast, widely available
+    "gemini-2.0-flash-lite",             # Tier 2 — lighter, higher RPM
+    "gemini-1.5-flash",                  # Tier 3 — proven stable legacy
+    "gemini-1.5-flash-8b",               # Tier 4 — smallest, most available
+    "gemini-2.5-flash-preview-05-20",    # Tier 5 — preview if accessible
 ]
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -1386,7 +1466,7 @@ def call_gemini(prompt: str):
 
     # ── LangChain path (preferred) ────────────────────────────────────
     if LANGCHAIN_AVAILABLE:
-        for model_name in [_PRIMARY_MODEL, _FALLBACK_MODEL]:
+        for model_name in _GEMINI_MODELS[:3]:
             chain = _get_lc_chain(model_name)
             if chain is None:
                 continue

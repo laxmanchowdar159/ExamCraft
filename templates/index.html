@@ -10,6 +10,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<!-- Security & Privacy meta -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
+<meta name="description" content="ExamCraft — AI-powered exam paper generator for AP/TS State Board and competitive exams. Secure, private, no account needed.">
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -136,7 +141,16 @@
         <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
       </div>
 
-      <!-- ★ Current Selection — PROMINENT TOP PANEL ★ -->
+      <!-- ★★★ HISTORY — TOP PRIORITY, ALWAYS VISIBLE ★★★ -->
+      <div class="sb-hist">
+        <div class="hist-hdr">
+          <div class="hist-lbl">Paper History <span class="hist-count" id="histCount">0</span></div>
+          <button class="hist-clear" onclick="clearHistory()">Clear all</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+
+      <!-- ★ Current Selection Panel ★ -->
       <div class="sb-selection">
         <div class="sel-title">Current Selection</div>
         <div class="sel-steps">
@@ -174,15 +188,6 @@
         <canvas id="marksChart"></canvas>
       </div>
 
-      <!-- ★ History — Highlighted ★ -->
-      <div class="sb-hist">
-        <div class="hist-hdr">
-          <div class="hist-lbl">Recent Papers <span class="hist-count" id="histCount">0</span></div>
-          <button class="hist-clear" onclick="clearHistory()">Clear</button>
-        </div>
-        <div id="historyList"></div>
-      </div>
-
       <!-- Progress Steps -->
       <div class="sb-progress">
         <div class="sb-lbl">Workflow Progress</div>
@@ -199,7 +204,13 @@
         <div class="step" id="step-6"><div class="step-num">VI</div><span>Generate &amp; Download</span></div>
       </div>
 
-      <div class="sb-footer">by Laxman Nimmagadda &middot; © 2026</div>
+      <div class="sb-footer">
+  <div style="margin-bottom:6px">by Laxman Nimmagadda &middot; © 2026</div>
+  <div style="font-size:7px;opacity:.6;letter-spacing:.06em;line-height:1.6">
+    Issues? Contact:<br>
+    <a href="mailto:laxmanchowday159@gmail.com" style="color:var(--ac2);text-decoration:none;letter-spacing:.03em">laxmanchowday159@gmail.com</a>
+  </div>
+</div>
     </div>
   </aside>
 
@@ -447,6 +458,10 @@
         </button>
         <div class="gen-note">
           <span class="ac">Gemini 2.5 Flash</span> · LangChain · ~25–50 s · Direct download
+        </div>
+        <div class="support-note">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          Issues or feedback? &nbsp;<a href="mailto:laxmanchowday159@gmail.com">laxmanchowday159@gmail.com</a> &nbsp;—&nbsp; Laxman Nimmagadda
         </div>
       </div>
     </form>

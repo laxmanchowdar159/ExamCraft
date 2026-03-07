@@ -490,7 +490,7 @@ async function generatePaper() {
     currentPaper     = result.paper     || '';
     currentAnswerKey = result.answer_key || '';
     const boardText  = result.board || payload.state || payload.competitiveExam || '';
-    currentMeta = { board:boardText, subject:payload.subject||result.subject||'', chapter:payload.chapter||result.chapter||'Full Syllabus', marks, difficulty };
+    currentMeta = { board:boardText, subject:payload.subject||result.subject||'', chapter:payload.chapter||result.chapter||'Full Syllabus', marks, difficulty, class: payload.class||'' };
 
     window._pdfDirect = { paper:result.pdf_b64||null, withKey:result.pdf_key_b64||null, board:boardText, subject:currentMeta.subject, chapter:currentMeta.chapter };
 
