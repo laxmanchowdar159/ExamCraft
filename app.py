@@ -63,7 +63,6 @@ _SMTP_PASSWORD   = os.environ.get("SMTP_PASSWORD", "")     # Gmail App Password
 _SMTP_HOST       = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 _SMTP_PORT       = int(os.environ.get("SMTP_PORT", "587"))
 
-
 def _fmt_dict(d: dict, indent: int = 2) -> str:
     """Pretty-format a dict for the email body."""
     pad = " " * indent
