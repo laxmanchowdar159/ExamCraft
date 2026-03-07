@@ -1,3 +1,9 @@
 flask>=3.0.0
 reportlab>=4.0.0
 requests>=2.31.0
+
+# LangChain + Gemini — best prompt pipeline
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0
+google-generativeai>=0.8.0

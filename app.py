@@ -23,14 +23,242 @@ from reportlab.lib.units import mm
 from flask import Flask, render_template, request, jsonify, send_file
 
 # ── Gemini (REST — no SDK needed, keeps Vercel bundle small) ─────────
-import requests as _requests
-GENAI_AVAILABLE = True   # always available via REST
-genai = None             # legacy compat reference (unused)
+# LangChain + Gemini imports
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnableWithFallbacks
+    LANGCHAIN_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_AVAILABLE = False
+
+import requests as _requests  # kept for diagram SVG calls
+GENAI_AVAILABLE = True
+genai = None
 
 app = Flask(__name__, template_folder="templates",
             static_folder="static", static_url_path="/static")
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+
+# ═══════════════════════════════════════════════════════════════════════
+# ERROR EMAIL SYSTEM
+# Config via env vars:
+#   SMTP_EMAIL     — your Gmail address (sender)
+#   SMTP_PASSWORD  — Gmail App Password (16-char, not your login password)
+#   ALERT_EMAIL    — recipient (defaults to laxmanchowdary159@gmail.com)
+# ═══════════════════════════════════════════════════════════════════════
+import smtplib
+import socket
+import platform
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+
+_ALERT_RECIPIENT = os.environ.get("ALERT_EMAIL", "laxmanchowdary159@gmail.com")
+_SMTP_EMAIL      = os.environ.get("SMTP_EMAIL", "")        # sender Gmail
+_SMTP_PASSWORD   = os.environ.get("SMTP_PASSWORD", "")     # Gmail App Password
+_SMTP_HOST       = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+_SMTP_PORT       = int(os.environ.get("SMTP_PORT", "587"))
+
+
+def _fmt_dict(d: dict, indent: int = 2) -> str:
+    """Pretty-format a dict for the email body."""
+    pad = " " * indent
+    lines = []
+    for k, v in d.items():
+        if isinstance(v, dict):
+            lines.append(f"{pad}{k}:")
+            lines.append(_fmt_dict(v, indent + 4))
+        elif isinstance(v, str) and len(v) > 200:
+            lines.append(f"{pad}{k}: [TRUNCATED — first 200 chars]")
+            lines.append(f"{pad}    {v[:200]}…")
+        else:
+            lines.append(f"{pad}{k}: {v!r}")
+    return "\n".join(lines)
+
+
+def send_error_email(
+    error_type: str,
+    error_msg: str,
+    traceback_str: str = "",
+    user_choices: dict = None,
+    extra_context: dict = None,
+) -> bool:
+    """
+    Send a detailed error report to the alert recipient.
+    Returns True if sent successfully, False otherwise.
+    Does NOT raise — email failure must never crash the app.
+    """
+    if not _SMTP_EMAIL or not _SMTP_PASSWORD:
+        # Email not configured — log to console and return
+        print(f"[EMAIL ALERT — not configured] {error_type}: {error_msg}")
+        return False
+
+    try:
+        ts  = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        env = os.environ.get("ENVIRONMENT", os.environ.get("VERCEL_ENV", "unknown"))
+
+        # ── Build subject ────────────────────────────────────────────
+        subject = f"🚨 ExamCraft Error — {error_type} @ {ts}"
+
+        # ── Build text body ──────────────────────────────────────────
+        sections = []
+
+        sections.append("=" * 60)
+        sections.append("EXAMCRAFT ERROR REPORT")
+        sections.append("=" * 60)
+        sections.append(f"Time       : {ts}")
+        sections.append(f"Error Type : {error_type}")
+        sections.append(f"Environment: {env}")
+        sections.append(f"Host       : {socket.gethostname()}")
+        sections.append(f"Platform   : {platform.platform()}")
+        sections.append(f"Python     : {platform.python_version()}")
+        sections.append("")
+
+        sections.append("-" * 60)
+        sections.append("ERROR MESSAGE")
+        sections.append("-" * 60)
+        sections.append(str(error_msg))
+        sections.append("")
+
+        if user_choices:
+            sections.append("-" * 60)
+            sections.append("USER CHOICES (every field)")
+            sections.append("-" * 60)
+            sections.append(_fmt_dict(user_choices))
+            sections.append("")
+
+        if extra_context:
+            sections.append("-" * 60)
+            sections.append("EXTRA CONTEXT")
+            sections.append("-" * 60)
+            sections.append(_fmt_dict(extra_context))
+            sections.append("")
+
+        if traceback_str:
+            sections.append("-" * 60)
+            sections.append("FULL TRACEBACK")
+            sections.append("-" * 60)
+            sections.append(traceback_str)
+            sections.append("")
+
+        sections.append("=" * 60)
+        sections.append("END OF REPORT — ExamCraft Auto-Mailer")
+        sections.append("=" * 60)
+
+        plain_body = "\n".join(sections)
+
+        # ── Build HTML body ──────────────────────────────────────────
+        def _html_escape(s):
+            return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace(chr(10),"<br>")
+
+        uc_rows = ""
+        if user_choices:
+            for k, v in user_choices.items():
+                vstr = _html_escape(str(v)[:300])
+                uc_rows += f"<tr><td style='padding:6px 12px;color:#94a3b8;font-size:12px;white-space:nowrap'>{_html_escape(k)}</td><td style='padding:6px 12px;font-size:12px;color:#e2e8f0;word-break:break-all'>{vstr}</td></tr>"
+
+        ctx_rows = ""
+        if extra_context:
+            for k, v in extra_context.items():
+                vstr = _html_escape(str(v)[:300])
+                ctx_rows += f"<tr><td style='padding:6px 12px;color:#94a3b8;font-size:12px;white-space:nowrap'>{_html_escape(k)}</td><td style='padding:6px 12px;font-size:12px;color:#e2e8f0;word-break:break-all'>{vstr}</td></tr>"
+
+        tb_html = f"""<div style="background:#0f172a;border-radius:8px;padding:16px;margin-top:8px;overflow-x:auto">
+          <pre style="color:#f87171;font-size:11px;font-family:monospace;white-space:pre-wrap;margin:0">{_html_escape(traceback_str[:4000])}</pre>
+        </div>""" if traceback_str else "<p style='color:#64748b;font-size:12px'>No traceback available.</p>"
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0f1e;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+<div style="max-width:680px;margin:32px auto;background:#111827;border-radius:16px;overflow:hidden;border:1px solid #1e293b">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#0f2149,#1a3a6e);padding:28px 32px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <span style="font-size:24px">🚨</span>
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:-.5px">ExamCraft Error Report</h1>
+    </div>
+    <p style="margin:0;color:#94a3b8;font-size:13px">{ts}</p>
+  </div>
+
+  <!-- Error summary -->
+  <div style="padding:24px 32px;border-bottom:1px solid #1e293b">
+    <div style="background:#1e1b4b;border:1px solid #3730a3;border-radius:10px;padding:16px 18px">
+      <p style="margin:0 0 6px;color:#a5b4fc;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px">{_html_escape(error_type)}</p>
+      <p style="margin:0;color:#f8fafc;font-size:14px;line-height:1.6">{_html_escape(str(error_msg)[:500])}</p>
+    </div>
+    <table style="margin-top:16px;border-collapse:collapse;width:100%">
+      <tr><td style="color:#64748b;font-size:12px;padding:4px 0;width:120px">Environment</td><td style="color:#cbd5e1;font-size:12px">{_html_escape(env)}</td></tr>
+      <tr><td style="color:#64748b;font-size:12px;padding:4px 0">Host</td><td style="color:#cbd5e1;font-size:12px">{_html_escape(socket.gethostname())}</td></tr>
+    </table>
+  </div>
+
+  <!-- User choices -->
+  <div style="padding:24px 32px;border-bottom:1px solid #1e293b">
+    <h2 style="margin:0 0 14px;color:#e2e8f0;font-size:14px;font-weight:600">📋 User Choices</h2>
+    {"<table style='width:100%;border-collapse:collapse;background:#0f172a;border-radius:8px;overflow:hidden'>" + uc_rows + "</table>" if uc_rows else "<p style='color:#64748b;font-size:12px'>No user choices captured.</p>"}
+  </div>
+
+  <!-- Extra context -->
+  {"<div style='padding:24px 32px;border-bottom:1px solid #1e293b'><h2 style='margin:0 0 14px;color:#e2e8f0;font-size:14px;font-weight:600'>🔧 Context</h2><table style='width:100%;border-collapse:collapse;background:#0f172a;border-radius:8px;overflow:hidden'>" + ctx_rows + "</table></div>" if ctx_rows else ""}
+
+  <!-- Traceback -->
+  <div style="padding:24px 32px">
+    <h2 style="margin:0 0 10px;color:#e2e8f0;font-size:14px;font-weight:600">🔍 Traceback</h2>
+    {tb_html}
+  </div>
+
+  <div style="padding:16px 32px;background:#0d1117;border-top:1px solid #1e293b">
+    <p style="margin:0;color:#475569;font-size:11px;text-align:center">ExamCraft Auto-Mailer · {ts}</p>
+  </div>
+</div>
+</body>
+</html>"""
+
+        # ── Assemble message ─────────────────────────────────────────
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = f"ExamCraft Alerts <{_SMTP_EMAIL}>"
+        msg["To"]      = _ALERT_RECIPIENT
+        msg.attach(MIMEText(plain_body, "plain"))
+        msg.attach(MIMEText(html_body,  "html"))
+
+        # ── Send via STARTTLS ────────────────────────────────────────
+        with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(_SMTP_EMAIL, _SMTP_PASSWORD)
+            server.sendmail(_SMTP_EMAIL, _ALERT_RECIPIENT, msg.as_string())
+
+        print(f"[EMAIL SENT] Error report → {_ALERT_RECIPIENT}")
+        return True
+
+    except Exception as mail_err:
+        print(f"[EMAIL FAILED] Could not send error report: {mail_err}")
+        return False
+
+
+def _capture_user_choices(data: dict) -> dict:
+    """Extract and label every user choice from a request payload."""
+    return {
+        "exam_type":        data.get("examType", "—"),
+        "state_board":      data.get("state", "—"),
+        "competitive_exam": data.get("competitiveExam", "—"),
+        "class":            data.get("class", "—"),
+        "subject":          data.get("subject", "—"),
+        "chapter":          data.get("chapter", "—"),
+        "scope":            data.get("scope", "—"),
+        "all_chapters":     data.get("all_chapters", False),
+        "total_marks":      data.get("marks", "—"),
+        "difficulty":       data.get("difficulty", "—"),
+        "include_answer_key": data.get("includeKey", False),
+        "special_instructions": (data.get("suggestions") or "")[:300] or "—",
+        "used_fallback":    data.get("use_fallback", False),
+    }
 
 # ═══════════════════════════════════════════════════════════════════════
 # LOAD EXAM PATTERN DATA
@@ -999,29 +1227,100 @@ def create_exam_pdf(text, subject, chapter, board="",
 # ═══════════════════════════════════════════════════════════════════════
 # GEMINI
 # ═══════════════════════════════════════════════════════════════════════
-# ── Preferred model order — REST API model strings ───────────────────
-_GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-pro",
+# ── Model priority — tuned to your actual API quota ──────────────────
+# Tier 1: gemini-2.5-flash          5 RPM / 250K TPM  ← best output
+# Tier 2: gemini-2.5-flash-lite    10 RPM / 250K TPM  ← most RPM headroom
+# Tier 3: gemini-2.5-flash-preview  stable alias for 2.5-flash
+# Tier 4: gemini-1.5-flash          legacy wide-availability fallback
+# NOTE: gemini-2.0-flash series shows 0/0 remaining — excluded
+_PRIMARY_MODEL   = "gemini-2.5-flash"
+_FALLBACK_MODEL  = "gemini-2.5-flash-lite"
+_GEMINI_MODELS   = [
+    "gemini-2.5-flash",                  # Tier 1 — best output quality
+    "gemini-2.5-flash-lite",             # Tier 2 — most RPM headroom (10/min)
+    "gemini-2.5-flash-preview-05-20",    # Tier 3 — explicit preview alias
+    "gemini-1.5-flash",                  # Tier 4 — stable legacy fallback
+    "gemini-1.5-pro",                    # Tier 5 — last resort
 ]
-_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+_GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# LangChain chain — built lazily on first call so startup stays fast
+_lc_chain        = None
+_lc_chain_fb     = None  # fallback chain
+
+
+def _get_lc_chain(model_name: str):
+    """Build (or return cached) a LangChain chain for the given model."""
+    if not LANGCHAIN_AVAILABLE or not GEMINI_KEY:
+        return None
+    try:
+        llm = ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=GEMINI_KEY,
+            temperature=0.2,
+            max_output_tokens=16384,
+            top_p=0.85,
+            top_k=40,
+            timeout=180,
+            max_retries=2,
+        )
+        # System + Human message structure — better instruction following than
+        # a single monolithic string prompt. The system message grounds the
+        # model's role; the human message carries the full paper spec.
+        prompt_tpl = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                (
+                    "You are an expert Indian school exam paper setter with 20 years of experience. "
+                    "You follow instructions with military precision. "
+                    "Output ONLY the exam paper and answer key — no preamble, "
+                    "no commentary, no markdown fences. "
+                    "Start directly with the paper header."
+                ),
+            ),
+            ("human", "{prompt}"),
+        ])
+        return prompt_tpl | llm | StrOutputParser()
+    except Exception as e:
+        return None
 
 
 def discover_models():
-    """Return model list — uses static preferred list (no SDK needed)."""
+    """Return model list for health endpoint."""
     if not GEMINI_KEY:
         return []
     return _GEMINI_MODELS
 
 
-def call_gemini(prompt):
-    """Call Gemini via REST API. No SDK, no grpc — minimal footprint."""
+def call_gemini(prompt: str):
+    """
+    Call Gemini via LangChain (primary) or plain REST (fallback).
+    Returns (text, error_or_None).
+    """
     if not GEMINI_KEY:
         return None, "GEMINI_API_KEY not set."
 
+    # ── LangChain path (preferred) ────────────────────────────────────
+    if LANGCHAIN_AVAILABLE:
+        for model_name in [_PRIMARY_MODEL, _FALLBACK_MODEL]:
+            chain = _get_lc_chain(model_name)
+            if chain is None:
+                continue
+            try:
+                result = chain.invoke({"prompt": prompt})
+                if result and result.strip():
+                    call_gemini._last_model_used = model_name
+                    return result.strip(), None
+            except Exception as lc_err:
+                last_lc_error = str(lc_err)
+                # 429 quota → try next model immediately
+                if "429" in str(lc_err) or "quota" in str(lc_err).lower():
+                    continue
+                # Other errors: log and fall through to REST fallback
+                break
+
+    # ── Plain REST fallback (no LangChain installed or LangChain failed) ─
+    last_error = ""
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -1031,8 +1330,6 @@ def call_gemini(prompt):
             "topK":            40,
         },
     }
-
-    last_error = ""
     for model_name in _GEMINI_MODELS:
         url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={GEMINI_KEY}"
         for attempt in range(2):
@@ -1045,11 +1342,11 @@ def call_gemini(prompt):
                                 .get("parts", [{}])[0]
                                 .get("text", "")).strip()
                     if text:
+                        call_gemini._last_model_used = model_name
                         return text, None
                     last_error = f"{model_name}: empty response"
                     break
                 elif resp.status_code in (404, 400):
-                    # Model not available — try next
                     last_error = f"{model_name}: HTTP {resp.status_code}"
                     break
                 elif resp.status_code == 429:
@@ -2399,6 +2696,8 @@ def index():
 
 @app.route("/generate", methods=["POST"])
 def generate():
+    import traceback as _tb
+    data = {}
     try:
         data             = request.get_json(force=True) or {}
         class_name       = (data.get("class") or "").strip()
@@ -2422,32 +2721,69 @@ def generate():
             subject = "Mixed Subjects"
 
         use_fallback = str(data.get("use_fallback", "false")).lower() in ("true", "1", "yes")
+
+        # Build and capture the prompt (for debugging)
         prompt = data.get("prompt") or build_prompt(
             class_name, subject, chapter, board, exam_type, difficulty, marks, suggestions)
 
         generated_text = None
         api_error      = None
+        model_used     = None
 
         if not use_fallback:
             generated_text, api_error = call_gemini(prompt)
+            # Detect which model responded (injected by call_gemini if we track it)
+            model_used = getattr(call_gemini, "_last_model_used", None)
 
         if not generated_text:
             if use_fallback or not GEMINI_KEY:
                 generated_text = build_local_paper(class_name, subject, chapter, marks, difficulty)
                 use_fallback = True
             else:
-                return jsonify({"success": False, "error": "AI generation failed.",
-                                "api_error": api_error,
-                                "suggestion": "Send use_fallback=true for a template paper."}), 502
+                # ── Send failure email ────────────────────────────────
+                user_choices = _capture_user_choices(data)
+                user_choices["board_resolved"] = board
+                send_error_email(
+                    error_type   = "AI Generation Failed — No Output",
+                    error_msg    = api_error or "Gemini returned empty response after all retries.",
+                    user_choices = user_choices,
+                    extra_context = {
+                        "gemini_key_set": bool(GEMINI_KEY),
+                        "langchain_available": LANGCHAIN_AVAILABLE,
+                        "models_tried": str(_GEMINI_MODELS),
+                        "prompt_length_chars": len(prompt),
+                        "prompt_preview_100chars": prompt[:100],
+                    },
+                )
+                return jsonify({
+                    "success": False,
+                    "error": "AI generation failed. The developer has been notified.",
+                    "api_error": api_error,
+                    "suggestion": "Send use_fallback=true for a template paper.",
+                }), 502
 
         paper, key = split_key(generated_text)
-        return jsonify({"success": True, "paper": paper, "answer_key": key,
-                        "api_error": api_error, "used_fallback": use_fallback,
-                        "board": board, "subject": subject, "chapter": chapter})
+        return jsonify({
+            "success": True, "paper": paper, "answer_key": key,
+            "api_error": api_error, "used_fallback": use_fallback,
+            "board": board, "subject": subject, "chapter": chapter,
+        })
+
     except Exception as e:
-        import traceback
-        return jsonify({"success": False, "error": str(e),
-                        "trace": traceback.format_exc()}), 500
+        tb_str = _tb.format_exc()
+        # ── Send crash email ──────────────────────────────────────────
+        send_error_email(
+            error_type    = "Unhandled Exception in /generate",
+            error_msg     = str(e),
+            traceback_str = tb_str,
+            user_choices  = _capture_user_choices(data),
+            extra_context = {
+                "endpoint": "/generate",
+                "gemini_key_set": bool(GEMINI_KEY),
+                "langchain_available": LANGCHAIN_AVAILABLE,
+            },
+        )
+        return jsonify({"success": False, "error": str(e), "trace": tb_str}), 500
 
 
 @app.route("/download-pdf", methods=["POST"])
@@ -2505,9 +2841,29 @@ def download_pdf():
         return send_file(BytesIO(pdf_bytes), as_attachment=True,
                          download_name=filename, mimetype="application/pdf")
     except Exception as e:
-        import traceback
-        return jsonify({"success": False, "error": str(e),
-                        "trace": traceback.format_exc()}), 500
+        import traceback as _tb2
+        tb_str = _tb2.format_exc()
+        send_error_email(
+            error_type    = "PDF Generation / Download Failed",
+            error_msg     = str(e),
+            traceback_str = tb_str,
+            user_choices  = {
+                "subject":      data.get("subject", "—"),
+                "chapter":      data.get("chapter", "—"),
+                "board":        data.get("board", "—"),
+                "marks":        data.get("marks", "—"),
+                "include_key":  data.get("includeKey", False),
+                "paper_length": len(data.get("paper", "")),
+                "key_length":   len(data.get("answer_key", "")),
+            },
+            extra_context = {
+                "endpoint": "/download-pdf",
+                "diagrams_found": len(re.findall(
+                    r"\[DIAGRAM:", data.get("paper","") + data.get("answer_key","")
+                )),
+            },
+        )
+        return jsonify({"success": False, "error": str(e), "trace": tb_str}), 500
 
 
 @app.route("/health")
