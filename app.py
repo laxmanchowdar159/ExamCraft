@@ -478,6 +478,19 @@ def _process(text: str) -> str:
     text = re.sub(r'\\-',  '-', text)
     text = re.sub(r'\\%',  '%', text)
 
+    # Guard: move fill-in-blank underscores out of $…$ so _latex_to_rl
+    # never converts them to empty <sub> tags.
+    # Replace $…________…$ patterns: pull blanks outside the math span.
+    def _fix_blank_in_math(m):
+        inner = m.group(1)
+        # If the math span contains only underscores / spaces, return plain blanks
+        if re.match(r'^[_\s]+$', inner):
+            return '__________'
+        # Replace underscore runs inside math with a placeholder word
+        inner = re.sub(r'_{2,}', 'blank', inner)
+        return f'${inner}$'
+    text = re.sub(r'\$([^$\n]+)\$', _fix_blank_in_math, text)
+
     def _repl(m):
         return _latex_to_rl(m.group(0))
     converted = _MATH_RE.sub(_repl, text)
@@ -496,6 +509,9 @@ def _process(text: str) -> str:
             safe.append(p)
 
     out = ''.join(safe)
+    # Strip empty sub/super tags that would otherwise render as visible noise
+    out = re.sub(r'<sub></sub>', '', out)
+    out = re.sub(r'<super></super>', '', out)
     out = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', out)
     out = re.sub(r'\*(.+?)\*',     r'<i>\1</i>', out)
     return out
@@ -766,10 +782,25 @@ def _is_sec_hdr(s):
                          r'|Instructions|Note:|NOTE:)\s*$', s))
 
 def _is_table_row(s):
-    return '|' in s and s.strip().startswith('|')
+    s = s.strip()
+    # Standard table row: starts with |
+    if '|' in s and s.startswith('|'):
+        return True
+    # Markdown separator row without leading pipe: :---... or ---...
+    # These must be caught as table rows so _is_divider can skip them
+    if re.match(r'^[:\-]{3}[-|:\s]*$', s) and len(s) >= 3:
+        return True
+    return False
 
 def _is_divider(s):
-    return bool(re.match(r'^\|[\s\-:|]+\|', s.strip()))
+    s = s.strip()
+    # Standard: |---|---|
+    if re.match(r'^\|[\s\-:|]+\|', s):
+        return True
+    # Separator without leading pipe: :---... or ---... (AI sometimes omits leading |)
+    if re.match(r'^[:\-]{3}[-|:\s]*$', s) and len(s) >= 3:
+        return True
+    return False
 
 def _is_hrule(s):
     s = s.strip()
@@ -1598,7 +1629,7 @@ def _notation_rules(subject):
         "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
         "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
         "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
-        "• Fill blanks: __________ (underscores only, never LaTeX)\n"
+        "• Fill blanks: __________ (ten underscores, ALWAYS outside $…$, never inside math mode)\n"
         "• Equations on own line: $PV = nRT$\n"
     )
 
@@ -1802,7 +1833,11 @@ Difficulty: {diff}
 1. Every question MUST be strictly about "{chap}" — no questions outside this scope.
 2. MCQ options (A)(B)(C)(D): wrong options must reflect real student misconceptions, not random guesses.
 3. Fill-in-the-blank: blank marked as __________ (ten underscores). One blank per sentence.
-4. Match the Following: pipe table with header row | Group A | Group B | and exactly {s['n_match']} data rows.
+4. Match the Following: EVERY row MUST start with a pipe character. Use EXACTLY this format with no deviations:
+| Group A | Group B |
+|---|---|
+| item | match |
+(exactly {s['n_match']} data rows, NO separator rows of dashes-only lines between data rows).
 5. Every Section VI Long Answer question MUST have an alternate "OR" question on a different sub-topic.
 6. Application / problem questions: multi-step, realistic contexts, no plug-and-chug.
 7. End every question with its mark allocation in square brackets: [1 Mark], [2 Marks], [4 Marks], [6 Marks], [{s.get('marks_per_app',10)} Marks].
