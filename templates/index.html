@@ -4,1150 +4,1375 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExamCraft — AI Exam Paper Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@100;200;300;400;500;600;700;800;900&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   ExamCraft — Premium UI v4  |  Dark Academic Aesthetic
-   Fonts: Syne (display) + DM Sans (body) + JetBrains Mono (code)
-═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   ExamCraft — Spotlight Edition v6
+   Design philosophy: Every surface has a living, cursor-aware spotlight.
+   Selected/active states pulse with radial glow. History items illuminate.
+   
+   Fonts: Instrument Serif (headings) · Geist (UI) · Geist Mono (code/meta)
+═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Variables ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── CSS Variables ─────────────────────────────────────────── */
 :root {
-  --accent:      #14b8a6;
-  --accent-2:    #2dd4bf;
-  --accent-3:    #5eead4;
-  --accent-glow: rgba(20,184,166,.45);
-  --accent-dim:  rgba(20,184,166,.1);
+  --accent:       #6d5bff;
+  --accent-2:     #9f8dff;
+  --accent-3:     #c4b8ff;
+  --accent-glow:  rgba(109,91,255,.5);
+  --accent-dim:   rgba(109,91,255,.12);
+  --accent-dim2:  rgba(109,91,255,.06);
+  --orb1: #4c1d95; --orb2: #1e3a8a; --orb3: #0c4a6e; --orb4: #581c87; --orb5: #1e1b4b;
 
-  --bg:        #080C10;
-  --bg-2:      #0D1218;
-  --surface:   rgba(255,255,255,.034);
-  --surface-2: rgba(255,255,255,.06);
-  --surface-3: rgba(255,255,255,.09);
-  --border:    rgba(255,255,255,.07);
-  --border-2:  rgba(255,255,255,.13);
-  --border-3:  rgba(255,255,255,.2);
+  /* Canvas */
+  --bg:           #07080f;
+  --bg2:          #0b0d18;
+  --bg3:          #0f1120;
 
-  --text:   #EEF2F7;
-  --text-2: #8B9BB4;
-  --text-3: #4F6180;
-  --text-4: #2D3F58;
+  /* Surface */
+  --s0:  rgba(255,255,255,.018);
+  --s1:  rgba(255,255,255,.038);
+  --s2:  rgba(255,255,255,.06);
+  --s3:  rgba(255,255,255,.09);
+  --s4:  rgba(255,255,255,.13);
+  --s5:  rgba(255,255,255,.18);
 
-  --radius:    14px;
-  --radius-sm:  9px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
+  /* Borders */
+  --b0:  rgba(255,255,255,.04);
+  --b1:  rgba(255,255,255,.07);
+  --b2:  rgba(255,255,255,.12);
+  --b3:  rgba(255,255,255,.2);
+  --b4:  rgba(255,255,255,.32);
 
-  --trans:      .22s cubic-bezier(.4,0,.2,1);
-  --trans-slow: .4s cubic-bezier(.4,0,.2,1);
+  /* Text */
+  --t1:  #f0f2ff;
+  --t2:  #8892b0;
+  --t3:  #4a5568;
+  --t4:  #2d3748;
 
-  --orb1: #0c2540;
-  --orb2: #0a1e35;
-  --orb3: #082030;
-  --orb4: #0a1828;
-  --orb5: #060f1a;
+  /* Radii */
+  --r:    10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
 
-  --font-display: 'Syne', 'DM Sans', sans-serif;
-  --font-body:    'DM Sans', sans-serif;
-  --font-mono:    'JetBrains Mono', monospace;
+  /* Font stacks */
+  --ff:   'Geist', system-ui, sans-serif;
+  --fm:   'Geist Mono', monospace;
+  --fs:   'Instrument Serif', Georgia, serif;
+
+  /* Transitions */
+  --ease:    cubic-bezier(.4,0,.2,1);
+  --spring:  cubic-bezier(.34,1.56,.64,1);
+  --snap:    cubic-bezier(.22,1,.36,1);
 }
 
 [data-theme="light"] {
-  --bg:        #F0F4F8;
-  --bg-2:      #E8EEF5;
-  --surface:   rgba(255,255,255,.75);
-  --surface-2: rgba(255,255,255,.92);
-  --surface-3: rgba(255,255,255,.98);
-  --border:    rgba(0,0,0,.07);
-  --border-2:  rgba(0,0,0,.12);
-  --border-3:  rgba(0,0,0,.2);
-  --text:   #1A2433;
-  --text-2: #4A5E78;
-  --text-3: #8093AE;
-  --text-4: #B0C0D4;
-  --orb1: rgba(20,184,166,.12);
-  --orb2: rgba(14,165,233,.1);
-  --orb3: rgba(99,102,241,.08);
-  --orb4: rgba(20,184,166,.06);
-  --orb5: rgba(14,165,233,.05);
+  --bg:  #f0f2ff; --bg2: #e8eaf7; --bg3: #dde0f5;
+  --s0:  rgba(0,0,0,.025); --s1: rgba(0,0,0,.04);
+  --s2:  rgba(0,0,0,.07);  --s3: rgba(0,0,0,.10);
+  --b0:  rgba(0,0,0,.05);  --b1: rgba(0,0,0,.09);
+  --b2:  rgba(0,0,0,.15);  --b3: rgba(0,0,0,.25);
+  --t1:  #0f1020; --t2: #3d4b6e; --t3: #8490b0; --t4: #bbc0d4;
 }
 
+/* ── Base ───────────────────────────────────────────────────────────────── */
 html { scroll-behavior: smooth; }
 body {
-  font-family: var(--font-body);
-  font-size: 14px; line-height: 1.6;
-  color: var(--text); background: var(--bg);
+  font-family: var(--ff); font-size: 13.5px; line-height: 1.6;
+  color: var(--t1); background: var(--bg);
   min-height: 100vh; overflow-x: hidden;
 }
 
-/* ── Background ─────────────────────────────────────────────── */
-.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
 
-.bg-mesh {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse 90% 70% at 15% 5%,  var(--orb1), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%, var(--orb2), transparent 52%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, var(--orb3), transparent 65%),
-    radial-gradient(ellipse 60% 50% at 80% 10%, var(--orb4), transparent 55%),
-    radial-gradient(ellipse 40% 35% at 20% 90%, var(--orb5), transparent 55%);
-  transition: background var(--trans-slow);
+/* ── Background system ───────────────────────────────────────────────────── */
+.bg-wrap { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+
+/* Ambient orbs */
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(100px); opacity: .18; will-change: transform;
 }
+.orb-1 { width: 800px; height: 800px; top: -250px; left: -200px; background: radial-gradient(circle, var(--orb1), transparent 65%); animation: o1 40s ease-in-out infinite; }
+.orb-2 { width: 600px; height: 600px; bottom: -150px; right: -100px; background: radial-gradient(circle, var(--orb2), transparent 65%); animation: o2 32s ease-in-out infinite; }
+.orb-3 { width: 450px; height: 450px; top: 40%; left: 35%; background: radial-gradient(circle, var(--orb4) 0%, transparent 65%); animation: o3 25s ease-in-out infinite; opacity: .10; }
+@keyframes o1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(70px,50px)} }
+@keyframes o2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-55px,70px)} }
+@keyframes o3 { 0%,100%{transform:translate(0,0)} 33%{transform:translate(40px,-40px)} 66%{transform:translate(-30px,25px)} }
 
+/* Grid */
 .bg-grid {
   position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
-  background-size: 52px 52px;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
-}
-[data-theme="light"] .bg-grid {
-  background-image:
-    linear-gradient(rgba(0,0,0,.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,.035) 1px, transparent 1px);
+  background-image: linear-gradient(var(--b0) 1px, transparent 1px), linear-gradient(90deg, var(--b0) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 10%, black 20%, transparent 80%);
 }
 
-.bg-grain {
-  position: absolute; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
-  opacity: .55;
+/* Global spotlight — cursor-tracking radial gradient */
+.spotlight-global {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(600px circle at var(--mx,50%) var(--my,20%),
+    rgba(109,91,255,.08) 0%, rgba(109,91,255,.02) 40%, transparent 65%);
+  transition: background .08s linear;
 }
 
-.bg-orb {
-  position: absolute; border-radius: 50%;
-  filter: blur(100px); opacity: .2;
-  animation: orb-drift 26s ease-in-out infinite;
-}
-.orb-a { width: 700px; height: 700px; top: -250px; left: -180px; background: radial-gradient(circle, var(--accent), transparent 70%); }
-.orb-b { width: 550px; height: 550px; bottom: -180px; right: -130px; background: radial-gradient(circle, var(--accent-2), transparent 70%); animation-delay: -13s; animation-duration: 32s; }
-
-@keyframes orb-drift {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33%      { transform: translate(60px,40px) scale(1.1); }
-  66%      { transform: translate(-30px,65px) scale(.95); }
+/* Noise grain */
+.bg-noise {
+  position: absolute; inset: 0; opacity: .25;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
 }
 
-/* ── Navigation ─────────────────────────────────────────────── */
-.nav {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(8,12,16,.82);
-  backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid var(--border);
-}
-[data-theme="light"] .nav { background: rgba(240,244,248,.88); }
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
-.nav-inner {
-  display: flex; align-items: center; gap: 14px;
-  height: 56px; padding: 0 24px;
-  max-width: 1500px; margin: 0 auto;
-}
-
-.nav-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.brand-mark {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-dim), rgba(255,255,255,.03));
-  border: 1px solid rgba(255,255,255,.1);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--accent);
-  box-shadow: 0 0 22px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.08);
-}
-.brand-name {
-  font-family: var(--font-display);
-  font-size: 17px; font-weight: 800;
-  letter-spacing: -.5px; color: var(--text);
-}
-.brand-ai {
-  font-family: var(--font-mono);
-  font-size: 9px; font-weight: 600;
-  letter-spacing: 1.2px; text-transform: uppercase;
-  color: var(--accent); background: var(--accent-dim);
-  border: 1px solid rgba(20,184,166,.2);
-  border-radius: 5px; padding: 2px 6px;
-}
-
-.nav-pills { display: flex; gap: 4px; flex: 1; justify-content: center; }
-.nav-pill {
-  font-size: 11px; font-weight: 500; color: var(--text-3);
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 24px; padding: 3px 12px; white-space: nowrap; letter-spacing: .2px;
-}
-
-.nav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.btn-icon {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: var(--radius-sm);
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--text-2); font-size: 11.5px; font-weight: 500;
-  font-family: var(--font-body); cursor: pointer;
-  transition: all var(--trans); letter-spacing: .2px;
-}
-.btn-icon:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); box-shadow: 0 2px 12px rgba(0,0,0,.2); }
-.btn-icon-sm { padding: 7px; }
-.icon-sun  { display: block; }
-.icon-moon { display: none; }
-[data-theme="light"] .icon-sun  { display: none; }
-[data-theme="light"] .icon-moon { display: block; }
-
-/* ── Shell ──────────────────────────────────────────────────── */
-.shell {
-  position: relative; z-index: 1;
-  display: flex; min-height: calc(100vh - 56px);
-  max-width: 1500px; margin: 0 auto;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SIDEBAR
-═══════════════════════════════════════════════════════════════ */
+/* ── SIDEBAR ─────────────────────────────────────────────────────────────── */
 .sidebar {
-  width: 278px; flex-shrink: 0;
-  padding: 20px 15px 28px;
-  display: flex; flex-direction: column; gap: 10px;
-  position: sticky; top: 56px;
-  height: calc(100vh - 56px);
-  overflow-y: auto;
-  border-right: 1px solid var(--border);
+  width: 260px; flex-shrink: 0;
+  background: rgba(7,8,15,.85);
+  border-right: 1px solid var(--b1);
+  backdrop-filter: blur(24px);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+  padding: 20px 0 20px;
 }
-.sidebar::-webkit-scrollbar { width: 3px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
-.side-hero {
-  background: linear-gradient(145deg, var(--surface-2), var(--surface));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 18px 17px;
+/* Sidebar brand */
+.sb-brand {
+  padding: 0 18px 20px;
+  border-bottom: 1px solid var(--b1);
+  margin-bottom: 16px;
+}
+.sb-brand-row { display: flex; align-items: center; gap: 10px; }
+.sb-logo {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(109,91,255,.3);
+  display: grid; place-items: center;
+  color: var(--accent); font-size: 16px;
+  box-shadow: 0 0 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.06);
   position: relative; overflow: hidden;
 }
-.side-hero::before {
-  content: ''; position: absolute; top: -50px; right: -50px;
-  width: 130px; height: 130px; border-radius: 50%;
-  background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+.sb-logo::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.15), transparent 60%);
+}
+.sb-wordmark { font-family: var(--fs); font-size: 17px; letter-spacing: -.3px; color: var(--t1); }
+.sb-wordmark span { color: var(--accent); }
+
+/* Live pill */
+.live-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--fm); font-size: 9.5px; letter-spacing: .08em; font-weight: 500;
+  color: var(--accent-2); background: var(--accent-dim2);
+  border: 1px solid rgba(109,91,255,.2); border-radius: 20px;
+  padding: 2px 8px; margin-top: 8px;
+}
+.live-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  animation: pulse-ring 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+  70%  { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Sidebar stepper */
+.sb-stepper { padding: 0 14px; }
+.sb-stepper-title {
+  font-family: var(--fm); font-size: 9px; letter-spacing: .12em; font-weight: 500;
+  color: var(--t3); text-transform: uppercase; padding: 0 4px; margin-bottom: 10px;
+}
+.step-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px; border-radius: 9px; cursor: pointer;
+  transition: background .18s var(--ease), transform .18s var(--spring);
+  position: relative; overflow: hidden;
+}
+.step-item::before {
+  content: ''; position: absolute; inset: 0; border-radius: 9px;
+  background: radial-gradient(circle at var(--sx,50%) var(--sy,50%),
+    rgba(109,91,255,.25) 0%, transparent 60%);
+  opacity: 0; transition: opacity .3s;
+}
+.step-item:hover::before { opacity: 1; }
+.step-item.active {
+  background: var(--accent-dim);
+  border: 1px solid rgba(109,91,255,.25);
+  box-shadow: 0 0 16px rgba(109,91,255,.12);
+}
+.step-item.active::before { opacity: 1; }
+.step-item.done .step-circle { background: rgba(109,91,255,.15); border-color: rgba(109,91,255,.3); }
+
+.step-connector {
+  width: 1.5px; height: 14px; margin: 1px 0 1px 17px;
+  background: linear-gradient(to bottom, var(--accent) 0%, var(--b1) 100%);
+  border-radius: 1px; opacity: .3;
+}
+.step-connector.done { opacity: .7; background: var(--accent); }
+
+.step-circle {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: var(--s1); border: 1.5px solid var(--b2);
+  display: grid; place-items: center;
+  font-family: var(--fm); font-size: 10px; font-weight: 600; color: var(--t3);
+  transition: all .3s var(--spring);
+}
+.step-item.active .step-circle {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; box-shadow: 0 0 16px var(--accent-glow);
+  transform: scale(1.12);
+}
+.step-item.done .step-circle { color: var(--accent); }
+.step-circle svg { width: 11px; height: 11px; }
+
+.step-label { font-size: 12px; font-weight: 450; color: var(--t2); line-height: 1.3; }
+.step-item.active .step-label { color: var(--t1); font-weight: 550; }
+.step-item.done  .step-label { color: var(--accent-2); }
+
+/* Summary section */
+.sb-summary {
+  margin: 14px 14px 0; padding: 14px;
+  background: var(--s1); border: 1px solid var(--b1); border-radius: 12px;
+  position: relative; overflow: hidden;
+}
+.sb-summary::before {
+  content: ''; position: absolute; inset: 0; border-radius: 12px;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(109,91,255,.1), transparent 70%);
+}
+.sb-sum-title {
+  font-family: var(--fm); font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.sb-sum-title::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: var(--accent); }
+.sb-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+.sb-row + .sb-row { border-top: 1px solid var(--b0); }
+.sb-key { font-size: 11px; color: var(--t3); }
+.sb-val {
+  font-family: var(--fm); font-size: 11px; color: var(--accent-2); font-weight: 500;
+  max-width: 140px; text-align: right; word-break: break-word;
+}
+
+/* History section */
+.sb-history { padding: 14px 14px 0; flex: 1; }
+.sb-history-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sb-history-title {
+  font-family: var(--fm); font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--t3); display: flex; align-items: center; gap: 6px;
+}
+.sb-history-title::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: var(--t3); }
+.clear-btn {
+  font-size: 10px; color: var(--t3); background: none; border: none;
+  cursor: pointer; padding: 2px 6px; border-radius: 5px;
+  transition: color .2s, background .2s;
+}
+.clear-btn:hover { color: var(--t1); background: var(--s2); }
+
+/* History items */
+.history-empty { 
+  display: flex; align-items: center; gap: 8px; 
+  color: var(--t3); font-size: 12px; padding: 12px 4px; 
+}
+.history-item {
+  padding: 10px 11px; border-radius: 10px; margin-bottom: 7px;
+  background: var(--s0); border: 1px solid var(--b0);
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: border-color .25s var(--ease), background .25s, box-shadow .25s;
+}
+/* Spotlight glow inside history item */
+.history-item::before {
+  content: ''; position: absolute; inset: 0; border-radius: 10px; z-index: 0;
+  background: radial-gradient(circle at var(--hx,50%) var(--hy,50%),
+    rgba(109,91,255,.28) 0%, transparent 55%);
+  opacity: 0; transition: opacity .35s;
+}
+.history-item:hover { border-color: rgba(109,91,255,.3); background: var(--s1); }
+.history-item:hover::before { opacity: 1; }
+.history-item:hover { box-shadow: 0 0 20px rgba(109,91,255,.1), inset 0 1px 0 rgba(255,255,255,.04); }
+
+.history-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; position: relative; z-index: 1; }
+.history-item-name { font-size: 12px; font-weight: 550; color: var(--t1); line-height: 1.35; }
+.history-item-time { font-family: var(--fm); font-size: 9.5px; color: var(--t3); text-align: right; flex-shrink: 0; line-height: 1.3; }
+
+.history-item-meta { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0 8px; position: relative; z-index: 1; }
+.history-tag {
+  font-family: var(--fm); font-size: 9.5px; font-weight: 500;
+  padding: 1.5px 6px; border-radius: 4px;
+  background: var(--s2); border: 1px solid var(--b1);
+  color: var(--t2);
+}
+
+.history-item-btns { display: flex; gap: 5px; position: relative; z-index: 1; }
+.history-dl-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; border: 1px solid var(--b1);
+  background: var(--s1); color: var(--t2); cursor: pointer;
+  font-family: var(--fm); font-size: 10px; font-weight: 500;
+  transition: all .2s var(--ease);
+}
+.history-dl-btn:hover { background: var(--accent-dim); border-color: rgba(109,91,255,.3); color: var(--accent-2); }
+.history-dl-btn.key:hover { background: rgba(109,91,255,.12); }
+
+/* ── MAIN CONTENT ────────────────────────────────────────────────────────── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* Nav */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(7,8,15,.88); backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid var(--b1); padding: 0 28px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+[data-theme="light"] .nav { background: rgba(240,242,255,.92); }
+
+.nav-left { display: flex; align-items: center; gap: 16px; }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.nav-hint {
+  font-family: var(--fm); font-size: 11px; color: var(--t3);
+  background: var(--s1); border: 1px solid var(--b1);
+  padding: 4px 10px; border-radius: 20px; max-width: 380px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#hintBar { display: flex; align-items: center; gap: 8px; }
+#hintText { font-size: 11px; color: var(--t2); }
+
+.nav-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 8px;
+  border: 1px solid var(--b1); background: var(--s1);
+  color: var(--t2); cursor: pointer; font-family: var(--ff); font-size: 12px; font-weight: 500;
+  transition: all .2s var(--ease);
+}
+.nav-btn:hover { background: var(--s2); border-color: var(--b2); color: var(--t1); }
+
+/* ── FORM AREA ───────────────────────────────────────────────────────────── */
+.form-area { padding: 28px 32px; max-width: 860px; }
+
+/* Section titles */
+.section-hdr {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.section-num {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--accent-dim); border: 1px solid rgba(109,91,255,.25);
+  display: grid; place-items: center;
+  font-family: var(--fm); font-size: 10px; font-weight: 700; color: var(--accent);
+}
+.section-title { font-size: 13px; font-weight: 600; color: var(--t1); letter-spacing: -.2px; }
+.section-sub { font-size: 11.5px; color: var(--t3); margin-left: auto; }
+
+/* Card base — spotlight-aware */
+.card {
+  background: var(--s1); border: 1px solid var(--b1);
+  border-radius: var(--r-lg); padding: 20px;
+  position: relative; overflow: hidden;
+  transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+/* Spotlight that follows cursor within card */
+.card::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit;
+  background: radial-gradient(280px circle at var(--cx,50%) var(--cy,30%),
+    rgba(109,91,255,.18) 0%, rgba(109,91,255,.04) 45%, transparent 70%);
+  opacity: 0; transition: opacity .4s var(--ease);
   pointer-events: none;
 }
+.card:hover::before { opacity: 1; }
+/* Glowing border on active card */
+.card.active-card::before { opacity: 1; }
+.card.active-card {
+  border-color: rgba(109,91,255,.35);
+  box-shadow: 0 0 30px rgba(109,91,255,.12), 0 0 0 1px rgba(109,91,255,.08);
+}
+.card > * { position: relative; z-index: 1; }
 
-.side-live {
-  display: flex; align-items: center; gap: 9px;
-  margin-bottom: 13px; font-size: 11px;
-  color: var(--text-3); letter-spacing: .3px;
-}
-.pulse-wrapper {
-  position: relative; width: 16px; height: 16px;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.pulse-wrapper::before {
-  content: ''; position: absolute; inset: 0;
-  border-radius: 50%; border: 1.5px solid var(--accent);
-  animation: pulse-ring 2.2s ease-out infinite;
-}
-.pulse-wrapper::after {
-  content: ''; width: 7px; height: 7px;
-  border-radius: 50%; background: var(--accent);
-}
-@keyframes pulse-ring { 0%{transform:scale(.5);opacity:.9} 100%{transform:scale(1.8);opacity:0} }
+/* Collapsed */
+.collapsed { display: none !important; }
 
-.side-h {
-  font-family: var(--font-display);
-  font-size: 22px; font-weight: 800;
-  letter-spacing: -.6px; line-height: 1.15; margin-bottom: 9px;
-}
-.side-h em { font-style: italic; color: var(--accent-2); }
-.side-p { font-size: 12px; color: var(--text-2); line-height: 1.55; margin-bottom: 15px; }
-.side-p em { color: var(--accent-2); font-style: normal; font-weight: 500; }
-
-.side-stats { display: flex; align-items: center; gap: 10px; }
-.s-stat { display: flex; flex-direction: column; flex: 1; }
-.s-n { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
-.s-l { font-size: 10px; color: var(--text-3); margin-top: 1px; }
-.s-div { width: 1px; height: 28px; background: var(--border-2); flex-shrink: 0; }
-
-.side-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 15px;
-  transition: border-color var(--trans);
-}
-.side-card:hover { border-color: var(--border-2); }
-
-.side-label {
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
-  letter-spacing: 1.2px; text-transform: uppercase;
-  color: var(--text-3); margin-bottom: 11px;
-}
-.side-card-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
-.side-card-hdr .side-label { margin-bottom: 0; }
-
-.btn-ghost-sm {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; color: var(--text-3);
-  background: none; border: none; cursor: pointer;
-  padding: 3px 6px; border-radius: 5px;
-  transition: all var(--trans); font-family: var(--font-body);
-}
-.btn-ghost-sm:hover { color: var(--text-2); background: var(--surface-2); }
-
-/* Progress tracker */
-.progress-track { display: flex; flex-direction: column; gap: 3px; }
-.t-step {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 7px; border-radius: var(--radius-sm);
-  transition: background var(--trans);
-}
-.t-dot {
-  width: 21px; height: 21px; border-radius: 50%;
-  border: 1.5px solid var(--border-2);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: transparent; transition: all var(--trans);
-}
-.t-step > span { font-size: 12px; color: var(--text-3); transition: color var(--trans); }
-.t-step.active { background: var(--surface-2); }
-.t-step.active .t-dot { border-color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 14px var(--accent-glow); }
-.t-step.active > span { color: var(--text); font-weight: 500; }
-.t-step.done .t-dot { background: var(--accent); border-color: var(--accent); color: white; }
-.t-step.done > span { color: var(--text-2); }
-
-/* Summary */
-.sum-grid { display: flex; flex-direction: column; }
-.sum-r {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 6px; padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.sum-r:last-child { border-bottom: none; padding-bottom: 0; }
-.sum-k { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
-.sum-v { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--accent-2); text-align: right; word-break: break-all; max-width: 140px; }
-
-/* History */
-.history-list { display: flex; flex-direction: column; gap: 5px; max-height: 250px; overflow-y: auto; }
-.history-list::-webkit-scrollbar { width: 3px; }
-.history-list::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
-
-.history-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 0; color: var(--text-3); font-size: 11px; }
-.history-item {
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 11px; transition: all var(--trans);
-}
-.history-item:hover { border-color: var(--accent-dim); box-shadow: 0 2px 12px rgba(0,0,0,.15); }
-.history-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; margin-bottom: 6px; }
-.history-item-name { font-size: 11.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
-.history-item-time { font-size: 10px; color: var(--text-3); text-align: right; white-space: nowrap; }
-.history-item-meta { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 7px; }
-.history-tag { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; background: var(--accent-dim); color: var(--accent-2); border: 1px solid rgba(20,184,166,.15); border-radius: 4px; padding: 1px 6px; }
-.history-item-btns { display: flex; gap: 4px; }
-.history-dl-btn {
-  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 10px; padding: 5px 7px; border-radius: 6px;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-2); cursor: pointer; font-family: var(--font-body); transition: all var(--trans);
-}
-.history-dl-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-.history-dl-btn.key { color: var(--accent-2); border-color: var(--accent-dim); }
-
-.side-credit { font-size: 10px; color: var(--text-4); text-align: center; margin-top: auto; padding-top: 10px; letter-spacing: .3px; }
-
-/* ═══════════════════════════════════════════════════════════════
-   MAIN CONTENT
-═══════════════════════════════════════════════════════════════ */
-.main {
-  flex: 1; padding: 22px 28px 72px;
-  display: flex; flex-direction: column; gap: 12px; min-width: 0;
-}
-
-/* Hint bar */
-.hint-bar {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--accent-dim);
-  border: 1px solid rgba(20,184,166,.18);
-  border-radius: 10px; padding: 9px 14px;
-  font-size: 12px; color: var(--accent-2); letter-spacing: .2px;
-}
-
-/* ── Form Steps ─────────────────────────────────────────────── */
-.form-step {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 24px 26px;
-  transition: border-color var(--trans), box-shadow var(--trans);
-  animation: step-in .32s cubic-bezier(.22,1,.36,1) both;
-  position: relative;
-}
-.form-step:hover { border-color: var(--border-2); }
-.form-step.collapsed { display: none; }
-
-@keyframes step-in {
-  from { opacity: 0; transform: translateY(14px) scale(.99); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Step badge + title */
-.step-num {
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 700;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--accent); background: var(--accent-dim);
-  border: 1px solid rgba(20,184,166,.22);
-  display: inline-flex; padding: 3px 10px;
-  border-radius: 20px; margin-bottom: 8px;
-}
-.step-title {
-  font-family: var(--font-display);
-  font-size: 17px; font-weight: 700;
-  letter-spacing: -.4px; margin-bottom: 18px; color: var(--text);
-}
-.opt-badge {
-  font-size: 10px; font-weight: 500; color: var(--text-3);
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 20px; padding: 2px 8px;
-  vertical-align: middle; margin-left: 8px;
-}
-
-/* ── Type Cards ─────────────────────────────────────────────── */
-.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* ── TYPE CARDS ──────────────────────────────────────────────────────────── */
+.type-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .type-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 18px 17px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer; transition: all var(--trans);
-  text-align: left; width: 100%; font-family: var(--font-body);
+  padding: 18px 20px; border-radius: var(--r-lg);
+  background: var(--s1); border: 1.5px solid var(--b1);
+  cursor: pointer; display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+  transition: all .3s var(--snap);
+}
+.type-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(250px circle at var(--cx,50%) var(--cy,30%),
+    rgba(109,91,255,.22) 0%, transparent 65%);
+  opacity: 0; transition: opacity .35s;
+}
+.type-card:hover::before { opacity: 1; }
+.type-card:hover { border-color: var(--b2); box-shadow: 0 4px 24px rgba(0,0,0,.4); transform: translateY(-2px); }
+
+.type-card.active {
+  border-color: var(--accent) !important;
+  background: var(--accent-dim) !important;
+  box-shadow: 0 0 32px var(--accent-glow), 0 0 0 1px rgba(109,91,255,.12), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.type-card.active::before { opacity: 1; background: radial-gradient(300px circle at 50% 0%, rgba(109,91,255,.3) 0%, transparent 65%); }
+.type-card.active .tc-icon { color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); }
+.type-card.active .tc-name { color: var(--t1); }
+
+.tc-icon { font-size: 22px; transition: transform .3s var(--spring); }
+.type-card:hover .tc-icon, .type-card.active .tc-icon { transform: scale(1.15); }
+.tc-name { font-size: 14px; font-weight: 650; color: var(--t1); letter-spacing: -.2px; }
+.tc-desc { font-size: 11.5px; color: var(--t3); line-height: 1.4; }
+
+/* ── SELECT / INPUT ──────────────────────────────────────────────────────── */
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--t3); pointer-events: none;
+}
+select, input[type="number"], input[type="text"], textarea {
+  width: 100%; background: var(--s1); border: 1px solid var(--b1);
+  border-radius: var(--r); color: var(--t1); font-family: var(--ff);
+  font-size: 13px; padding: 10px 14px; outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+  -webkit-appearance: none; appearance: none;
+}
+select { padding-right: 36px; cursor: pointer; }
+select:focus, input:focus, textarea:focus {
+  border-color: rgba(109,91,255,.55);
+  box-shadow: 0 0 0 3px rgba(109,91,255,.12), 0 0 16px rgba(109,91,255,.08);
+  background: var(--s2);
+}
+select option { background: #13141f; color: var(--t1); }
+label { display: block; font-size: 11.5px; font-weight: 550; color: var(--t2); margin-bottom: 6px; letter-spacing: .01em; }
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+textarea { resize: vertical; min-height: 72px; }
+
+/* Info box */
+.info-box {
+  display: none; padding: 12px 14px; margin-top: 12px;
+  background: rgba(109,91,255,.07); border: 1px solid rgba(109,91,255,.2);
+  border-radius: 10px; font-size: 12px; line-height: 1.6; color: var(--t2);
+}
+
+/* ── SCOPE CARDS ─────────────────────────────────────────────────────────── */
+.scope-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.scope-card {
+  flex: 1; min-width: 120px; padding: 12px 14px; border-radius: var(--r);
+  background: var(--s1); border: 1.5px solid var(--b1);
+  cursor: pointer; text-align: center;
+  transition: all .25s var(--snap);
   position: relative; overflow: hidden;
 }
-.type-card:hover { border-color: var(--border-3); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.2); }
-.type-card.active {
-  border-color: var(--accent);
-  background: rgba(20,184,166,.06);
-  box-shadow: 0 0 0 1px var(--accent), 0 8px 40px var(--accent-glow);
+.scope-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(109,91,255,.25) 0%, transparent 65%);
+  opacity: 0; transition: opacity .3s;
 }
-.type-icon { font-size: 26px; flex-shrink: 0; }
-.type-info { flex: 1; }
-.type-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
-.type-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
-.type-check {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 1.5px solid var(--border-2);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: transparent; transition: all var(--trans);
-}
-.type-card.active .type-check { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 12px var(--accent-glow); }
-
-/* ── Field Groups ────────────────────────────────────────────── */
-.field-group { display: flex; flex-direction: column; gap: 7px; }
-.field-label { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: .3px; }
-.sel-wrap { position: relative; }
-.field-select {
-  width: 100%; padding: 10px 36px 10px 13px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 13.5px; font-family: var(--font-body);
-  cursor: pointer; appearance: none; -webkit-appearance: none;
-  transition: border-color var(--trans), box-shadow var(--trans), background var(--trans);
-  outline: none;
-}
-.field-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); background: var(--surface-3); }
-.field-select option { background: #1a2233; color: var(--text); }
-[data-theme="light"] .field-select option { background: #fff; color: #1A2433; }
-.sel-arr { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-3); }
-
-.field-input {
-  width: 100%; padding: 10px 13px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 13.5px; font-family: var(--font-body); outline: none;
-  transition: border-color var(--trans), box-shadow var(--trans), background var(--trans);
-}
-.field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); background: var(--surface-3); }
-
-.field-ta {
-  width: 100%; padding: 11px 13px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 13px; font-family: var(--font-body);
-  resize: vertical; outline: none; line-height: 1.6;
-  transition: border-color var(--trans), box-shadow var(--trans), background var(--trans);
-}
-.field-ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); background: var(--surface-3); }
-
-.comp-info {
-  margin-top: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--accent-dim);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px; font-size: 12px;
-  color: var(--text-2); line-height: 1.7;
-  animation: step-in .25s ease both;
-}
-
-/* ── Scope Cards ─────────────────────────────────────────────── */
-.scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.scope-3 { grid-template-columns: repeat(3, 1fr); }
-
-.scope-card {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 18px 14px;
-  background: var(--surface-2); border: 1.5px solid var(--border);
-  border-radius: var(--radius); cursor: pointer;
-  transition: all var(--trans); font-family: var(--font-body);
-  color: var(--text-2); text-align: center; position: relative; overflow: hidden;
-}
-.scope-card:hover { border-color: var(--border-3); color: var(--text); transform: translateY(-1px); }
+.scope-card:hover::before { opacity: 1; }
+.scope-card:hover { border-color: var(--b2); transform: translateY(-1px); }
 .scope-card.active {
-  border-color: var(--accent);
-  background: rgba(20,184,166,.07);
-  box-shadow: 0 0 0 1px var(--accent), 0 6px 24px var(--accent-glow);
+  border-color: var(--accent) !important; background: var(--accent-dim) !important;
+  box-shadow: 0 0 20px rgba(109,91,255,.18), inset 0 1px 0 rgba(255,255,255,.05);
 }
-.sc-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -.2px; transition: color var(--trans); }
-.sc-hint { font-size: 11px; color: var(--text-3); transition: color var(--trans); }
+.scope-card.active::before { opacity: 1; }
+.scope-card > * { position: relative; z-index: 1; }
+.sc-icon { font-size: 18px; margin-bottom: 4px; }
+.sc-name { font-size: 11.5px; font-weight: 600; color: var(--t1); }
+.sc-desc { font-size: 10.5px; color: var(--t3); margin-top: 2px; }
 .scope-card.active .sc-name { color: var(--accent-2); }
-.scope-card.active .sc-hint { color: var(--accent); opacity: .85; }
 
-/* ── Details ─────────────────────────────────────────────────── */
-.details-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-
-/* ── Step 5 ─────────────────────────────────────────────────── */
-.step5-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
-.chip-row { display: flex; gap: 7px; flex-wrap: wrap; }
+/* ── MARK CHIPS ──────────────────────────────────────────────────────────── */
+.chips { display: flex; gap: 7px; flex-wrap: wrap; }
 .chip {
-  padding: 7px 17px;
-  background: var(--surface-2); border: 1.5px solid var(--border);
-  border-radius: 24px;
-  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
-  color: var(--text-2); cursor: pointer; transition: all var(--trans); letter-spacing: .5px;
+  padding: 8px 16px; border-radius: 50px;
+  border: 1.5px solid var(--b1); background: var(--s1);
+  font-family: var(--fm); font-size: 12px; font-weight: 600; color: var(--t2);
+  cursor: pointer; transition: all .2s var(--snap);
+  position: relative; overflow: hidden;
 }
-.chip:hover { border-color: var(--border-3); color: var(--text); background: var(--surface-3); }
-.chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-2); box-shadow: 0 0 14px var(--accent-glow); }
-.chip-custom { font-family: var(--font-body); font-size: 12.5px; letter-spacing: 0; }
+.chip::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, rgba(109,91,255,.35) 0%, transparent 65%);
+  opacity: 0; transition: opacity .3s;
+}
+.chip:hover::before { opacity: 1; }
+.chip:hover { border-color: var(--b2); color: var(--t1); transform: scale(1.04); }
+.chip.active {
+  border-color: var(--accent) !important; background: var(--accent-dim) !important;
+  color: var(--accent-2) !important;
+  box-shadow: 0 0 18px rgba(109,91,255,.25), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.chip.active::before { opacity: 1; }
+.chip > * { position: relative; z-index: 1; }
+.custom-wrap { display: none; align-items: center; gap: 6px; margin-top: 10px; }
+.custom-wrap input { width: 90px; }
 
-.custom-wrap { display: flex; align-items: center; gap: 10px; margin-top: 10px; animation: step-in .2s ease both; }
-.unit-lbl { font-size: 12px; color: var(--text-3); white-space: nowrap; }
-
+/* ── DIFFICULTY BUTTONS ──────────────────────────────────────────────────── */
 .diff-row { display: flex; gap: 8px; }
 .diff-btn {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px 6px;
-  background: var(--surface-2); border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  font-family: var(--font-body); color: var(--text-2); transition: all var(--trans);
+  flex: 1; padding: 10px 12px; border-radius: var(--r);
+  border: 1.5px solid var(--b1); background: var(--s1);
+  color: var(--t2); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all .25s var(--snap); position: relative; overflow: hidden;
 }
-.diff-btn:hover { border-color: var(--border-3); color: var(--text); background: var(--surface-3); }
-.diff-btn.active.easy   { background: rgba(74,222,128,.1);  border-color: #4ade80; color: #4ade80; box-shadow: 0 0 14px rgba(74,222,128,.2); }
-.diff-btn.active.medium { background: rgba(251,191,36,.1);  border-color: #fbbf24; color: #fbbf24; box-shadow: 0 0 14px rgba(251,191,36,.2); }
-.diff-btn.active.hard   { background: rgba(248,66,66,.1);   border-color: #f84242; color: #f84242; box-shadow: 0 0 14px rgba(248,66,66,.2); }
+.diff-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(109,91,255,.25) 0%, transparent 65%);
+  opacity: 0; transition: opacity .3s;
+}
+.diff-btn:hover::before { opacity: 1; }
+.diff-btn:hover { border-color: var(--b2); color: var(--t1); transform: translateY(-2px); }
+.diff-btn.active {
+  border-color: var(--accent) !important; background: var(--accent-dim) !important;
+  color: var(--accent-2) !important;
+  box-shadow: 0 0 22px rgba(109,91,255,.2);
+}
+.diff-btn.active::before { opacity: 1; }
+.diff-btn > * { position: relative; z-index: 1; }
 
-/* ── Toggle ─────────────────────────────────────────────────── */
+/* ── ANSWER KEY TOGGLE ───────────────────────────────────────────────────── */
 .toggle-row {
   display: flex; align-items: center; gap: 14px;
-  cursor: pointer; padding: 13px 15px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); transition: all var(--trans); margin-top: 14px;
+  padding: 16px; background: var(--s1); border: 1px solid var(--b1);
+  border-radius: var(--r-lg); position: relative; overflow: hidden;
+  cursor: pointer; transition: all .25s;
 }
-.toggle-row:hover { border-color: var(--border-2); background: var(--surface-3); }
-
-.tog-cb { display: none; }
-.tog-wrap { flex-shrink: 0; position: relative; }
-.tog-track {
-  width: 42px; height: 24px;
-  background: var(--surface);
-  border: 1.5px solid var(--border-2);
-  border-radius: 12px; position: relative;
-  transition: all var(--trans); cursor: pointer;
+.toggle-row::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(circle at var(--cx,50%) var(--cy,50%), rgba(109,91,255,.2) 0%, transparent 65%);
+  opacity: 0; transition: opacity .35s;
 }
-.tog-knob {
-  width: 16px; height: 16px;
-  background: var(--text-3); border-radius: 50%;
-  position: absolute; top: 2px; left: 2px;
-  transition: all var(--trans); box-shadow: 0 1px 4px rgba(0,0,0,.3);
+.toggle-row:hover::before { opacity: 1; }
+.toggle-row:hover { border-color: var(--b2); }
+.toggle-row > * { position: relative; z-index: 1; }
+
+.toggle {
+  position: relative; width: 40px; height: 22px;
+  background: var(--s3); border-radius: 11px;
+  transition: background .25s; flex-shrink: 0; cursor: pointer;
+  border: 1px solid var(--b2);
 }
-.tog-cb:checked + .tog-track { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
-.tog-cb:checked + .tog-track .tog-knob { transform: translateX(18px); background: white; }
+.toggle::after {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--t3);
+  transition: transform .25s var(--spring), background .25s;
+}
+input[type="checkbox"] { display: none; }
+input[type="checkbox"]:checked + .toggle { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+input[type="checkbox"]:checked + .toggle::after { transform: translateX(18px); background: #fff; }
+.toggle-info h4 { font-size: 13px; font-weight: 600; color: var(--t1); }
+.toggle-info p  { font-size: 11.5px; color: var(--t3); }
 
-.tog-text {}
-.tog-title { font-size: 13.5px; font-weight: 500; color: var(--text); }
-.tog-desc { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-
-/* ── Generate Button ─────────────────────────────────────────── */
-.btn-gen {
-  position: relative; overflow: hidden;
+/* ── GENERATE BUTTON ─────────────────────────────────────────────────────── */
+.generate-section { padding: 20px 32px 28px; max-width: 860px; }
+.generate-btn {
+  width: 100%; padding: 18px 28px;
+  border-radius: 16px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #5346d4 0%, #6d5bff 45%, #8a72ff 100%);
+  color: #fff; font-family: var(--ff); font-size: 16px; font-weight: 700;
+  letter-spacing: -.3px;
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  width: 100%; padding: 15px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border: none; border-radius: var(--radius);
-  color: #000; font-family: var(--font-display);
-  font-size: 16px; font-weight: 700; letter-spacing: -.2px;
-  cursor: pointer; transition: all var(--trans);
-  margin-top: 16px; box-shadow: 0 4px 24px var(--accent-glow);
+  position: relative; overflow: hidden;
+  transition: transform .25s var(--spring), box-shadow .25s var(--ease);
+  box-shadow: 0 0 40px rgba(109,91,255,.45), 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.15);
 }
-.btn-gen:hover { transform: translateY(-2px); box-shadow: 0 8px 40px var(--accent-glow); filter: brightness(1.08); }
-.btn-gen:active { transform: translateY(0); }
-.btn-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% -20%, rgba(255,255,255,.35), transparent 65%); pointer-events: none; }
-.gen-note { font-size: 11px; color: var(--text-3); text-align: center; margin-top: 10px; letter-spacing: .2px; }
+.generate-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at var(--cx,50%) 0%, rgba(255,255,255,.18) 0%, transparent 70%);
+  transition: opacity .3s;
+}
+.generate-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,.06) 100%);
+}
+.generate-btn:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 0 60px rgba(109,91,255,.6), 0 16px 48px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.2); }
+.generate-btn:active { transform: translateY(0); }
+.generate-btn span, .generate-btn svg { position: relative; z-index: 1; }
+.generate-btn svg { animation: bolt 2.5s ease-in-out infinite; }
+@keyframes bolt { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(.9)} }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESULTS PANEL
-═══════════════════════════════════════════════════════════════ */
-.results-panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-xl); overflow: hidden; animation: step-in .4s ease both;
-}
-.res-top {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 17px 20px; border-bottom: 1px solid var(--border); background: var(--surface-2);
-}
-.res-title {
-  display: flex; align-items: center; gap: 9px;
-  font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -.3px;
-}
-.res-ok {
-  width: 26px; height: 26px;
-  background: rgba(74,222,128,.12); border: 1.5px solid #4ade80;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  color: #4ade80; flex-shrink: 0; box-shadow: 0 0 14px rgba(74,222,128,.25);
-}
-.res-btns { display: flex; gap: 7px; flex-wrap: wrap; }
-.res-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 15px; border-radius: var(--radius-sm);
-  font-size: 12.5px; font-weight: 600;
-  font-family: var(--font-body); cursor: pointer;
-  transition: all var(--trans); border: 1px solid var(--border); letter-spacing: .1px;
-}
-.res-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #000; border-color: transparent; box-shadow: 0 2px 14px var(--accent-glow); }
-.res-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.res-key { background: rgba(251,191,36,.1); color: #fbbf24; border-color: rgba(251,191,36,.3); }
-.res-key:hover { background: rgba(251,191,36,.18); transform: translateY(-1px); }
-.res-ghost { background: var(--surface-2); color: var(--text-2); }
-.res-ghost:hover { color: var(--text); border-color: var(--border-2); transform: translateY(-1px); }
+.gen-meta { text-align: center; font-family: var(--fm); font-size: 10.5px; color: var(--t3); margin-top: 10px; }
+.gen-meta span { color: var(--accent-2); }
 
-.preview-tabs {
-  display: flex; gap: 2px; padding: 8px 15px; border-bottom: 1px solid var(--border);
-}
-.ptab {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 14px; border-radius: var(--radius-sm);
-  font-size: 12px; font-weight: 500; font-family: var(--font-body);
-  cursor: pointer; border: none; background: transparent;
-  color: var(--text-3); transition: all var(--trans);
-}
-.ptab:hover { color: var(--text-2); background: var(--surface-2); }
-.ptab.active { background: var(--accent-dim); color: var(--accent-2); }
-
-.preview-ta {
-  width: 100%; min-height: 440px; padding: 18px 20px;
-  background: transparent; border: none; color: var(--text);
-  font-family: var(--font-mono); font-size: 12.5px;
-  line-height: 1.7; resize: vertical; outline: none;
-}
-.preview-ta-key { color: var(--accent-2); }
-
-/* ═══════════════════════════════════════════════════════════════
-   LOADING MODAL
-═══════════════════════════════════════════════════════════════ */
-.loader-overlay {
+/* ── LOADING MODAL ───────────────────────────────────────────────────────── */
+#loadingModal {
   position: fixed; inset: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,.78); backdrop-filter: blur(16px) saturate(160%);
+  background: rgba(5,6,14,.88); backdrop-filter: blur(20px);
+  display: none; align-items: center; justify-content: center;
 }
 .loader-box {
-  background: var(--surface-2); border: 1px solid var(--border-2);
-  border-radius: 24px; padding: 40px 50px;
-  display: flex; flex-direction: column; align-items: center; gap: 22px;
-  min-width: 320px; box-shadow: 0 32px 100px rgba(0,0,0,.6);
-  animation: step-in .3s ease both;
+  background: var(--s1); border: 1px solid var(--b2);
+  border-radius: 24px; padding: 40px 48px; max-width: 420px; width: 92%;
+  text-align: center; position: relative; overflow: hidden;
+  box-shadow: 0 0 80px rgba(109,91,255,.25), 0 40px 80px rgba(0,0,0,.6);
 }
-.loader-rings { position: relative; width: 88px; height: 88px; }
-.ring-svg { width: 88px; height: 88px; }
-.ring-track { stroke: var(--border-2); }
-.ring-arc { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 200 1000; transform-origin: 44px 44px; }
-.arc1 { animation: spin1 2s linear infinite; }
-.arc2 { animation: spin1 1.5s linear infinite reverse; stroke: var(--accent-2); }
-.arc3 { animation: spin1 1s linear infinite; stroke: var(--accent-3); }
-@keyframes spin1 { 100% { transform: rotate(360deg); } }
-.loader-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.loader-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
-.loader-steps { display: flex; flex-direction: column; gap: 9px; width: 100%; }
-.l-step { display: flex; align-items: center; gap: 11px; font-size: 13px; color: var(--text-3); transition: color var(--trans); }
-.l-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-2); transition: all var(--trans); flex-shrink: 0; }
-.l-step.active { color: var(--text); }
-.l-step.active .l-dot { background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); animation: blink .8s ease-in-out infinite; }
-.l-step.done { color: var(--text-2); }
-.l-step.done .l-dot { background: #4ade80; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.loader-box::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(109,91,255,.2), transparent 65%);
+}
+.loader-box > * { position: relative; z-index: 1; }
 
-/* ── Toast ──────────────────────────────────────────────────── */
-.toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(16px);
-  background: var(--surface-3); border: 1px solid var(--border-2);
-  border-radius: 10px; padding: 11px 20px;
-  font-size: 13.5px; font-weight: 500;
-  box-shadow: 0 10px 40px rgba(0,0,0,.4);
-  opacity: 0; pointer-events: none; z-index: 300;
-  transition: opacity .25s ease, transform .25s ease; white-space: nowrap;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Triple ring */
+.ring-wrap { position: relative; width: 72px; height: 72px; margin: 0 auto 24px; }
+.ring-wrap svg { position: absolute; top: 0; left: 0; }
+.ring-1 { animation: spin1 1.2s linear infinite; }
+.ring-2 { animation: spin1 1.8s linear infinite reverse; opacity: .6; }
+.ring-3 { animation: spin1 2.6s linear infinite; opacity: .4; }
+@keyframes spin1 { to { transform: rotate(360deg); } }
 
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 1100px) { .nav-pills { display: none; } }
-@media (max-width: 960px) {
-  .shell { flex-direction: column; }
-  .sidebar { width: 100%; position: static; height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px; border-right: none; border-bottom: 1px solid var(--border); }
-  .side-hero { grid-column: span 2; }
-  .side-credit { grid-column: span 2; }
+#loaderTitle { font-family: var(--fs); font-size: 22px; font-style: italic; color: var(--t1); margin-bottom: 6px; }
+.loader-sub { font-size: 12px; color: var(--t3); margin-bottom: 28px; }
+
+.load-steps { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.load-step {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 9px; background: var(--s0);
+  border: 1px solid var(--b0); font-size: 12px; color: var(--t3);
+  transition: all .4s var(--ease);
 }
-@media (max-width: 640px) {
-  .type-grid, .scope-grid, .scope-3, .details-row, .step5-row { grid-template-columns: 1fr; }
-  .main { padding: 14px 14px 50px; }
-  .form-step { padding: 18px 16px; }
-  .sidebar { grid-template-columns: 1fr; }
-  .side-hero, .side-credit { grid-column: span 1; }
-  .res-top { flex-direction: column; align-items: flex-start; }
+.load-step .ls-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--b2); flex-shrink: 0;
+  transition: all .4s var(--spring);
+}
+.load-step.active { background: var(--accent-dim); border-color: rgba(109,91,255,.25); color: var(--accent-2); }
+.load-step.active .ls-dot { background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); animation: pulse-ring 1.5s infinite; }
+.load-step.done { background: var(--s1); color: var(--t2); }
+.load-step.done .ls-dot { background: rgba(109,91,255,.4); }
+
+/* ── RESULTS PANEL ───────────────────────────────────────────────────────── */
+#resultsPanel { display: none; padding: 0 32px 32px; max-width: 860px; }
+
+.results-hdr {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 16px;
+}
+.results-ready { display: flex; align-items: center; gap: 10px; }
+.ready-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #22c55e;
+  box-shadow: 0 0 14px rgba(34,197,94,.6);
+  animation: pulse-ring 2s infinite;
+}
+.ready-label { font-family: var(--fs); font-size: 20px; font-style: italic; color: var(--t1); }
+.results-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.action-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 10px; cursor: pointer; font-family: var(--ff);
+  font-size: 12.5px; font-weight: 600; border: 1px solid;
+  transition: all .25s var(--snap); position: relative; overflow: hidden;
+  white-space: nowrap;
+}
+.action-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.1) 0%, transparent 65%);
+  opacity: 0; transition: opacity .3s;
+}
+.action-btn:hover::before { opacity: 1; }
+.action-btn.primary {
+  background: linear-gradient(135deg, #5346d4, #6d5bff);
+  border-color: rgba(109,91,255,.5); color: #fff;
+  box-shadow: 0 0 24px rgba(109,91,255,.35);
+}
+.action-btn.primary:hover { box-shadow: 0 0 36px rgba(109,91,255,.55); transform: translateY(-2px); }
+.action-btn.secondary {
+  background: var(--s1); border-color: var(--b2); color: var(--t2);
+}
+.action-btn.secondary:hover { background: var(--s2); border-color: var(--b3); color: var(--t1); transform: translateY(-1px); }
+
+/* Preview tabs */
+.preview-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.ptab {
+  padding: 7px 14px; border-radius: 8px; border: 1px solid var(--b1);
+  background: var(--s1); color: var(--t3); cursor: pointer;
+  font-size: 12px; font-weight: 550; display: flex; align-items: center; gap: 6px;
+  transition: all .2s var(--ease);
+}
+.ptab:hover { border-color: var(--b2); color: var(--t2); }
+.ptab.active { background: var(--accent-dim); border-color: rgba(109,91,255,.3); color: var(--accent-2); }
+
+.paper-output {
+  width: 100%; background: var(--s1); border: 1px solid var(--b1);
+  border-radius: var(--r-lg); padding: 20px 24px;
+  font-family: var(--fm); font-size: 12.5px; line-height: 1.85;
+  color: var(--t1); resize: vertical; min-height: 320px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.paper-output:focus { border-color: rgba(109,91,255,.35); box-shadow: 0 0 0 3px rgba(109,91,255,.08); }
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+#notificationToast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 300;
+  background: var(--bg2); border: 1px solid var(--b2);
+  padding: 11px 20px; border-radius: 12px;
+  font-size: 13px; font-weight: 500; color: var(--t1);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px var(--b1);
+  transform: translateY(80px) scale(.95); opacity: 0;
+  transition: all .35s var(--spring); pointer-events: none;
+}
+#notificationToast.show { transform: translateY(0) scale(1); opacity: 1; }
+
+/* ── CARDS SPACING ───────────────────────────────────────────────────────── */
+.form-section { margin-bottom: 20px; }
+
+/* ── SECTION DIVIDER ─────────────────────────────────────────────────────── */
+.step-divider {
+  height: 1px; background: linear-gradient(to right, transparent, var(--b1) 20%, var(--b1) 80%, transparent);
+  margin: 6px 0 22px;
 }
 
+/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .form-area { padding: 20px 16px; }
+  .generate-section { padding: 0 16px 24px; }
+  #resultsPanel { padding: 0 16px 24px; }
+  .type-cards { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  .type-cards { grid-template-columns: 1fr; }
+  .diff-row { flex-direction: column; }
+  .results-hdr { flex-direction: column; }
+}
+
+/* Hidden inputs */
+input[type="radio"] { display: none; }
+input[type="hidden"] { display: none; }
 </style>
 </head>
 <body>
 
-<!-- Background layers -->
-<div class="bg-layer" aria-hidden="true">
-  <div class="bg-mesh"></div>
+<!-- Cursor elements -->
+<div class="cursor-dot" id="cursorDot" style="position:fixed;pointer-events:none;z-index:9999;width:5px;height:5px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 10px var(--accent-glow);transition:opacity .2s"></div>
+<div class="cursor-ring" id="cursorRing" style="position:fixed;pointer-events:none;z-index:9998;width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(109,91,255,.4);transform:translate(-50%,-50%);transition:width .2s,height .2s,opacity .3s"></div>
+
+<!-- Background -->
+<div class="bg-wrap">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
   <div class="bg-grid"></div>
-  <div class="bg-grain"></div>
-  <div class="bg-orb orb-a"></div>
-  <div class="bg-orb orb-b"></div>
+  <div class="spotlight-global" id="spotlight"></div>
+  <div class="bg-noise"></div>
 </div>
 
-<!-- Navigation -->
-<nav class="nav">
-  <div class="nav-inner">
-    <div class="nav-brand">
-      <div class="brand-mark">
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-          <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" stroke="currentColor" stroke-width="2.2" fill="none"/>
-          <polygon points="16,9 23,13 23,19 16,23 9,19 9,13" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".5"/>
-          <circle cx="16" cy="16" r="2.5" fill="currentColor"/>
-        </svg>
-      </div>
-      <span class="brand-name">ExamCraft</span>
-      <span class="brand-ai">AI</span>
+<!-- Loading Modal -->
+<div id="loadingModal">
+  <div class="loader-box">
+    <div class="ring-wrap">
+      <svg class="ring-1" width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="30" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="188" stroke-dashoffset="60" stroke-linecap="round"/></svg>
+      <svg class="ring-2" width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="22" fill="none" stroke="var(--accent-2)" stroke-width="1.5" stroke-dasharray="138" stroke-dashoffset="45" stroke-linecap="round"/></svg>
+      <svg class="ring-3" width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="14" fill="none" stroke="var(--accent-3)" stroke-width="1" stroke-dasharray="88" stroke-dashoffset="30" stroke-linecap="round"/></svg>
     </div>
-    <div class="nav-pills">
-      <span class="nav-pill">AP &amp; TS Boards</span>
-      <span class="nav-pill">NTSE · NSO · IMO · IJSO</span>
-      <span class="nav-pill">PDF Export</span>
-    </div>
-    <div class="nav-actions">
-      <button class="btn-icon" onclick="cycleTheme()" title="Change theme">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <span id="themeLabel">Teal</span>
-      </button>
-      <button class="btn-icon btn-icon-sm" onclick="toggleDark()" title="Toggle dark/light">
-        <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
+    <div id="loaderTitle">Crafting your paper…</div>
+    <div class="loader-sub">Gemini 2.5 Flash + LangChain pipeline</div>
+    <div class="load-steps">
+      <div class="load-step" id="ls1"><div class="ls-dot"></div>Reading prompt &amp; structure</div>
+      <div class="load-step" id="ls2"><div class="ls-dot"></div>Generating questions</div>
+      <div class="load-step" id="ls3"><div class="ls-dot"></div>Writing answer key</div>
+      <div class="load-step" id="ls4"><div class="ls-dot"></div>Rendering diagrams</div>
+      <div class="load-step" id="ls5"><div class="ls-dot"></div>Building PDF</div>
     </div>
   </div>
-</nav>
+</div>
 
-<div class="shell">
-  <!-- Sidebar -->
+<!-- Toast -->
+<div id="notificationToast"></div>
+
+<!-- Main Layout -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
   <aside class="sidebar">
-    <div class="side-hero">
-      <div class="side-live">
-        <span class="pulse-wrapper"></span>
-        <span>Gemini AI · Live</span>
+    <div class="sb-brand">
+      <div class="sb-brand-row">
+        <div class="sb-logo">⚡</div>
+        <div class="sb-wordmark">Exam<span>Craft</span></div>
       </div>
-      <h1 class="side-h">Build Board-<br>Perfect <em>Exams</em></h1>
-      <p class="side-p">AP &amp; TS board-accurate papers scaled to <em>your</em> marks.</p>
-      <div class="side-stats">
-        <div class="s-stat"><span class="s-n">AP·TS</span><span class="s-l">State Boards</span></div>
-        <span class="s-div"></span>
-        <div class="s-stat"><span class="s-n">4</span><span class="s-l">Olympiads</span></div>
-        <span class="s-div"></span>
-        <div class="s-stat"><span class="s-n">PDF</span><span class="s-l">Export</span></div>
-      </div>
+      <div class="live-pill"><div class="live-dot"></div>AI Live</div>
     </div>
 
-    <div class="side-card">
-      <div class="side-label">Progress</div>
-      <div class="progress-track" id="stepperList">
-        <div class="t-step active" id="step-1"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Paper Type</span></div>
-        <div class="t-step" id="step-2"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Board / Exam</span></div>
-        <div class="t-step" id="step-3"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Scope</span></div>
-        <div class="t-step" id="step-4"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Details</span></div>
-        <div class="t-step" id="step-5"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Marks &amp; Level</span></div>
-        <div class="t-step" id="step-6"><div class="t-dot"><svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><span>Generate</span></div>
-      </div>
+    <!-- Stepper -->
+    <div class="sb-stepper">
+      <div class="sb-stepper-title">Progress</div>
+      <ul id="stepperList" style="list-style:none">
+        <li class="step-item active" id="step-1"><div class="step-circle">1</div><div class="step-label">Paper Type</div></li>
+        <div class="step-connector" id="conn-1"></div>
+        <li class="step-item" id="step-2"><div class="step-circle">2</div><div class="step-label">Board / Exam</div></li>
+        <div class="step-connector" id="conn-2"></div>
+        <li class="step-item" id="step-3"><div class="step-circle">3</div><div class="step-label">Scope</div></li>
+        <div class="step-connector" id="conn-3"></div>
+        <li class="step-item" id="step-4"><div class="step-circle">4</div><div class="step-label">Details</div></li>
+        <div class="step-connector" id="conn-4"></div>
+        <li class="step-item" id="step-5"><div class="step-circle">5</div><div class="step-label">Marks &amp; Level</div></li>
+        <div class="step-connector" id="conn-5"></div>
+        <li class="step-item" id="step-6"><div class="step-circle">6</div><div class="step-label">Generate</div></li>
+      </ul>
     </div>
 
-    <div class="side-card">
-      <div class="side-label">Current Paper</div>
-      <div class="sum-grid">
-        <div class="sum-r"><span class="sum-k">Board</span><span class="sum-v" id="sb-board">—</span></div>
-        <div class="sum-r"><span class="sum-k">Class</span><span class="sum-v" id="sb-class">—</span></div>
-        <div class="sum-r"><span class="sum-k">Subject</span><span class="sum-v" id="sb-subject">—</span></div>
-        <div class="sum-r"><span class="sum-k">Topic</span><span class="sum-v" id="sb-chapter">—</span></div>
-        <div class="sum-r"><span class="sum-k">Marks</span><span class="sum-v" id="sb-marks">—</span></div>
-        <div class="sum-r"><span class="sum-k">Level</span><span class="sum-v" id="sb-difficulty">—</span></div>
-        <div class="sum-r"><span class="sum-k">Answer Key</span><span class="sum-v" id="sb-key">No</span></div>
-      </div>
+    <!-- Current paper summary -->
+    <div class="sb-summary">
+      <div class="sb-sum-title">Current Selection</div>
+      <div class="sb-row"><span class="sb-key">Board</span><span class="sb-val" id="sb-board">—</span></div>
+      <div class="sb-row"><span class="sb-key">Class</span><span class="sb-val" id="sb-class">—</span></div>
+      <div class="sb-row"><span class="sb-key">Subject</span><span class="sb-val" id="sb-subject">—</span></div>
+      <div class="sb-row"><span class="sb-key">Topic</span><span class="sb-val" id="sb-chapter">—</span></div>
+      <div class="sb-row"><span class="sb-key">Marks</span><span class="sb-val" id="sb-marks">—</span></div>
+      <div class="sb-row"><span class="sb-key">Level</span><span class="sb-val" id="sb-difficulty">—</span></div>
+      <div class="sb-row"><span class="sb-key">Answer Key</span><span class="sb-val" id="sb-key">—</span></div>
     </div>
 
-    <div class="side-card">
-      <div class="side-card-hdr">
-        <div class="side-label">Recent Papers</div>
-        <button class="btn-ghost-sm" onclick="clearHistory()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Clear
-        </button>
+    <!-- History -->
+    <div class="sb-history">
+      <div class="sb-history-hdr">
+        <div class="sb-history-title">Recent Papers</div>
+        <button class="clear-btn" onclick="clearHistory()">⊘ Clear</button>
       </div>
-      <div id="historyList" class="history-list">
-        <div class="history-empty">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>No papers yet</span>
-        </div>
-      </div>
+      <div id="historyList"></div>
     </div>
 
-    <div class="side-credit">by Laxman Nimmagadda · © 2026</div>
+    <div style="padding:14px 18px 0;font-size:10.5px;color:var(--t3);text-align:center">
+      by Laxman Nimmagadda · © 2026
+    </div>
   </aside>
 
-  <!-- Main content -->
+  <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
   <main class="main">
-    <!-- Hint bar -->
-    <div class="hint-bar" id="hintBar">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span id="hintText">Begin by selecting a paper type below.</span>
-    </div>
-
-    <!-- STEP 1: Paper Type -->
-    <div class="form-step" data-step="1">
-      <div class="step-num">01</div>
-      <div class="step-title">What are you preparing for?</div>
-      <div class="type-grid">
-        <button class="type-card" id="tile-state" onclick="selectType('state-board')">
-          <div class="type-icon">🏛️</div>
-          <div class="type-info">
-            <div class="type-name">State Board</div>
-            <div class="type-sub">Andhra Pradesh · Telangana</div>
-          </div>
-          <div class="type-check">
-            <svg width="11" height="11" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
-          </div>
+    <!-- Nav -->
+    <nav class="nav">
+      <div class="nav-left">
+        <div id="hintBar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span id="hintText">Select a paper type to begin</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button class="nav-btn" onclick="cycleTheme()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span id="themeLabel">Violet</span>
         </button>
-        <button class="type-card" id="tile-comp" onclick="selectType('competitive')">
-          <div class="type-icon">🏆</div>
-          <div class="type-info">
-            <div class="type-name">Competitive</div>
-            <div class="type-sub">NTSE · NSO · IMO · IJSO</div>
-          </div>
-          <div class="type-check">
-            <svg width="11" height="11" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
-          </div>
+        <button class="nav-btn" onclick="toggleDark()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
-      <!-- Hidden value holder -->
-      <select id="examType" name="examType" style="display:none">
-        <option value="">Select paper type</option>
-        <option value="state-board">State Board</option>
-        <option value="competitive">Competitive Exam</option>
-      </select>
-    </div>
+    </nav>
 
-    <!-- STEP 2a: State Board -->
-    <div class="form-step collapsed" id="stateCard" data-step="2">
-      <div class="step-num">02</div>
-      <div class="step-title">Select your state board</div>
-      <div class="field-group">
-        <label class="field-label">State Board</label>
-        <div class="sel-wrap">
-          <select id="stateSelect" name="state" class="field-select" onchange="updateSidebar()">
-            <option value="">Choose your state…</option>
-            <option value="Andhra Pradesh">Andhra Pradesh (BSEAP)</option>
-            <option value="Telangana">Telangana (BSETS)</option>
-          </select>
-          <svg class="sel-arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    <!-- Form -->
+    <form id="paperForm" onsubmit="return false">
+      <input type="hidden" id="examType" name="examType">
+      <input type="hidden" id="scopeSelect" name="scope" value="single">
+      <input type="hidden" id="totalMarks" name="totalMarks" value="100">
+
+      <div class="form-area">
+
+        <!-- ── STEP 1: TYPE ─────────────────────────────────────────────────── -->
+        <div class="form-section">
+          <div class="section-hdr">
+            <div class="section-num">1</div>
+            <div class="section-title">Paper Type</div>
+          </div>
+          <div class="type-cards">
+            <div class="type-card" id="tile-state" onclick="selectType('state-board')">
+              <div class="tc-icon">🏛️</div>
+              <div class="tc-name">State Board</div>
+              <div class="tc-desc">AP / Telangana official pattern with sections A, B, C</div>
+            </div>
+            <div class="type-card" id="tile-comp" onclick="selectType('competitive')">
+              <div class="tc-icon">🏆</div>
+              <div class="tc-name">Competitive</div>
+              <div class="tc-desc">NTSE, NSO, IMO, IJSO — MCQ format with marking scheme</div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- STEP 2b: Competitive Exam -->
-    <div class="form-step collapsed" id="competitiveCard" data-step="2">
-      <div class="step-num">02</div>
-      <div class="step-title">Choose your exam</div>
-      <div class="field-group">
-        <label class="field-label">Examination</label>
-        <div class="sel-wrap">
-          <select id="competitiveExam" name="competitiveExam" class="field-select" onchange="updateCompInfo(); updateSidebar();">
-            <option value="">Choose exam…</option>
-            <option value="NTSE">NTSE — National Talent Search Examination</option>
-            <option value="NSO">NSO — National Science Olympiad (SOF)</option>
-            <option value="IMO">IMO — International Mathematics Olympiad (SOF)</option>
-            <option value="IJSO">IJSO — International Junior Science Olympiad</option>
-          </select>
-          <svg class="sel-arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-      </div>
-      <div class="comp-info" id="compInfoBox" style="display:none"><div id="compInfoText"></div></div>
-    </div>
+        <div class="step-divider"></div>
 
-    <!-- STEP 3: Scope -->
-    <div class="form-step collapsed" id="scopeCard" data-step="3">
-      <div class="step-num">03</div>
-      <div class="step-title" id="scopeCardTitle">Paper Scope</div>
-
-      <!-- Board scope -->
-      <div id="boardScopeRow" style="display:none">
-        <div class="scope-grid">
-          <button class="scope-card active" id="bscope-single" onclick="selectBoardScope('single')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <div class="sc-name">One Chapter</div>
-            <div class="sc-hint">Focused paper</div>
-          </button>
-          <button class="scope-card" id="bscope-all" onclick="selectBoardScope('all')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            <div class="sc-name">All Chapters</div>
-            <div class="sc-hint">Full syllabus</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Competitive scope -->
-      <div id="compScopeRow" style="display:none">
-        <div class="scope-grid scope-3">
-          <button class="scope-card active" id="cscope-topic" onclick="selectCompScope('topic')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <div class="sc-name">One Topic</div>
-            <div class="sc-hint">Single subject + topic</div>
-          </button>
-          <button class="scope-card" id="cscope-subject" onclick="selectCompScope('subject')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <div class="sc-name">Full Subject</div>
-            <div class="sc-hint">All topics</div>
-          </button>
-          <button class="scope-card" id="cscope-all" onclick="selectCompScope('all')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            <div class="sc-name">All Subjects</div>
-            <div class="sc-hint">Complete syllabus</div>
-          </button>
-        </div>
-      </div>
-
-      <select id="scopeSelect" name="scope" style="display:none">
-        <option value="single">single</option>
-        <option value="all">all</option>
-      </select>
-    </div>
-
-    <!-- STEP 4: Paper Details -->
-    <div class="form-step" id="detailsCard" data-step="4">
-      <div class="step-num">04</div>
-      <div class="step-title">Paper Details</div>
-      <div class="details-row">
-        <div class="field-group">
-          <label class="field-label" for="class">Class / Grade</label>
-          <div class="sel-wrap">
-            <select id="class" name="class" required class="field-select" onchange="onClassChange()">
-              <option value="">Select class…</option>
-              <option value="10">Class 10 (X)</option>
-              <option value="9">Class 9 (IX)</option>
-              <option value="8">Class 8 (VIII)</option>
-              <option value="7">Class 7 (VII)</option>
-              <option value="6">Class 6 (VI)</option>
+        <!-- ── STEP 2a: STATE BOARD ─────────────────────────────────────────── -->
+        <div class="form-section collapsed card" id="stateCard">
+          <div class="section-hdr" style="margin-bottom:14px">
+            <div class="section-num">2</div>
+            <div class="section-title">Select State Board</div>
+          </div>
+          <div class="field select-wrap">
+            <label>State / Board</label>
+            <select id="stateSelect" onchange="updateSidebar()">
+              <option value="">Choose a board…</option>
+              <option value="Andhra Pradesh">Andhra Pradesh (AP SSC)</option>
+              <option value="Telangana">Telangana (TS SSC)</option>
             </select>
-            <svg class="sel-arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-        <div class="field-group" id="subjectCard">
-          <label class="field-label" for="subject" id="subjectLabel">Subject</label>
-          <div class="sel-wrap">
-            <select id="subject" name="subject" class="field-select" onchange="onSubjectChange()">
-              <option value="">Select subject…</option>
-            </select>
-            <svg class="sel-arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-        </div>
-        <div class="field-group" id="chapterCard">
-          <label class="field-label" for="chapter" id="chapterLabel">Chapter / Topic</label>
-          <div class="sel-wrap">
-            <select id="chapter" name="chapter" class="field-select" onchange="updateSidebar()">
-              <option value="">Select topic…</option>
-            </select>
-            <svg class="sel-arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- STEP 5: Marks & Difficulty -->
-    <div class="form-step" data-step="5">
-      <div class="step-num">05</div>
-      <div class="step-title">Marks &amp; Difficulty</div>
-      <div class="step5-row">
-        <div class="field-group">
-          <label class="field-label">Total Marks</label>
-          <div class="chip-row">
-            <button type="button" class="chip" data-val="20"  onclick="selectMark(this)">20</button>
-            <button type="button" class="chip" data-val="50"  onclick="selectMark(this)">50</button>
-            <button type="button" class="chip active" data-val="100" onclick="selectMark(this)">100</button>
-            <button type="button" class="chip chip-custom" id="chipCustom" onclick="toggleCustomMark(this)">Custom</button>
+        <!-- ── STEP 2b: COMPETITIVE ─────────────────────────────────────────── -->
+        <div class="form-section collapsed card" id="competitiveCard">
+          <div class="section-hdr" style="margin-bottom:14px">
+            <div class="section-num">2</div>
+            <div class="section-title">Select Competitive Exam</div>
           </div>
-          <div id="customMarkWrap" class="custom-wrap" style="display:none">
-            <input type="number" id="customMarkInput" class="field-input"
-              placeholder="Enter marks…" min="1" max="500"
-              oninput="applyCustomMark(this.value)">
-            <span class="unit-lbl">marks</span>
+          <div class="field select-wrap">
+            <label>Exam</label>
+            <select id="competitiveExam" onchange="updateCompInfo()">
+              <option value="">Choose exam…</option>
+              <option value="NTSE">NTSE</option>
+              <option value="NSO">NSO (Science Olympiad)</option>
+              <option value="IMO">IMO (Maths Olympiad)</option>
+              <option value="IJSO">IJSO (Junior Science)</option>
+            </select>
           </div>
-          <!-- Hidden actual value -->
-          <input type="hidden" id="totalMarks" name="marks" value="100">
+          <div class="info-box" id="compInfoBox">
+            <div id="compInfoText"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Difficulty Level</label>
+
+        <div class="step-divider"></div>
+
+        <!-- ── STEP 3: SCOPE ─────────────────────────────────────────────────── -->
+        <div class="form-section collapsed card" id="scopeCard">
+          <div class="section-hdr" style="margin-bottom:14px">
+            <div class="section-num">3</div>
+            <div class="section-title" id="scopeCardTitle">Paper Scope</div>
+          </div>
+
+          <!-- Board scope -->
+          <div id="boardScopeRow" style="display:none">
+            <div class="scope-row">
+              <div class="scope-card active" id="bscope-single" onclick="selectBoardScope('single')">
+                <div class="sc-icon">📄</div>
+                <div class="sc-name">One Chapter</div>
+                <div class="sc-desc">Focused paper</div>
+              </div>
+              <div class="scope-card" id="bscope-all" onclick="selectBoardScope('all')">
+                <div class="sc-icon">📚</div>
+                <div class="sc-name">All Chapters</div>
+                <div class="sc-desc">Full syllabus</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Competitive scope -->
+          <div id="compScopeRow" style="display:none">
+            <div class="scope-row">
+              <div class="scope-card active" id="cscope-topic" onclick="selectCompScope('topic')">
+                <div class="sc-icon">🎯</div>
+                <div class="sc-name">One Topic</div>
+                <div class="sc-desc">Specific focus</div>
+              </div>
+              <div class="scope-card" id="cscope-subject" onclick="selectCompScope('subject')">
+                <div class="sc-icon">📖</div>
+                <div class="sc-name">Full Subject</div>
+                <div class="sc-desc">Entire subject</div>
+              </div>
+              <div class="scope-card" id="cscope-all" onclick="selectCompScope('all')">
+                <div class="sc-icon">🌐</div>
+                <div class="sc-name">All Subjects</div>
+                <div class="sc-desc">Complete paper</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-divider"></div>
+
+        <!-- ── STEP 4: DETAILS ───────────────────────────────────────────────── -->
+        <div class="form-section card" id="detailsCard">
+          <div class="section-hdr" style="margin-bottom:14px">
+            <div class="section-num">4</div>
+            <div class="section-title">Paper Details</div>
+          </div>
+          <div class="field-row">
+            <div class="field select-wrap">
+              <label>Class</label>
+              <select id="class" onchange="onClassChange()">
+                <option value="">Select class…</option>
+                <option value="6">Class 6</option>
+                <option value="7">Class 7</option>
+                <option value="8">Class 8</option>
+                <option value="9">Class 9</option>
+                <option value="10">Class 10</option>
+              </select>
+            </div>
+            <div class="field select-wrap" id="subjectCard">
+              <label id="subjectLabel">Subject</label>
+              <select id="subject" onchange="onSubjectChange()">
+                <option value="">Select subject…</option>
+              </select>
+            </div>
+          </div>
+          <div class="field select-wrap" id="chapterCard">
+            <label id="chapterLabel">Chapter</label>
+            <select id="chapter" onchange="updateSidebar()">
+              <option value="">Select chapter…</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="step-divider"></div>
+
+        <!-- ── STEP 5: MARKS & DIFFICULTY ──────────────────────────────────── -->
+        <div class="form-section card">
+          <div class="section-hdr" style="margin-bottom:18px">
+            <div class="section-num">5</div>
+            <div class="section-title">Marks &amp; Difficulty</div>
+          </div>
+
+          <label style="margin-bottom:10px">Total Marks</label>
+          <div class="chips">
+            <div class="chip" data-val="20" onclick="selectMark(this)"><span>20M</span></div>
+            <div class="chip active" data-val="50" onclick="selectMark(this)"><span>50M</span></div>
+            <div class="chip" data-val="100" onclick="selectMark(this)"><span>100M</span></div>
+            <div class="chip" id="chipCustom" onclick="toggleCustomMark(this)"><span>Custom</span></div>
+          </div>
+          <div class="custom-wrap" id="customMarkWrap">
+            <input type="number" id="customMarkInput" placeholder="e.g. 75" min="10" max="500" oninput="applyCustomMark(this.value)">
+            <span style="font-size:12px;color:var(--t3)">marks</span>
+          </div>
+
+          <div style="height:18px"></div>
+          <label style="margin-bottom:10px">Difficulty Level</label>
           <div class="diff-row">
-            <button type="button" class="diff-btn easy"   onclick="selectDiff('Easy',   this)"><span>🌱</span>Easy</button>
-            <button type="button" class="diff-btn medium active" onclick="selectDiff('Medium', this)"><span>⚡</span>Medium</button>
-            <button type="button" class="diff-btn hard"   onclick="selectDiff('Hard',   this)"><span>🔥</span>Hard</button>
-          </div>
-          <!-- Hidden radio group -->
-          <div style="display:none">
-            <input type="radio" name="difficulty" value="Easy"   id="r-easy">
-            <input type="radio" name="difficulty" value="Medium" id="r-med" checked>
-            <input type="radio" name="difficulty" value="Hard"   id="r-hard">
+            <input type="radio" name="difficulty" id="r-easy" value="Easy" checked>
+            <button type="button" class="diff-btn" onclick="selectDiff('Easy',this)">
+              <span>🌱</span><span>Easy</span>
+            </button>
+            <input type="radio" name="difficulty" id="r-med" value="Medium">
+            <button type="button" class="diff-btn active" onclick="selectDiff('Medium',this)">
+              <span>⚡</span><span>Medium</span>
+            </button>
+            <input type="radio" name="difficulty" id="r-hard" value="Hard">
+            <button type="button" class="diff-btn" onclick="selectDiff('Hard',this)">
+              <span>🔥</span><span>Hard</span>
+            </button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- STEP 6: Final touches + Generate -->
-    <form id="paperForm" novalidate>
-      <div class="form-step" data-step="6">
-        <div class="step-num">06</div>
-        <div class="step-title">Final touches <span class="opt-badge">optional</span></div>
-        <div class="field-group">
-          <label class="field-label">Special instructions</label>
-          <textarea id="suggestions" name="suggestions" rows="3" class="field-ta"
-            placeholder="e.g. Focus on numerical problems · Include labelled diagrams · Step-by-step solutions"></textarea>
+        <div class="step-divider"></div>
+
+        <!-- ── STEP 6: INSTRUCTIONS & KEY ─────────────────────────────────── -->
+        <div class="form-section card">
+          <div class="section-hdr" style="margin-bottom:14px">
+            <div class="section-num">6</div>
+            <div class="section-title">Special Instructions</div>
+            <div class="section-sub">Optional</div>
+          </div>
+
+          <div class="field">
+            <label>Extra instructions for the AI (optional)</label>
+            <textarea id="suggestions" placeholder="e.g. Include more application-based questions, focus on diagrams for geometry…" rows="3"></textarea>
+          </div>
+
+          <label style="cursor:pointer" for="includeKey">
+            <div class="toggle-row" onclick="">
+              <input type="checkbox" id="includeKey" onchange="updateSidebar()">
+              <span class="toggle"></span>
+              <div class="toggle-info">
+                <h4>Include Answer Key in PDF</h4>
+                <p>Appends a full answer key starting on a new page</p>
+              </div>
+            </div>
+          </label>
         </div>
-        <!-- Toggle: proper structure for CSS sibling selector -->
-        <label class="toggle-row" for="includeKey">
-          <div class="tog-wrap">
-            <input type="checkbox" id="includeKey" name="includeKey" class="tog-cb" onchange="updateSidebar()">
-            <div class="tog-track"><div class="tog-knob"></div></div>
-          </div>
-          <div class="tog-text">
-            <div class="tog-title">Include Answer Key in PDF</div>
-            <div class="tog-desc">Appends a full answer key starting on a new page</div>
-          </div>
-        </label>
+
+      </div><!-- /form-area -->
+
+      <!-- Generate button -->
+      <div class="generate-section">
+        <button type="button" class="generate-btn" id="generateBtn" onclick="generatePaper()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Generate Paper</span>
+        </button>
+        <div class="gen-meta">
+          <span>Gemini 2.5 Flash</span> · LangChain Pipeline · ~25–50 s · PDF ready instantly after generation
+        </div>
       </div>
 
-      <button type="submit" class="btn-gen" id="generateBtn">
-        <span class="btn-glow"></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span>Generate Paper</span>
-      </button>
-      <p class="gen-note">Gemini AI · ~30–60 s · Sections auto-scale to exact mark total</p>
     </form>
 
-    <!-- Results panel -->
-    <div id="resultsPanel" class="results-panel" style="display:none">
-      <div class="res-top">
-        <div class="res-title">
-          <span class="res-ok">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          Paper Ready
+    <!-- ── RESULTS PANEL ─────────────────────────────────────────────────── -->
+    <div id="resultsPanel">
+      <div class="results-hdr">
+        <div class="results-ready">
+          <div class="ready-dot"></div>
+          <div class="ready-label">Paper Ready</div>
         </div>
-        <div class="res-btns">
-          <button class="res-btn res-primary" onclick="downloadPDF(false)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div class="results-actions">
+          <button class="action-btn primary" onclick="downloadPDF(false)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download PDF
           </button>
-          <button class="res-btn res-key" onclick="downloadPDF(true)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          <button class="action-btn secondary" onclick="downloadPDF(true)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
             PDF + Key
           </button>
-          <button class="res-btn res-ghost" onclick="copyPaper()">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <button class="action-btn secondary" onclick="copyPaper()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             Copy Text
           </button>
         </div>
       </div>
+
       <div class="preview-tabs">
-        <button class="ptab active" id="ptab-paper" onclick="switchPreviewTab('paper', this)">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <button class="ptab active" id="ptab-paper" onclick="switchPreviewTab('paper',this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Question Paper
         </button>
-        <button class="ptab" id="ptab-key" onclick="switchPreviewTab('key', this)" style="display:none">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <button class="ptab" id="ptab-key" style="display:none" onclick="switchPreviewTab('key',this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           Answer Key
         </button>
       </div>
-      <div id="tab-paper">
-        <textarea id="paperOutput" readonly class="preview-ta" placeholder="Your generated paper will appear here…"></textarea>
-      </div>
-      <div id="tab-key" style="display:none">
-        <textarea id="answerKeyOutput" readonly class="preview-ta preview-ta-key" placeholder="Answer key will appear here…"></textarea>
-      </div>
+
+      <div id="tab-paper"><textarea class="paper-output" id="paperOutput" readonly></textarea></div>
+      <div id="tab-key" style="display:none"><textarea class="paper-output" id="answerKeyOutput" readonly></textarea></div>
     </div>
+
   </main>
-</div>
+</div><!-- /layout -->
 
-<!-- Loading modal -->
-<div id="loadingModal" class="loader-overlay" style="display:none">
-  <div class="loader-box">
-    <div class="loader-rings">
-      <svg class="ring-svg" viewBox="0 0 88 88">
-        <circle class="ring-track" cx="44" cy="44" r="36" fill="none" stroke-width="3"/>
-        <circle class="ring-arc arc1" cx="44" cy="44" r="36" fill="none" stroke-width="3"/>
-        <circle class="ring-arc arc2" cx="44" cy="44" r="26" fill="none" stroke-width="2.5"/>
-        <circle class="ring-arc arc3" cx="44" cy="44" r="14" fill="none" stroke-width="2"/>
-      </svg>
-      <div class="loader-icon">
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><polygon points="16,2 30,9 30,23 16,30 2,23 2,9" stroke="currentColor" stroke-width="2.2" fill="none"/><circle cx="16" cy="16" r="3.5" fill="currentColor"/></svg>
-      </div>
-    </div>
-    <h3 class="loader-title" id="loaderTitle">Crafting your paper…</h3>
-    <div class="loader-steps">
-      <div class="l-step" id="ls1"><div class="l-dot"></div><span>Analysing syllabus</span></div>
-      <div class="l-step" id="ls2"><div class="l-dot"></div><span>Writing questions</span></div>
-      <div class="l-step" id="ls3"><div class="l-dot"></div><span>Building answer key</span></div>
-      <div class="l-step" id="ls4"><div class="l-dot"></div><span>Scaling to mark total</span></div>
-      <div class="l-step" id="ls5"><div class="l-dot"></div><span>Rendering PDF</span></div>
-    </div>
-  </div>
-</div>
-
-<div id="notificationToast" class="toast"></div>
-
+<!-- Load original app.js (keeps all logic intact) -->
 <script src="/static/js/app.js"></script>
+
 <script>
-// ── Stepper logic (inline so it runs after app.js) ──────────────
-function updateStepper() {
-  const examType = document.getElementById('examType')?.value;
-  const cls      = document.getElementById('class')?.value;
-  const marks    = document.getElementById('totalMarks')?.value;
-  let completed = 1;
-  if (examType) completed = 2;
-  if (examType && cls) completed = 4;
-  if (examType && cls && marks) completed = 5;
+/* ═══════════════════════════════════════════════════════════════════════════
+   ExamCraft Spotlight + Instant-PDF Extension
+   Patches applied AFTER app.js loads — no logic changes, only enhancements
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Cursor Tracking ─────────────────────────────────────────────────── */
+const dot  = document.getElementById('cursorDot');
+const ring = document.getElementById('cursorRing');
+const spotlight = document.getElementById('spotlight');
+
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  if (dot)  { dot.style.left  = mx + 'px'; dot.style.top  = my + 'px'; }
+  spotlight.style.setProperty('--mx', mx + 'px');
+  spotlight.style.setProperty('--my', my + 'px');
+});
+
+/* Ring lags behind for smoothness */
+function animateRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  if (ring) { ring.style.left = rx + 'px'; ring.style.top = ry + 'px'; }
+  requestAnimationFrame(animateRing);
+}
+animateRing();
+
+/* Hover state for ring */
+document.querySelectorAll('button,a,[onclick],.type-card,.scope-card,.chip,.diff-btn,.history-item').forEach(el => {
+  el.addEventListener('mouseenter', () => ring && ring.classList.add('hovering'));
+  el.addEventListener('mouseleave', () => ring && ring.classList.remove('hovering'));
+});
+document.querySelectorAll('input,textarea,select').forEach(el => {
+  el.addEventListener('focus',  () => { if(dot) dot.style.opacity='0'; if(ring) ring.style.opacity='0'; });
+  el.addEventListener('blur',   () => { if(dot) dot.style.opacity='1'; if(ring) ring.style.opacity='1'; });
+});
+
+/* ── 2. Card Spotlight ─────────────────────────────────────────────────── */
+/* Each card tracks cursor position relative to itself */
+document.querySelectorAll('.card, .type-card, .scope-card, .chip, .diff-btn, .toggle-row, .history-item').forEach(el => {
+  el.addEventListener('mousemove', e => {
+    const r = el.getBoundingClientRect();
+    const cx = ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%';
+    const cy = ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%';
+    el.style.setProperty('--cx', cx);
+    el.style.setProperty('--cy', cy);
+  });
+});
+
+/* History items cursor tracking */
+document.addEventListener('mousemove', e => {
+  document.querySelectorAll('.history-item').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const hx = ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%';
+    const hy = ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%';
+    el.style.setProperty('--hx', hx);
+    el.style.setProperty('--hy', hy);
+  });
+  document.querySelectorAll('.step-item').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const sx = ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%';
+    const sy = ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%';
+    el.style.setProperty('--sx', sx);
+    el.style.setProperty('--sy', sy);
+  });
+});
+
+/* ── 3. Instant PDF via Base64 ──────────────────────────────────────────── */
+/* Store base64 PDFs from /generate response — zero second API call */
+window._pdfCache = { paper: null, withKey: null, meta: {} };
+
+/* Intercept fetch to capture pdf_b64 from /generate responses */
+const _origFetch = window.fetch.bind(window);
+window.fetch = async function(url, opts) {
+  const resp = await _origFetch(url, opts);
+  if (typeof url === 'string' && url.includes('/generate') && opts?.method === 'POST') {
+    const cloned = resp.clone();
+    cloned.json().then(data => {
+      if (data && data.success) {
+        if (data.pdf_b64)     window._pdfCache.paper   = data.pdf_b64;
+        if (data.pdf_key_b64) window._pdfCache.withKey = data.pdf_key_b64;
+        window._pdfCache.meta = {
+          subject: data.subject || '',
+          chapter: data.chapter || '',
+          board:   data.board   || '',
+        };
+      }
+    }).catch(() => {});
+  }
+  return resp;
+};
+
+/* Override downloadPDF — use cached base64 directly */
+window.downloadPDF = function(withKey) {
+  const b64 = withKey ? (window._pdfCache.withKey || window._pdfCache.paper) 
+                       : (window._pdfCache.paper   || window._pdfCache.withKey);
+
+  if (b64) {
+    /* Convert base64 → Uint8Array → Blob → instant download */
+    try {
+      const bin  = atob(b64);
+      const buf  = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const blob = new Blob([buf], { type: 'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      const m    = window._pdfCache.meta;
+      const safe = [m.board, m.subject, m.chapter || 'Paper']
+        .filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
+      a.href     = url;
+      a.download = safe + (withKey ? '_with_key' : '') + '.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      showToast('PDF downloaded ✓');
+    } catch(e) {
+      showToast('Download error: ' + e.message);
+    }
+    return;
+  }
+  showToast('Generate a paper first');
+};
+
+/* ── 4. History Download — also instant if PDF cached in history ────────── */
+const _origAddToHistory = window.addToHistory;
+
+/* Re-render history to attach spotlight to new items */
+const _origRenderHistory = window.renderHistory;
+if (_origRenderHistory) {
+  window.renderHistory = function() {
+    _origRenderHistory.call(this);
+    /* Reattach mousemove spotlight to new history items */
+    setTimeout(() => {
+      document.querySelectorAll('.history-item').forEach(el => {
+        el.addEventListener('mousemove', e => {
+          const r = el.getBoundingClientRect();
+          el.style.setProperty('--hx', ((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
+          el.style.setProperty('--hy', ((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+        });
+      });
+    }, 50);
+  };
+}
+
+/* ── 5. Step Progress Tracker ───────────────────────────────────────────── */
+function updateStepProgress(activeStep) {
   for (let i = 1; i <= 6; i++) {
-    const el = document.getElementById('step-' + i);
-    if (!el) continue;
-    el.classList.toggle('active', i === Math.min(completed + 1, 6));
-    el.classList.toggle('done', i <= completed);
+    const s = document.getElementById('step-' + i);
+    const c = document.getElementById('conn-'  + i);
+    if (!s) continue;
+    s.classList.remove('active','done');
+    if (i < activeStep)      { s.classList.add('done');   if(c) c.classList.add('done'); }
+    else if (i === activeStep){ s.classList.add('active'); if(c) c.classList.remove('done'); }
+    else                     { if(c) c.classList.remove('done'); }
   }
 }
-// Wrap updateSidebar to also call updateStepper
-const _origUS = window.updateSidebar;
-window.updateSidebar = function() {
-  if (_origUS) _origUS();
-  updateStepper();
+
+/* Patch selectType to also update stepper */
+const _origSelectType = window.selectType;
+window.selectType = function(val) {
+  _origSelectType && _origSelectType(val);
+  updateStepProgress(2);
 };
+
+const _origSelectBoardScope = window.selectBoardScope;
+window.selectBoardScope = function(val) {
+  _origSelectBoardScope && _origSelectBoardScope(val);
+  updateStepProgress(3);
+};
+
+const _origSelectCompScope = window.selectCompScope;
+window.selectCompScope = function(val) {
+  _origSelectCompScope && _origSelectCompScope(val);
+  updateStepProgress(3);
+};
+
+const _origOnClassChange = window.onClassChange;
+window.onClassChange = async function() {
+  _origOnClassChange && await _origOnClassChange();
+  updateStepProgress(4);
+};
+
+const _origOnSubjectChange = window.onSubjectChange;
+window.onSubjectChange = function() {
+  _origOnSubjectChange && _origOnSubjectChange();
+  updateStepProgress(4);
+};
+
+const _origSelectMark = window.selectMark;
+window.selectMark = function(btn) {
+  _origSelectMark && _origSelectMark(btn);
+  updateStepProgress(5);
+};
+
+const _origSelectDiff = window.selectDiff;
+window.selectDiff = function(val, btn) {
+  _origSelectDiff && _origSelectDiff(val, btn);
+  updateStepProgress(5);
+};
+
+/* Mark step 6 active when generate button is clicked */
+const _origGeneratePaper = window.generatePaper;
+
+/* ── 6. Form section spotlight on card hover ─────────────────────────── */
+/* Also animate the active-card class when user is in that section */
+document.querySelectorAll('.card').forEach(card => {
+  card.addEventListener('mouseenter', () => card.classList.add('active-card'));
+  card.addEventListener('mouseleave', () => card.classList.remove('active-card'));
+});
+
+/* ── 7. Initial state ───────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  /* Set 50M as default (matches the active chip) */
+  document.getElementById('totalMarks').value = '50';
+
+  /* Initial stepper */
+  updateStepProgress(1);
+
+  /* Reattach hover tracking to dynamically rendered items */
+  const histObs = new MutationObserver(() => {
+    document.querySelectorAll('.history-item').forEach(el => {
+      if (!el._spotlit) {
+        el._spotlit = true;
+        el.addEventListener('mousemove', e => {
+          const r = el.getBoundingClientRect();
+          el.style.setProperty('--hx', ((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
+          el.style.setProperty('--hy', ((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+        });
+      }
+    });
+  });
+  const histEl = document.getElementById('historyList');
+  if (histEl) histObs.observe(histEl, { childList: true });
+});
 </script>
 </body>
 </html>

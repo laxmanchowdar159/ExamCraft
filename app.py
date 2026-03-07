@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import base64
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from io import BytesIO
@@ -853,7 +854,8 @@ def create_exam_pdf(text, subject, chapter, board="",
         return m.group(1).strip() if m else default
 
     # Use passed marks if provided (more reliable than parsing AI text)
-    h_marks = str(marks) if marks else _pull(r'Total\s*Marks\s*[:/]\s*(\d+)', "100")
+    marks = str(marks).strip() if marks is not None else ""
+    h_marks = marks if marks and marks.strip().isdigit() else _pull(r'Total\s*Marks\s*[:/]\s*(\d+)', "100") or "100"
     h_time  = _pull(r'Time\s*(?:Allowed|:)\s*([^\n]+)', "3 Hours")
     h_class = _pull(r'Class\s*[:/]?\s*(\d+\w*)', "")
     h_board = board or _pull(r'Board\s*[:/]\s*([^\n]+)', "")
@@ -940,12 +942,18 @@ def create_exam_pdf(text, subject, chapter, board="",
     lines = text.split('\n')
     i_line = 0
 
+    # Track instruction sections to strip them completely
+    _INSTR_HEADERS = re.compile(
+        r'^(GENERAL INSTRUCTIONS?|General Instructions?|'
+        r'Instructions?|Note:|NOTE:|NOTES?:)\s*$', re.I)
+    _INSTR_LINE = re.compile(
+        r'^\d+\.\s+.{10,}')  # numbered instruction lines
+
     def _is_general_instr(s):
-        return bool(re.match(r'^(GENERAL INSTRUCTIONS|General Instructions'
-                             r'|Instructions)\s*$', s.strip()))
+        return bool(_INSTR_HEADERS.match(s.strip()))
 
     def _is_instr_line(s):
-        return bool(re.match(r'^\d+\.\s+', s.strip())) and in_instr
+        return bool(_INSTR_LINE.match(s.strip())) and in_instr
 
     while i_line < len(lines):
         raw  = lines[i_line].rstrip()
@@ -2763,10 +2771,62 @@ def generate():
                 }), 502
 
         paper, key = split_key(generated_text)
+
+        # ── Build PDFs inline — no second API call needed ────────────
+        # Diagram generation in parallel, best-effort (won't delay response if fails)
+        diagrams = {}
+        try:
+            if GEMINI_KEY:
+                full_text = paper + "\n" + (key or "")
+                diag_descs_raw = re.findall(
+                    r'\[DIAGRAM:\s*([^\]]+)\]', full_text, re.IGNORECASE)
+                unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
+                if unique_descs:
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    max_w = max(1, min(3, len(unique_descs)))
+                    with ThreadPoolExecutor(max_workers=max_w) as ex:
+                        futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
+                        for future in as_completed(futures, timeout=25):
+                            d = futures[future]
+                            try:
+                                svg = future.result(timeout=25)
+                                if svg: diagrams[d] = svg
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+
+        marks_safe = str(marks or "100").strip()
+        chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
+
+        pdf_b64 = pdf_key_b64 = None
+        try:
+            pdf_bytes = create_exam_pdf(
+                paper, subject, chapter_safe,
+                board=board, answer_key=key,
+                include_key=False, diagrams=diagrams,
+                marks=marks_safe)
+            pdf_b64 = base64.b64encode(pdf_bytes).decode()
+        except Exception as pdf_err:
+            pdf_b64 = None
+
+        if key and key.strip():
+            try:
+                pdf_key_bytes = create_exam_pdf(
+                    paper, subject, chapter_safe,
+                    board=board, answer_key=key,
+                    include_key=True, diagrams=diagrams,
+                    marks=marks_safe)
+                pdf_key_b64 = base64.b64encode(pdf_key_bytes).decode()
+            except Exception:
+                pdf_key_b64 = pdf_b64
+
         return jsonify({
             "success": True, "paper": paper, "answer_key": key,
             "api_error": api_error, "used_fallback": use_fallback,
             "board": board, "subject": subject, "chapter": chapter,
+            "pdf_b64": pdf_b64,
+            "pdf_key_b64": pdf_key_b64 or pdf_b64,
         })
 
     except Exception as e:
