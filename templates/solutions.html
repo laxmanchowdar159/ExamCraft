@@ -4,26 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Solutions — ExamCraft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    .solutions-wrapper{max-width:900px;margin:28px auto;padding:20px}
-    .solutions-wrapper h1{font-size:28px;margin-bottom:12px}
-    .solutions-section{background:var(--bg-secondary);border-radius:12px;padding:18px;margin-top:12px}
-    pre{white-space:pre-wrap;font-family:inherit}
+    .solutions-wrapper {
+      max-width:860px; margin:52px auto; padding:0 32px 80px;
+    }
+    .sol-header {
+      margin-bottom:40px;
+      padding-bottom:24px;
+      border-bottom:1px solid var(--b1);
+    }
+    .sol-header h1 {
+      font-family:var(--fd); font-size:42px; font-weight:300;
+      color:var(--t0); letter-spacing:-.01em; margin-bottom:8px;
+    }
+    .sol-header h1 em { font-style:italic; color:var(--ac); }
+    .sol-header p { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--t2); }
+    .solutions-section {
+      background:var(--s0); border:1px solid var(--b0);
+      border-radius:var(--md); padding:28px 32px; margin-top:20px;
+    }
+    .solutions-section h2 {
+      font-family:var(--fd); font-size:18px; font-style:italic;
+      color:var(--ac); margin-bottom:20px; padding-bottom:12px;
+      border-bottom:1px solid var(--b0); letter-spacing:.03em;
+    }
+    pre {
+      white-space:pre-wrap; font-family:var(--fm);
+      font-size:13px; color:var(--t1); line-height:1.75;
+    }
   </style>
 </head>
 <body>
   <div class="solutions-wrapper">
-    <h1>ExamCraft — Paper & Solutions</h1>
-    <p class="microcopy">Printable view. Use your browser's print to save as PDF.</p>
-
+    <div class="sol-header">
+      <h1>Exam<em>Craft</em> — Paper &amp; Solutions</h1>
+      <p>Printable view · Use browser print to save as PDF</p>
+    </div>
     <div class="solutions-section">
-      <h2>Paper</h2>
+      <h2>Examination Paper</h2>
       <pre>{{ paper }}</pre>
     </div>
-
     <div class="solutions-section">
-      <h2>Solutions & Explanations</h2>
+      <h2>Solutions &amp; Explanations</h2>
       <pre>{{ answer_key }}</pre>
     </div>
   </div>

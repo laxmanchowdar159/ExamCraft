@@ -970,13 +970,12 @@ def create_exam_pdf(text, subject, chapter, board="",
         ("ROWHEIGHT",     (0,0),(-1,-1), 2),
     ]))
 
-    # --- Meta row (light bg, 3-column) ---
+    # --- Meta row (light bg, 2-column — time removed) ---
     board_cls = "  ·  ".join(x for x in [h_board, f"Class {h_class}" if h_class else ""] if x)
     c1 = Paragraph(f'<b>{board_cls}</b>', st["PMeta"])
     c2 = Paragraph(f'<font color="#0f2149"><b>Total Marks: {h_marks}</b></font>', st["PMetaBold"])
-    c3 = Paragraph(f'<font color="#475569">Time: {h_time}</font>', st["PMetaR"])
 
-    tbl_meta = Table([[c1, c2, c3]], colWidths=[PW*0.40, PW*0.30, PW*0.30])
+    tbl_meta = Table([[c1, c2]], colWidths=[PW*0.60, PW*0.40])
     tbl_meta.setStyle(TableStyle([
         ("BACKGROUND",    (0,0),(-1,-1), C_LIGHT2),
         ("LINEBELOW",     (0,0),(-1,-1), 1.2, C_NAVY),
@@ -1019,8 +1018,7 @@ def create_exam_pdf(text, subject, chapter, board="",
 
     # Track instruction sections to strip them completely
     _INSTR_HEADERS = re.compile(
-        r'^(GENERAL INSTRUCTIONS?|General Instructions?|'
-        r'Instructions?|Note:|NOTE:|NOTES?:)\s*$', re.I)
+        r'^(GENERAL INSTRUCTIONS?|General Instructions?)\s*$', re.I)
     _INSTR_LINE = re.compile(
         r'^\d+\.\s+.{10,}')  # numbered instruction lines
 
