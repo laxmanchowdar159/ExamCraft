@@ -694,29 +694,48 @@ def _pipe_table(rows, st, pw):
     if not rows:
         return None
     mc = max(len(r) for r in rows)
+    if mc < 1:
+        return None
     norm = [r + ['']*(mc-len(r)) for r in rows]
     R, B = _f("Reg"), _f("Bold")
 
+    # Build minimal inline styles — NO leftIndent so cell widths stay sane
+    base = getSampleStyleSheet()
+    def _tst(name, **kw):
+        if name not in base:
+            base.add(ParagraphStyle(name=name, **kw))
+        return base[name]
+    head_st = _tst("_TH", fontName=B,   fontSize=9.5, textColor=black,
+                    leading=14, spaceBefore=0, spaceAfter=0,
+                    leftIndent=0, firstLineIndent=0)
+    body_st = _tst("_TB", fontName=R,   fontSize=9.5, textColor=C_BODY,
+                    leading=14, spaceBefore=0, spaceAfter=0,
+                    leftIndent=0, firstLineIndent=0)
+
+    # Safety margin: ensure table never exceeds actual available frame width
+    safe_pw = pw - 2   # 2pt safety buffer avoids floating-point frame overflow
+
     para_rows = []
     for ri, row in enumerate(norm):
-        sty = st["KQ"] if ri == 0 else st["KStep"]
+        sty = head_st if ri == 0 else body_st
         para_rows.append([Paragraph(_process(c), sty) for c in row])
 
-    cw = pw / mc
-    t = Table(para_rows, colWidths=[cw]*mc, repeatRows=1)
+    cw = safe_pw / mc
+    t = Table(para_rows, colWidths=[cw]*mc, repeatRows=1, splitByRow=True)
     t.setStyle(TableStyle([
         ("FONTNAME",       (0,0),(-1,-1), R),
         ("FONTSIZE",       (0,0),(-1,-1), 9.5),
-        ("BACKGROUND",     (0,0),(-1,0),  HexColor("#e8e8e8")),
-        ("TEXTCOLOR",      (0,0),(-1,0),  black),
+        ("BACKGROUND",     (0,0),(-1,0),  HexColor("#dde3ee")),
+        ("TEXTCOLOR",      (0,0),(-1,0),  C_NAVY),
         ("FONTNAME",       (0,0),(-1,0),  B),
         ("GRID",           (0,0),(-1,-1), 0.5, HexColor("#aaaaaa")),
-        ("ROWBACKGROUNDS", (0,1),(-1,-1), [white, HexColor("#f8f8f8")]),
-        ("TOPPADDING",     (0,0),(-1,-1), 4),
-        ("BOTTOMPADDING",  (0,0),(-1,-1), 4),
-        ("LEFTPADDING",    (0,0),(-1,-1), 7),
-        ("RIGHTPADDING",   (0,0),(-1,-1), 7),
+        ("ROWBACKGROUNDS", (0,1),(-1,-1), [white, HexColor("#f4f6fb")]),
+        ("TOPPADDING",     (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING",  (0,0),(-1,-1), 5),
+        ("LEFTPADDING",    (0,0),(-1,-1), 8),
+        ("RIGHTPADDING",   (0,0),(-1,-1), 8),
         ("VALIGN",         (0,0),(-1,-1), "MIDDLE"),
+        ("ALIGN",          (0,0),(-1,-1), "LEFT"),
     ]))
     return t
 

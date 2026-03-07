@@ -202,35 +202,23 @@ input[type="checkbox"]{display:none}
 .gen-sub{text-align:center;font-family:var(--fm);font-size:10.5px;color:var(--t3);margin-top:10px}
 .gen-sub .accent{color:var(--gold)}
 
-/* SUCCESS PANEL */
-#successPanel{display:none;padding:0 32px 32px;max-width:820px;animation:slideup .5s var(--snap)}
-@keyframes slideup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.success-card{background:linear-gradient(135deg,rgba(232,200,74,.06) 0%,rgba(20,23,36,.8) 100%);border:1px solid rgba(232,200,74,.25);border-radius:16px;padding:28px;position:relative;overflow:hidden}
-.success-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,var(--gold),transparent);animation:scan 2s ease-out}
-@keyframes scan{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.confetti-area{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
-.confetti-pc{position:absolute;width:6px;height:6px;border-radius:1px;animation:cfall 1.5s ease-out forwards}
-@keyframes cfall{0%{transform:translate(0,-20px) rotate(0deg);opacity:1}100%{transform:translate(var(--tx),80px) rotate(var(--rot));opacity:0}}
-.success-top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
-.success-ico{width:44px;height:44px;border-radius:12px;background:rgba(74,232,160,.1);border:1px solid rgba(74,232,160,.3);display:grid;place-items:center;font-size:22px;flex-shrink:0;animation:sbounce .6s var(--spring)}
-@keyframes sbounce{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
-.success-title{font-family:var(--fd);font-size:22px;font-style:italic;color:var(--t1)}
-.success-sub{font-size:12px;color:var(--t2);margin-top:2px}
-.success-joke{font-family:var(--fm);font-size:11px;color:var(--t3);margin-top:4px;font-style:italic}
-.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.dl-btn{display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:12px;cursor:pointer;font-family:var(--ff);font-size:13px;font-weight:700;border:1.5px solid;transition:all .25s var(--spring);position:relative;overflow:hidden}
-.dl-btn:hover{transform:translateY(-2px)}
-.dl-btn.gold-btn{background:linear-gradient(135deg,#c4a030,#e8c84a);border-color:rgba(232,200,74,.5);color:#000;box-shadow:0 4px 20px rgba(232,200,74,.25)}
-.dl-btn.gold-btn:hover{box-shadow:0 8px 32px rgba(232,200,74,.4)}
-.dl-btn.ghost-btn{background:var(--s1);border-color:var(--b2);color:var(--t1)}
-.dl-btn.ghost-btn:hover{background:var(--s2);border-color:var(--b3)}
-.dl-btn-ico{font-size:20px;flex-shrink:0}
-.dl-btn-txt{display:flex;flex-direction:column}
-.dl-btn-main{font-size:13px;font-weight:700}
-.dl-btn-sub{font-size:10px;opacity:.7;font-weight:400}
-.action-row{display:flex;gap:8px}
-.action-mini{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:8px;cursor:pointer;background:var(--s1);border:1px solid var(--b1);color:var(--t2);font-family:var(--ff);font-size:12px;font-weight:600;transition:all .2s}
-.action-mini:hover{background:var(--s2);border-color:var(--b2);color:var(--t1)}
+/* SUCCESS BAR */
+#successPanel{display:none;padding:0 0 16px;animation:slideup .4s var(--snap)}
+@keyframes slideup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.success-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,rgba(232,200,74,.08),rgba(20,23,36,.6));border:1px solid rgba(232,200,74,.3);border-radius:12px;padding:14px 18px;flex-wrap:wrap}
+.success-bar-left{display:flex;align-items:center;gap:12px}
+.success-check{width:34px;height:34px;border-radius:9px;background:rgba(74,232,160,.12);border:1px solid rgba(74,232,160,.35);display:grid;place-items:center;font-size:16px;flex-shrink:0;animation:sbounce .5s var(--spring)}
+@keyframes sbounce{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.success-bar-title{font-family:var(--fd);font-size:16px;font-style:italic;color:var(--t1)}
+.success-bar-meta{font-size:11px;color:var(--t2);margin-top:2px}
+.success-bar-btns{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.redown-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:var(--ff);font-size:12px;font-weight:600;border:1.5px solid;transition:all .2s var(--spring);white-space:nowrap}
+.redown-btn{background:rgba(232,200,74,.1);border-color:rgba(232,200,74,.35);color:var(--gold)}
+.redown-btn:hover{background:rgba(232,200,74,.18);transform:translateY(-1px);box-shadow:0 4px 14px rgba(232,200,74,.2)}
+.redown-btn.key-btn{background:var(--s1);border-color:var(--b2);color:var(--t1)}
+.redown-btn.key-btn:hover{background:var(--s2);border-color:var(--b3)}
+.redown-btn.again-btn{background:transparent;border-color:var(--b1);color:var(--t3)}
+.redown-btn.again-btn:hover{color:var(--t1);border-color:var(--b2)}
 
 /* LOADING */
 #loadingModal{position:fixed;inset:0;z-index:200;background:rgba(5,6,12,.9);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center}
@@ -369,7 +357,7 @@ input[type="checkbox"]{display:none}
           <div class="hero-eye">AI-Powered Exam Tool</div>
           <h1 class="hero-title">Build a perfect<br><em>exam paper</em> in seconds</h1>
           <p class="hero-sub">Curriculum-aligned papers for AP/TS State Board &amp; national competitive exams. Click Generate &rarr; PDF downloads instantly. No fuss, no preview, just results.</p>
-          <div class="hero-joke" id="heroJoke">&#x1F393; Why did the student eat his homework? Because the teacher said it was a piece of cake!</div>
+          <div class="hero-joke" id="heroJoke">Why do students write so small on exams? To leave room for their mistakes.</div>
         </div>
 
         <div class="form-sec">
@@ -525,34 +513,26 @@ input[type="checkbox"]{display:none}
     </form>
 
     <div id="successPanel">
-      <div class="success-card">
-        <div class="confetti-area" id="confettiArea"></div>
-        <div class="success-top">
-          <div class="success-ico">&#x2705;</div>
+      <div class="success-bar">
+        <div class="success-bar-left">
+          <span class="success-check">&#x2714;</span>
           <div>
-            <div class="success-title">Paper Generated!</div>
-            <div class="success-sub" id="successMeta">Your exam paper is ready</div>
-            <div class="success-joke" id="successJoke"></div>
+            <div class="success-bar-title">Paper ready!</div>
+            <div class="success-bar-meta" id="successMeta">Downloading automatically…</div>
           </div>
         </div>
-        <div class="dl-grid">
-          <button class="dl-btn gold-btn" onclick="downloadPDF(false)">
-            <span class="dl-btn-ico">&#x1F4C4;</span>
-            <span class="dl-btn-txt"><span class="dl-btn-main">Download Paper</span><span class="dl-btn-sub">Question paper only</span></span>
+        <div class="success-bar-btns">
+          <button class="redown-btn" onclick="downloadPDF(false)" title="Re-download paper">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Paper PDF
           </button>
-          <button class="dl-btn ghost-btn" id="dlWithKey" onclick="downloadPDF(true)">
-            <span class="dl-btn-ico">&#x1F511;</span>
-            <span class="dl-btn-txt"><span class="dl-btn-main">Paper + Answer Key</span><span class="dl-btn-sub">Combined PDF</span></span>
+          <button class="redown-btn key-btn" id="dlWithKey" onclick="downloadPDF(true)" title="Download paper + answer key">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            + Answer Key
           </button>
-        </div>
-        <div class="action-row">
-          <button class="action-mini" onclick="copyPaper()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            Copy Text
-          </button>
-          <button class="action-mini" onclick="generateAnother()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-            Generate Another
+          <button class="redown-btn again-btn" onclick="generateAnother()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+            New Paper
           </button>
         </div>
       </div>
@@ -563,28 +543,28 @@ input[type="checkbox"]{display:none}
 <script src="/static/js/app.js"></script>
 <script>
 const JOKES=[
-  "Why did the math book look sad? Too many problems. &#x1F4DA;",
-  "A student told his teacher he wants to be a comedian. She said don't quit school. He hasn't. &#x1F601;",
-  "Scientists don't trust atoms because they make up everything. Just like some exam answers.",
-  "Why is 6 afraid of 7? Because 7 8 9. This exam will 8 your time too.",
-  "Chemistry teacher: 'What is H2O?' Student: 'H-I-J-K-L-M-N-O.' Teacher: '???' Student: 'H to O!' &#x1F4A7;",
-  "My maths teacher called me average. That was mean. &#x1F4D0;",
-  "Teacher: 'Give a sentence with the word geometry.' Student: 'A little acorn grew and said: Gee, I\'m a tree!' &#x1F333;",
-  "Why did the student eat his homework? Teacher said it was a piece of cake! &#x1F370;",
-  "I asked why there is only one History exam. 'We never repeat the past,' she said. Ironic. &#x1F605;",
-  "Physics teacher: 'What is the speed of light?' Student: 'I don\'t know, but it gets here way too fast on exam day.'",
+  "Why do students write so small on exams? To leave room for their mistakes.",
+  "An exam is the only time when the smartest person in the room is also the most nervous.",
+  "The only difference between a student and a pizza is that a pizza can feed a family of four.",
+  "Studying for an exam: 20% reading, 80% convincing yourself you will definitely remember this.",
+  "A+ students become professors. B students become engineers. C students become CEOs. D students run the country.",
+  "I told my teacher I was going to study all night. I lied. We both knew it.",
+  "Why do they give you a pencil in exams? So you can erase your regrets.",
+  "The speed of light is 3×10⁸ m/s. The speed of forgetting during an exam is faster.",
+  "Exam tip: write in large font. More words per answer. Examiner gets tired. You get marks.",
+  "I don't always study, but when I do it's the night before the exam. I pass anyway. Sometimes.",
 ];
 const LOADING_JOKES=[
-  "Consulting ancient scrolls of NCERT&#x2026;",
-  "Asking Gemini to not write trick questions&#x2026; it disagreed. &#x1F608;",
-  "Training neurons&#x2026; or just brewing chai &#x2615;",
-  "Making questions hard enough to be educational. And slightly annoying.",
-  "Fun fact: This AI has never failed an exam. Because it writes them. &#x1F4AA;",
-  "Calculating how many marks you\'ll lose to silly mistakes&#x2026;",
+  "Consulting the NCERT syllabus so you don't have to…",
+  "Instructing the AI to make the wrong options convincingly wrong…",
+  "Adding exactly the right amount of difficulty to hurt but not destroy…",
+  "Double-checking that every answer is actually correct this time…",
+  "Ensuring the diagrams don't look like modern art…",
+  "Counting marks to make sure they add up. Unlike most student papers.",
 ];
 let jokeIdx=0;
-function rotateJoke(){const e=document.getElementById('heroJoke');if(!e)return;e.style.opacity=0;setTimeout(()=>{e.textContent='&#x1F393; '+JOKES[jokeIdx++%JOKES.length];e.style.opacity=1;},300)}
-setInterval(rotateJoke,7000);
+function rotateJoke(){const e=document.getElementById('heroJoke');if(!e)return;e.style.opacity=0;setTimeout(()=>{e.textContent=JOKES[jokeIdx++%JOKES.length];e.style.opacity=1;},300)}
+setInterval(rotateJoke,8000);
 
 const THEMES=[
   {n:'Aurum',c:'#e8c84a',g:'rgba(232,200,74,.35)',d:'rgba(232,200,74,.1)'},
@@ -595,7 +575,7 @@ const THEMES=[
 ];
 let themeIdx=0;
 function applyTheme(i){const t=THEMES[i];const r=document.documentElement;r.style.setProperty('--gold',t.c);r.style.setProperty('--gold-glow',t.g);r.style.setProperty('--gold-dim',t.d);const l=document.getElementById('themeLabel');if(l)l.textContent=t.n;try{localStorage.setItem('ec_theme',i)}catch{}}
-window.cycleTheme=function(){themeIdx=(themeIdx+1)%THEMES.length;applyTheme(themeIdx);showToast('Theme: '+THEMES[themeIdx].n+' &#x2726;')};
+window.cycleTheme=function(){themeIdx=(themeIdx+1)%THEMES.length;applyTheme(themeIdx);showToast('Theme: '+THEMES[themeIdx].n)};
 
 const ring=document.getElementById('cursor-ring');
 const spot=document.getElementById('bg-spot');
@@ -614,38 +594,104 @@ const _osc=window.onSubjectChange;window.onSubjectChange=function(){_osc&&_osc()
 const _sm=window.selectMark;window.selectMark=function(b){_sm&&_sm(b);updateStepProgress(5)};
 const _sd=window.selectDiff;window.selectDiff=function(v,b){_sd&&_sd(v,b);updateStepProgress(5)};
 
-function spawnConfetti(){const a=document.getElementById('confettiArea');if(!a)return;a.innerHTML='';const cols=['#e8c84a','#f0d878','#4ae8a0','#4a9ef5','#f07890'];for(let i=0;i<30;i++){const p=document.createElement('div');p.className='confetti-pc';p.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*30}%;background:${cols[Math.floor(Math.random()*cols.length)]};--tx:${(Math.random()-.5)*120}px;--rot:${Math.random()*360}deg;animation-delay:${Math.random()*.5}s;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;border-radius:${Math.random()>.5?'50%':'2px'}`;a.appendChild(p)}}
-
 window._pdfCache={paper:null,withKey:null,meta:{}};
 const _origFetch=window.fetch.bind(window);
-window.fetch=async function(url,opts){const resp=await _origFetch(url,opts);if(typeof url==='string'&&url.includes('/generate')&&opts?.method==='POST'){const cl=resp.clone();cl.json().then(d=>{if(d&&d.success){if(d.pdf_b64)window._pdfCache.paper=d.pdf_b64;if(d.pdf_key_b64)window._pdfCache.withKey=d.pdf_key_b64;window._pdfCache.meta={subject:d.subject||'',chapter:d.chapter||'',board:d.board||''}}}).catch(()=>{})}return resp};
+window.fetch=async function(url,opts){
+  const resp=await _origFetch(url,opts);
+  if(typeof url==='string'&&url.includes('/generate')&&opts?.method==='POST'){
+    const cl=resp.clone();
+    cl.json().then(d=>{
+      if(d&&d.success){
+        if(d.pdf_b64)window._pdfCache.paper=d.pdf_b64;
+        if(d.pdf_key_b64)window._pdfCache.withKey=d.pdf_key_b64;
+        window._pdfCache.meta={subject:d.subject||'',chapter:d.chapter||'',board:d.board||''};
+      }
+    }).catch(()=>{});
+  }
+  return resp;
+};
 
 window.downloadPDF=async function(withKey){
   const b64=withKey?(window._pdfCache.withKey||window._pdfCache.paper):(window._pdfCache.paper||window._pdfCache.withKey);
-  if(b64){try{const bin=atob(b64);const buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);const blob=new Blob([buf],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const m=window._pdfCache.meta;const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);showToast('&#x1F4E5; PDF downloaded!')}catch(e){showToast('Download error: '+e.message)}return}
-  if(!window.currentPaper?.trim()){showToast('Generate a paper first!');return}
-  showLoading(true,'Rendering PDF&#x2026;');
-  try{const res=await _origFetch('/download-pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper:window.currentPaper,answer_key:window.currentAnswerKey||'',subject:window.currentMeta?.subject,chapter:window.currentMeta?.chapter!=='Full Syllabus'?window.currentMeta?.chapter:'',board:window.currentMeta?.board,includeKey:withKey,marks:window.currentMeta?.marks})});if(!res.ok){showToast('PDF error '+res.status);showLoading(false);return}const blob=await res.blob();if(!blob.size){showToast('Empty PDF — try regenerating');showLoading(false);return}const url=URL.createObjectURL(blob);const a=document.createElement('a');const m=window.currentMeta||{};const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);showLoading(false);showToast('&#x1F4E5; PDF downloaded!')}catch(e){showLoading(false);showToast('Download failed: '+e.message)}
+  if(b64){
+    try{
+      const bin=atob(b64);const buf=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+      const blob=new Blob([buf],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      const m=window._pdfCache.meta;
+      const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
+      a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';
+      document.body.appendChild(a);a.click();a.remove();
+      URL.revokeObjectURL(url);
+      showToast(withKey?'Downloaded paper + answer key ✓':'Paper downloaded ✓');
+    }catch(e){showToast('Download error: '+e.message);}
+    return;
+  }
+  if(!window.currentPaper?.trim()){showToast('Generate a paper first');return;}
+  showLoading(true,'Rendering PDF…');
+  try{
+    const m=window.currentMeta||{};
+    const res=await _origFetch('/download-pdf',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({paper:window.currentPaper,answer_key:window.currentAnswerKey||'',
+        subject:m.subject,chapter:m.chapter!=='Full Syllabus'?m.chapter:'',board:m.board,includeKey:withKey,marks:m.marks})});
+    if(!res.ok){showToast('PDF error '+res.status);showLoading(false);return;}
+    const blob=await res.blob();
+    if(!blob.size){showToast('Empty PDF — try regenerating');showLoading(false);return;}
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
+    a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);showLoading(false);
+    showToast(withKey?'Downloaded paper + answer key ✓':'Paper downloaded ✓');
+  }catch(e){showLoading(false);showToast('Download failed: '+e.message);}
 };
 
 const _gp=window.generatePaper;
 window.generatePaper=async function(){
-  const sp=document.getElementById('successPanel');if(sp)sp.style.display='none';
+  const sp=document.getElementById('successPanel');
+  if(sp)sp.style.display='none';
   window._pdfCache={paper:null,withKey:null,meta:{}};
   updateStepProgress(6);
   if(_gp)await _gp();else return;
-  const paper=window.currentPaper||'';if(!paper.trim())return;
-  if(sp){sp.style.display='block';const meta=window.currentMeta||{};const me=document.getElementById('successMeta');if(me)me.textContent=[meta.board,meta.subject,meta.chapter].filter(Boolean).join(' · ')||'Your exam paper is ready';const je=document.getElementById('successJoke');if(je)je.textContent=JOKES[Math.floor(Math.random()*JOKES.length)];const dk=document.getElementById('dlWithKey');if(dk)dk.style.display=window.currentAnswerKey?'flex':'none';spawnConfetti();setTimeout(()=>sp.scrollIntoView({behavior:'smooth',block:'start'}),100)}
-  setTimeout(()=>window.downloadPDF(false),400);
+  if(!window.currentPaper?.trim())return;
+  // Show slim success bar
+  if(sp){
+    const meta=window.currentMeta||{};
+    const me=document.getElementById('successMeta');
+    const label=[meta.board,meta.subject,meta.chapter&&meta.chapter!=='Full Syllabus'?meta.chapter:null].filter(Boolean).join(' · ');
+    if(me)me.textContent=label||'Downloading automatically…';
+    const dk=document.getElementById('dlWithKey');
+    if(dk)dk.style.display=window.currentAnswerKey?'flex':'none';
+    sp.style.display='block';
+    setTimeout(()=>sp.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+  }
+  // Auto-download immediately
+  window.downloadPDF(false);
 };
 
-window.generateAnother=function(){const sp=document.getElementById('successPanel');if(sp)sp.style.display='none';window.scrollTo({top:0,behavior:'smooth'});showToast("Let\'s craft another paper! &#x1F4DD;")};
+window.generateAnother=function(){
+  const sp=document.getElementById('successPanel');
+  if(sp)sp.style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
 
 const _osl=window.showLoading;
-window.showLoading=function(show,title){_osl&&_osl(show,title);if(show){const je=document.getElementById('loaderJoke');if(je){let li=0;je.textContent=LOADING_JOKES[li++%LOADING_JOKES.length];je._iv=setInterval(()=>{je.style.opacity=0;setTimeout(()=>{je.textContent=LOADING_JOKES[li++%LOADING_JOKES.length];je.style.opacity=1},400)},4000)}}else{const je=document.getElementById('loaderJoke');if(je&&je._iv){clearInterval(je._iv);je._iv=null}}};
+window.showLoading=function(show,title){
+  _osl&&_osl(show,title);
+  if(show){
+    const je=document.getElementById('loaderJoke');
+    if(je){let li=0;je.textContent=LOADING_JOKES[li++%LOADING_JOKES.length];
+      je._iv=setInterval(()=>{je.style.opacity=0;setTimeout(()=>{je.textContent=LOADING_JOKES[li++%LOADING_JOKES.length];je.style.opacity=1;},400);},4500);}
+  }else{
+    const je=document.getElementById('loaderJoke');
+    if(je&&je._iv){clearInterval(je._iv);je._iv=null;}
+  }
+};
 
 document.addEventListener('DOMContentLoaded',()=>{
-  try{const s=parseInt(localStorage.getItem('ec_theme')||'0',10);themeIdx=Math.min(s,THEMES.length-1)}catch{}
+  try{const s=parseInt(localStorage.getItem('ec_theme')||'0',10);themeIdx=Math.min(s,THEMES.length-1);}catch{}
   applyTheme(themeIdx);
   document.getElementById('totalMarks').value='100';
   updateStepProgress(1);
