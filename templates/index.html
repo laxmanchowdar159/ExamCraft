@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExamCraft — AI Exam Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
@@ -14,6 +14,7 @@
 </head>
 <body>
 
+<!-- Background -->
 <div id="bg-layer" aria-hidden="true">
   <div class="bg-mesh"></div>
   <div class="bg-grid"></div>
@@ -30,6 +31,7 @@
 <canvas id="confetti-canvas" aria-hidden="true"></canvas>
 <div id="notificationToast" role="status" aria-live="polite"></div>
 
+<!-- Loading Modal -->
 <div id="loadingModal" role="dialog" aria-modal="true" aria-label="Generating exam paper">
   <div class="loader-box">
     <div class="loader-seal">
@@ -57,76 +59,83 @@
 
 <div class="app">
 
+  <!-- Sidebar -->
   <aside id="sidebar">
-    <div class="sb-brand">
-      <div class="sb-brand-row">
-        <div class="sb-logo" title="ExamCraft AI">✦</div>
-        <div class="sb-brand-text">
-          <div class="sb-name">Exam<em>Craft</em></div>
-          <div class="sb-sub">AI Examination System</div>
+    <div class="sb-inner">
+
+      <div class="sb-brand">
+        <div class="sb-brand-row">
+          <div class="sb-logo" title="ExamCraft AI">✦</div>
+          <div class="sb-brand-text">
+            <div class="sb-name">Exam<em>Craft</em></div>
+            <div class="sb-sub">AI Examination System</div>
+          </div>
         </div>
+        <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
       </div>
-      <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
-    </div>
 
-    <div class="sb-progress">
-      <div class="sb-lbl">Progress</div>
-      <div class="step active" id="step-1"><div class="step-num">I</div><span>Paper Type</span></div>
-      <div class="step-conn" id="conn-1"></div>
-      <div class="step" id="step-2"><div class="step-num">II</div><span>Board / Exam</span></div>
-      <div class="step-conn" id="conn-2"></div>
-      <div class="step" id="step-3"><div class="step-num">III</div><span>Scope</span></div>
-      <div class="step-conn" id="conn-3"></div>
-      <div class="step" id="step-4"><div class="step-num">IV</div><span>Paper Details</span></div>
-      <div class="step-conn" id="conn-4"></div>
-      <div class="step" id="step-5"><div class="step-num">V</div><span>Marks &amp; Level</span></div>
-      <div class="step-conn" id="conn-5"></div>
-      <div class="step" id="step-6"><div class="step-num">VI</div><span>Generate &amp; Download</span></div>
-    </div>
-
-    <div class="sb-card">
-      <div class="sb-card-lbl">Examination Dossier</div>
-      <div class="sum-row"><span class="sum-k">Board</span>    <span class="sum-v" id="sb-board">—</span></div>
-      <div class="sum-row"><span class="sum-k">Class</span>    <span class="sum-v" id="sb-class">—</span></div>
-      <div class="sum-row"><span class="sum-k">Subject</span>  <span class="sum-v" id="sb-subject">—</span></div>
-      <div class="sum-row"><span class="sum-k">Chapter</span>  <span class="sum-v" id="sb-chapter">—</span></div>
-      <div class="sum-row"><span class="sum-k">Scope</span>    <span class="sum-v" id="sb-scope">—</span></div>
-      <div class="sum-row"><span class="sum-k">Marks</span>    <span class="sum-v" id="sb-marks">—</span></div>
-      <div class="sum-row"><span class="sum-k">Level</span>    <span class="sum-v" id="sb-difficulty">—</span></div>
-      <div class="sum-row"><span class="sum-k">Ans. Key</span> <span class="sum-v" id="sb-key">—</span></div>
-    </div>
-
-    <div class="sb-chart-wrap">
-      <div class="sb-chart-lbl">Mark Distribution</div>
-      <canvas id="marksChart"></canvas>
-    </div>
-
-    <div class="sb-hist">
-      <div class="hist-hdr">
-        <div class="hist-lbl">Recent Papers</div>
-        <button class="hist-clear" onclick="clearHistory()">Clear</button>
+      <div class="sb-progress">
+        <div class="sb-lbl">Progress</div>
+        <div class="step active" id="step-1"><div class="step-num">I</div><span>Paper Type</span></div>
+        <div class="step-conn" id="conn-1"></div>
+        <div class="step" id="step-2"><div class="step-num">II</div><span>Board / Exam</span></div>
+        <div class="step-conn" id="conn-2"></div>
+        <div class="step" id="step-3"><div class="step-num">III</div><span>Scope</span></div>
+        <div class="step-conn" id="conn-3"></div>
+        <div class="step" id="step-4"><div class="step-num">IV</div><span>Paper Details</span></div>
+        <div class="step-conn" id="conn-4"></div>
+        <div class="step" id="step-5"><div class="step-num">V</div><span>Marks &amp; Level</span></div>
+        <div class="step-conn" id="conn-5"></div>
+        <div class="step" id="step-6"><div class="step-num">VI</div><span>Generate &amp; Download</span></div>
       </div>
-      <div id="historyList"></div>
-    </div>
 
-    <div class="sb-footer">by Laxman Nimmagadda &middot; © 2026</div>
+      <div class="sb-card">
+        <div class="sb-card-lbl">Examination Dossier</div>
+        <div class="sum-row"><span class="sum-k">Board</span>    <span class="sum-v" id="sb-board">—</span></div>
+        <div class="sum-row"><span class="sum-k">Class</span>    <span class="sum-v" id="sb-class">—</span></div>
+        <div class="sum-row"><span class="sum-k">Subject</span>  <span class="sum-v" id="sb-subject">—</span></div>
+        <div class="sum-row"><span class="sum-k">Chapter</span>  <span class="sum-v" id="sb-chapter">—</span></div>
+        <div class="sum-row"><span class="sum-k">Scope</span>    <span class="sum-v" id="sb-scope">—</span></div>
+        <div class="sum-row"><span class="sum-k">Marks</span>    <span class="sum-v" id="sb-marks">—</span></div>
+        <div class="sum-row"><span class="sum-k">Level</span>    <span class="sum-v" id="sb-difficulty">—</span></div>
+        <div class="sum-row"><span class="sum-k">Ans. Key</span> <span class="sum-v" id="sb-key">—</span></div>
+      </div>
+
+      <div class="sb-chart-wrap">
+        <div class="sb-chart-lbl">Mark Distribution</div>
+        <canvas id="marksChart"></canvas>
+      </div>
+
+      <div class="sb-hist">
+        <div class="hist-hdr">
+          <div class="hist-lbl">Recent Papers</div>
+          <button class="hist-clear" onclick="clearHistory()">Clear</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+
+      <div class="sb-footer">by Laxman Nimmagadda &middot; © 2026</div>
+
+    </div>
   </aside>
 
+  <!-- Main -->
   <div class="main-area">
 
     <nav class="topbar">
       <div class="tb-left">
         <button class="mob-toggle" onclick="toggleMobileSidebar()" aria-label="Open menu">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
+        <div class="tb-divider"></div>
         <div class="tb-dot"></div>
-        <span id="hintText">Select a paper type to begin</span>
+        <span class="tb-hint" id="hintText">Select a paper type to begin</span>
       </div>
       <div class="tb-right">
         <button class="tb-btn" onclick="cycleTheme()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="5"/>
             <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
             <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
@@ -145,6 +154,7 @@
 
       <div class="form-area">
 
+        <!-- Hero -->
         <div class="hero">
           <div class="hero-kicker">
             <span class="hero-eye">AI-Powered Examination Tool</span>
@@ -153,22 +163,22 @@
           </div>
           <h1 class="hero-h1">
             Generate a perfect<br>
-            <em class="hero-em">exam paper</em> in seconds
+            <em>exam paper</em> in seconds
           </h1>
           <p class="hero-sub">
             Curriculum-aligned papers for AP/TS State Board and national competitive exams.
             Configure below, click Generate, receive your PDF instantly.
           </p>
           <div class="joke-box">
-            <div class="joke-icon">§</div>
-            <div class="joke-content">
+            <div>
               <div class="joke-badge">Examination Wisdom</div>
               <div id="heroJoke">Why do students write so small? To leave room for regrets.</div>
             </div>
           </div>
         </div>
 
-        <div class="gcard">
+        <!-- I — Paper Type -->
+        <div class="gcard" id="card-type">
           <div class="sec-hdr">
             <div class="sec-badge">I</div>
             <div class="sec-title">Paper Type</div>
@@ -192,21 +202,23 @@
 
         <div class="sec-div"></div>
 
+        <!-- II-a — State Board -->
         <div class="gcard collapsed" id="stateCard">
           <div class="sec-hdr">
             <div class="sec-badge">II</div>
             <div class="sec-title">Select State Board</div>
           </div>
           <div class="fg sel-w">
-            <label class="fl" for="stateSelect">State / Board</label>
-            <select id="stateSelect" onchange="updateSidebar()">
-              <option value="">Choose a board…</option>
-              <option value="Andhra Pradesh">Andhra Pradesh (AP SSC)</option>
-              <option value="Telangana">Telangana (TS SSC)</option>
+            <label class="fl" for="stateSelect">State</label>
+            <select id="stateSelect" onchange="updateSubjects(); updateSidebar(); setActiveStep(3);">
+              <option value="">Choose state…</option>
+              <option value="Andhra Pradesh State Board">Andhra Pradesh</option>
+              <option value="Telangana State Board">Telangana</option>
             </select>
           </div>
         </div>
 
+        <!-- II-b — Competitive -->
         <div class="gcard collapsed" id="competitiveCard">
           <div class="sec-hdr">
             <div class="sec-badge">II</div>
@@ -229,6 +241,7 @@
 
         <div class="sec-div"></div>
 
+        <!-- III — Scope -->
         <div class="gcard collapsed" id="scopeCard">
           <div class="sec-hdr">
             <div class="sec-badge">III</div>
@@ -271,12 +284,13 @@
 
         <div class="sec-div"></div>
 
+        <!-- IV — Details -->
         <div class="gcard">
           <div class="sec-hdr">
             <div class="sec-badge">IV</div>
             <div class="sec-title">Paper Details</div>
           </div>
-          <div class="frow" style="margin-bottom:18px">
+          <div class="frow" style="margin-bottom:14px">
             <div class="fg sel-w">
               <label class="fl" for="class">Class</label>
               <select id="class" onchange="onClassChange()">
@@ -289,7 +303,7 @@
               </select>
             </div>
             <div class="fg sel-w" id="subjectCard">
-              <label class="fl" id="subjectLabel" for="subject">Subject</label>
+              <label class="fl" id="subjectLabel" for="subject">Subject / Paper</label>
               <select id="subject" onchange="onSubjectChange()">
                 <option value="">Select subject…</option>
               </select>
@@ -305,12 +319,13 @@
 
         <div class="sec-div"></div>
 
+        <!-- V — Marks & Difficulty -->
         <div class="gcard">
           <div class="sec-hdr">
             <div class="sec-badge">V</div>
             <div class="sec-title">Marks &amp; Difficulty</div>
           </div>
-          <label class="fl" style="margin-bottom:12px;display:block">Total Marks</label>
+          <label class="fl" style="margin-bottom:10px;display:block">Total Marks</label>
           <div class="chips" id="marksChips">
             <div class="chip" data-val="20"  onclick="selectMark(this)">20</div>
             <div class="chip" data-val="40"  onclick="selectMark(this)">40</div>
@@ -322,8 +337,8 @@
             <input type="number" id="customMarkInput" placeholder="e.g. 75" min="10" max="500" oninput="applyCustomMark(this.value)">
             <span class="unit-lbl">marks</span>
           </div>
-          <div style="height:24px"></div>
-          <label class="fl" style="margin-bottom:12px;display:block">Difficulty Level</label>
+          <div style="height:22px"></div>
+          <label class="fl" style="margin-bottom:10px;display:block">Difficulty Level</label>
           <div class="diff-row">
             <input type="radio" name="difficulty" id="r-easy" value="Easy">
             <button type="button" class="diff-btn" data-val="Easy"   onclick="selectDiff('Easy',this)">Easy</button>
@@ -336,13 +351,14 @@
 
         <div class="sec-div"></div>
 
+        <!-- VI — Instructions -->
         <div class="gcard">
           <div class="sec-hdr">
             <div class="sec-badge">VI</div>
             <div class="sec-title">Special Instructions</div>
             <div class="sec-note">Optional</div>
           </div>
-          <div class="fg" style="margin-bottom:18px">
+          <div class="fg" style="margin-bottom:16px">
             <label class="fl" for="suggestions">Additional directives for the AI</label>
             <textarea id="suggestions" placeholder="e.g. Include more application-based questions, focus on diagrams for geometry, add case-study format…"></textarea>
           </div>
@@ -356,11 +372,11 @@
           </label>
         </div>
 
-      </div>
+      </div><!-- /form-area -->
 
       <div class="gen-wrap">
         <button type="button" class="gen-btn" onclick="generatePaper()">
-          <svg class="bolt" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg class="bolt" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
           <span>Generate &amp; Download PDF</span>
@@ -383,20 +399,20 @@
         </div>
         <div class="succ-btns">
           <button class="succ-btn dl" onclick="downloadPDF(false)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
             Paper PDF
           </button>
           <button class="succ-btn key" id="dlWithKey" style="display:none" onclick="downloadPDF(true)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
             </svg>
             + Answer Key
           </button>
           <button class="succ-btn new" onclick="generateAnother()">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
             </svg>
             New Paper
@@ -405,8 +421,8 @@
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /main-area -->
+</div><!-- /app -->
 
 <script src="/static/js/app.js"></script>
 </body>

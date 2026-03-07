@@ -34,7 +34,7 @@ function applyAppTheme(idx, dark) {
   r.style.setProperty('--acd',  t.dim);
   r.style.setProperty('--acdb', t.dim.replace(/[\d.]+\)$/, m => (parseFloat(m)*0.55).toFixed(3)+')'));
   if (dark) {
-    r.style.setProperty('--orb1', t.orb1);
+    
     r.style.setProperty('--orb2', t.orb2);
     r.style.setProperty('--orb3', t.orb3);
     r.style.setProperty('--orb4', t.orb4);
@@ -304,10 +304,11 @@ function updateFormVisibility() {
     if (chapLbl)  chapLbl.textContent = 'Chapter';
     if (subjLbl)  subjLbl.textContent = 'Subject';
   } else if (examType === 'competitive') {
-    if (subjCard) subjCard.style.display = '';
+    // FIX: hide subject when "All Subjects" is selected — no need to ask again
+    if (subjCard) subjCard.style.display = compScope === 'all' ? 'none' : '';
     if (chapCard) chapCard.style.display = compScope === 'topic' ? '' : 'none';
     if (chapLbl)  chapLbl.textContent = 'Topic';
-    if (subjLbl)  subjLbl.textContent = compScope === 'all' ? 'Subject (optional)' : 'Subject / Paper';
+    if (subjLbl)  subjLbl.textContent = 'Subject / Paper';
   } else {
     if (subjCard) subjCard.style.display = '';
     if (chapCard) chapCard.style.display = '';
@@ -783,14 +784,23 @@ document.addEventListener('DOMContentLoaded', () => {
       .from('#sidebar',    { x:-40, opacity:0, duration:.9 }, 0)
       .from('.topbar',     { y:-24, opacity:0, duration:.7 }, .1)
       .from('.hero',       { y:40,  opacity:0, duration:.9 }, .2)
-      .from('.hero-h1',    { y:30,  opacity:0, duration:.8 }, .3);
+      .from('.hero-h1',    { y:30,  opacity:0, duration:.8 }, .3)
+      .from('.hero-kicker',{ y:20,  opacity:0, duration:.7 }, .35)
+      .from('.hero-sub',   { y:20,  opacity:0, duration:.7 }, .45)
+      .from('.joke-box',   { y:16,  opacity:0, duration:.6 }, .55);
 
-    /* Scroll reveal for gcard sections */
-    document.querySelectorAll('.gcard, .type-grid, .scope-grid').forEach(el => {
+    /* Stagger section cards */
+    gsap.utils.toArray('.gcard, .sec-div').forEach((el, i) => {
       gsap.from(el, {
-        scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' },
-        y:26, opacity:0, duration:.65, ease:'power2.out'
+        scrollTrigger:{ trigger:el, start:'top 90%', toggleActions:'play none none none' },
+        y:28, opacity:0, duration:.7, ease:'power2.out', delay: i * 0.04
       });
+    });
+
+    /* Type/scope card hover lift */
+    document.querySelectorAll('.type-card, .scope-card').forEach(card => {
+      card.addEventListener('mouseenter', () => gsap.to(card, { y:-3, duration:.25, ease:'power2.out' }));
+      card.addEventListener('mouseleave', () => gsap.to(card, { y:0,  duration:.3,  ease:'elastic.out(1,.6)' }));
     });
 
     /* Logo hover spring */
@@ -803,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* Generate button spring */
     const genBtn = document.querySelector('.gen-btn');
     if (genBtn) {
-      genBtn.addEventListener('mouseenter', () => gsap.to(genBtn, { scale:1.012, duration:.28, ease:'power2.out' }));
+      genBtn.addEventListener('mouseenter', () => gsap.to(genBtn, { scale:1.008, duration:.28, ease:'power2.out' }));
       genBtn.addEventListener('mouseleave', () => gsap.to(genBtn, { scale:1, duration:.36, ease:'elastic.out(1,.6)' }));
     }
   }
