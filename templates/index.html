@@ -594,81 +594,63 @@ const _osc=window.onSubjectChange;window.onSubjectChange=function(){_osc&&_osc()
 const _sm=window.selectMark;window.selectMark=function(b){_sm&&_sm(b);updateStepProgress(5)};
 const _sd=window.selectDiff;window.selectDiff=function(v,b){_sd&&_sd(v,b);updateStepProgress(5)};
 
-window._pdfCache={paper:null,withKey:null,meta:{}};
-const _origFetch=window.fetch.bind(window);
-window.fetch=async function(url,opts){
-  const resp=await _origFetch(url,opts);
-  if(typeof url==='string'&&url.includes('/generate')&&opts?.method==='POST'){
-    const cl=resp.clone();
-    cl.json().then(d=>{
-      if(d&&d.success){
-        if(d.pdf_b64)window._pdfCache.paper=d.pdf_b64;
-        if(d.pdf_key_b64)window._pdfCache.withKey=d.pdf_key_b64;
-        window._pdfCache.meta={subject:d.subject||'',chapter:d.chapter||'',board:d.board||''};
-      }
-    }).catch(()=>{});
-  }
-  return resp;
-};
-
-window.downloadPDF=async function(withKey){
-  const b64=withKey?(window._pdfCache.withKey||window._pdfCache.paper):(window._pdfCache.paper||window._pdfCache.withKey);
-  if(b64){
-    try{
-      const bin=atob(b64);const buf=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
-      const blob=new Blob([buf],{type:'application/pdf'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      const m=window._pdfCache.meta;
-      const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
-      a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';
-      document.body.appendChild(a);a.click();a.remove();
-      URL.revokeObjectURL(url);
-      showToast(withKey?'Downloaded paper + answer key ✓':'Paper downloaded ✓');
-    }catch(e){showToast('Download error: '+e.message);}
-    return;
-  }
-  if(!window.currentPaper?.trim()){showToast('Generate a paper first');return;}
-  showLoading(true,'Rendering PDF…');
+// ── Direct PDF download — reads from window._pdfDirect set synchronously in generatePaper ──
+function _b64download(b64, filename){
   try{
-    const m=window.currentMeta||{};
-    const res=await _origFetch('/download-pdf',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({paper:window.currentPaper,answer_key:window.currentAnswerKey||'',
-        subject:m.subject,chapter:m.chapter!=='Full Syllabus'?m.chapter:'',board:m.board,includeKey:withKey,marks:m.marks})});
-    if(!res.ok){showToast('PDF error '+res.status);showLoading(false);return;}
-    const blob=await res.blob();
-    if(!blob.size){showToast('Empty PDF — try regenerating');showLoading(false);return;}
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');
-    const safe=[m.board,m.subject,m.chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
-    a.href=url;a.download=safe+(withKey?'_with_key':'')+'.pdf';
+    const bin=atob(b64);const buf=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+    const blob=new Blob([buf],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;
     document.body.appendChild(a);a.click();a.remove();
-    URL.revokeObjectURL(url);showLoading(false);
-    showToast(withKey?'Downloaded paper + answer key ✓':'Paper downloaded ✓');
-  }catch(e){showLoading(false);showToast('Download failed: '+e.message);}
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    return true;
+  }catch(e){showToast('Download error: '+e.message);return false;}
+}
+
+function _safeFilename(d, withKey){
+  const safe=[d.board,d.subject,(d.chapter&&d.chapter!=='Full Syllabus')?d.chapter:null]
+    .filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-')||'ExamPaper';
+  return safe+(withKey?'_with_key':'')+'.pdf';
+}
+
+window.downloadPDF=function(withKey){
+  const d=window._pdfDirect;
+  if(d){
+    const b64=withKey?(d.withKey||d.paper):(d.paper||d.withKey);
+    if(b64&&_b64download(b64,_safeFilename(d,withKey))){
+      showToast(withKey?'Answer key downloaded ✓':'Paper downloaded ✓');
+      return;
+    }
+  }
+  showToast('No paper yet — generate one first');
 };
 
 const _gp=window.generatePaper;
 window.generatePaper=async function(){
   const sp=document.getElementById('successPanel');
   if(sp)sp.style.display='none';
-  window._pdfCache={paper:null,withKey:null,meta:{}};
+  window._pdfDirect=null;
   updateStepProgress(6);
   if(_gp)await _gp();else return;
-  if(!window.currentPaper?.trim())return;
-  // Show slim success bar
-  if(sp){
-    const meta=window.currentMeta||{};
-    const me=document.getElementById('successMeta');
-    const label=[meta.board,meta.subject,meta.chapter&&meta.chapter!=='Full Syllabus'?meta.chapter:null].filter(Boolean).join(' · ');
-    if(me)me.textContent=label||'Downloading automatically…';
-    const dk=document.getElementById('dlWithKey');
-    if(dk)dk.style.display=window.currentAnswerKey?'flex':'none';
-    sp.style.display='block';
-    setTimeout(()=>sp.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+  const d=window._pdfDirect;
+  if(!d||!d.paper){
+    if(!window.currentPaper?.trim())return;
+    showToast('Paper ready (PDF unavailable — try download button)');
+    return;
   }
-  // Auto-download immediately
-  window.downloadPDF(false);
+  // Immediate download — zero lag, no extra step
+  _b64download(d.paper,_safeFilename(d,false));
+  // Show minimal bar
+  if(sp){
+    const me=document.getElementById('successMeta');
+    const label=[d.board,d.subject,d.chapter&&d.chapter!=='Full Syllabus'?d.chapter:null].filter(Boolean).join(' · ');
+    if(me)me.textContent=label||'Downloaded';
+    const dk=document.getElementById('dlWithKey');
+    if(dk)dk.style.display=(d.withKey&&d.withKey!==d.paper)?'flex':'none';
+    sp.style.display='block';
+  }
 };
 
 window.generateAnother=function(){

@@ -691,53 +691,61 @@ def _opts_table(opts, st, pw):
 
 
 def _pipe_table(rows, st, pw):
+    """Render a markdown pipe-table as Paragraph flowables — no ReportLab Table
+    objects so there is zero risk of the negative-width / infinite-height crash
+    that occurs when paragraph styles carry leftIndent into table cells."""
     if not rows:
         return None
     mc = max(len(r) for r in rows)
     if mc < 1:
         return None
-    norm = [r + ['']*(mc-len(r)) for r in rows]
+    norm = [r + [''] * (mc - len(r)) for r in rows]
+
     R, B = _f("Reg"), _f("Bold")
 
-    # Build minimal inline styles — NO leftIndent so cell widths stay sane
-    base = getSampleStyleSheet()
-    def _tst(name, **kw):
-        if name not in base:
-            base.add(ParagraphStyle(name=name, **kw))
-        return base[name]
-    head_st = _tst("_TH", fontName=B,   fontSize=9.5, textColor=black,
-                    leading=14, spaceBefore=0, spaceAfter=0,
-                    leftIndent=0, firstLineIndent=0)
-    body_st = _tst("_TB", fontName=R,   fontSize=9.5, textColor=C_BODY,
-                    leading=14, spaceBefore=0, spaceAfter=0,
-                    leftIndent=0, firstLineIndent=0)
+    # Column widths in points (distribute evenly, leave 0 indent)
+    col_w = pw / mc          # logical column width
+    cell_pad = 8             # horizontal padding per cell
 
-    # Safety margin: ensure table never exceeds actual available frame width
-    safe_pw = pw - 2   # 2pt safety buffer avoids floating-point frame overflow
-
-    para_rows = []
+    # Build one Paragraph per row: cells joined with thin separator chars
+    # and rendered with tab-stop spacing so columns align.
+    elems = []
     for ri, row in enumerate(norm):
-        sty = head_st if ri == 0 else body_st
-        para_rows.append([Paragraph(_process(c), sty) for c in row])
+        is_hdr = (ri == 0)
+        fn = B if is_hdr else R
+        fs = 9.5
+        leading = 15
 
-    cw = safe_pw / mc
-    t = Table(para_rows, colWidths=[cw]*mc, repeatRows=1, splitByRow=True)
-    t.setStyle(TableStyle([
-        ("FONTNAME",       (0,0),(-1,-1), R),
-        ("FONTSIZE",       (0,0),(-1,-1), 9.5),
-        ("BACKGROUND",     (0,0),(-1,0),  HexColor("#dde3ee")),
-        ("TEXTCOLOR",      (0,0),(-1,0),  C_NAVY),
-        ("FONTNAME",       (0,0),(-1,0),  B),
-        ("GRID",           (0,0),(-1,-1), 0.5, HexColor("#aaaaaa")),
-        ("ROWBACKGROUNDS", (0,1),(-1,-1), [white, HexColor("#f4f6fb")]),
-        ("TOPPADDING",     (0,0),(-1,-1), 5),
-        ("BOTTOMPADDING",  (0,0),(-1,-1), 5),
-        ("LEFTPADDING",    (0,0),(-1,-1), 8),
-        ("RIGHTPADDING",   (0,0),(-1,-1), 8),
-        ("VALIGN",         (0,0),(-1,-1), "MIDDLE"),
-        ("ALIGN",          (0,0),(-1,-1), "LEFT"),
-    ]))
-    return t
+        # Build the line: each cell in a fixed-width slot using spaces
+        # We use a tab-stop approach via XML: one paragraph per row where
+        # cells are separated by a visible pipe char and padded.
+        parts = []
+        for ci, cell in enumerate(row):
+            txt = _process(cell.strip())
+            if is_hdr:
+                txt = f'<b>{txt}</b>'
+            parts.append(txt)
+        line = '  <font color="#aaaaaa">|</font>  '.join(parts)
+
+        bg = HexColor("#dde3ee") if is_hdr else (
+            white if ri % 2 == 0 else HexColor("#f4f6fb"))
+
+        sty = ParagraphStyle(
+            name=f"_ptrow_{ri}",
+            fontName=fn, fontSize=fs, leading=leading,
+            textColor=C_NAVY if is_hdr else C_BODY,
+            leftIndent=cell_pad, rightIndent=cell_pad,
+            firstLineIndent=0,
+            spaceBefore=0, spaceAfter=0,
+            backColor=bg,
+            borderPadding=0,
+        )
+        elems.append(Paragraph(line, sty))
+
+    # Wrap in KeepTogether so short tables don't straddle pages awkwardly
+    if len(elems) <= 12:
+        return KeepTogether(elems)
+    return elems  # caller must handle list
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -960,9 +968,12 @@ def create_exam_pdf(text, subject, chapter, board="",
         nonlocal tbl_rows, in_table
         if tbl_rows:
             t = _pipe_table(tbl_rows, st, PW)
-            if t:
+            if t is not None:
                 elems.append(Spacer(1, 3))
-                elems.append(t)
+                if isinstance(t, list):
+                    elems.extend(t)
+                else:
+                    elems.append(t)
                 elems.append(Spacer(1, 5))
         tbl_rows, in_table = [], False
 

@@ -516,22 +516,15 @@ async function generatePaper() {
       marks, difficulty
     };
 
-    const paperOut = document.getElementById('paperOutput');
-    const keyOut   = document.getElementById('answerKeyOutput');
-    if (paperOut) paperOut.value = currentPaper;
-    if (keyOut)   keyOut.value   = currentAnswerKey;
+    // Store PDFs directly from this response — no async fetch interceptor needed
+    window._pdfDirect = {
+      paper:   result.pdf_b64     || null,
+      withKey: result.pdf_key_b64 || null,
+      board:   boardText,
+      subject: currentMeta.subject,
+      chapter: currentMeta.chapter,
+    };
 
-    const keyTab = document.getElementById('ptab-key');
-    if (keyTab) keyTab.style.display = currentAnswerKey ? 'inline-flex' : 'none';
-
-    const panel = document.getElementById('resultsPanel');
-    if (panel) {
-      panel.style.display = 'block';
-      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-    }
-
-    setHint('Paper ready! Review below, then Download PDF.');
-    showToast('Paper generated! ✓');
     addToHistory(currentMeta, currentPaper, currentAnswerKey);
   } catch (err) {
     showLoading(false);
