@@ -87,8 +87,19 @@
       </div>
     </div>
 
-    <!-- Right: Mini game -->
+    <!-- Right: Mini game + mobile progress -->
     <div class="loader-right">
+      <!-- Mobile-only: progress steps (desktop shows them in loader-left) -->
+      <div class="mob-progress-wrap" id="mobProgressWrap">
+        <div class="mob-progress-title">Generating your paper…</div>
+        <div class="mob-load-steps">
+          <div class="mob-load-step" id="mls1"><div class="mob-ls-dot"></div>Parsing your requirements</div>
+          <div class="mob-load-step" id="mls2"><div class="mob-ls-dot"></div>Generating questions with AI</div>
+          <div class="mob-load-step" id="mls3"><div class="mob-ls-dot"></div>Writing the answer key</div>
+          <div class="mob-load-step" id="mls4"><div class="mob-ls-dot"></div>Formatting paper layout</div>
+          <div class="mob-load-step" id="mls5"><div class="mob-ls-dot"></div>Building your PDF</div>
+        </div>
+      </div>
       <div class="loader-orbital-wrap" id="gameOrbital">
         <div class="orbital">
           <div class="o-ring o-r1"></div><div class="o-ring o-r2"></div><div class="o-ring o-r3"></div>
@@ -502,6 +513,51 @@
 </div><!-- /app -->
 
 <script src="/static/js/app.js"></script>
+
+<!-- ═══ HELLO POPUP ══════════════════════════════════════════════ -->
+<div id="helloPopup" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(8,7,6,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center">
+  <div style="max-width:420px;width:90%;padding:40px 36px;border:1px solid rgba(200,169,110,.25);background:var(--ink2);position:relative;text-align:center">
+    <div style="font-family:var(--serif);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--ac);margin-bottom:20px">Welcome</div>
+    <div style="font-family:var(--serif);font-size:32px;font-weight:300;color:var(--bright);line-height:1.15;margin-bottom:6px">
+      Hello, <em style="color:var(--ac);font-style:italic">Teacher</em>
+    </div>
+    <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:28px">ExamCraft · AI Examination System</div>
+    <div style="border:1px solid rgba(200,169,110,.15);background:rgba(200,169,110,.04);border-left:2px solid var(--ac);padding:14px 18px;margin-bottom:28px;text-align:left">
+      <div style="font-size:7.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ac);margin-bottom:8px">Thought of the day</div>
+      <div id="helloJoke" style="font-family:var(--serif);font-size:15px;font-style:italic;color:var(--muted2);line-height:1.6"></div>
+    </div>
+    <button onclick="closeHelloPopup()" style="width:100%;padding:14px;background:var(--ac);border:none;font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);letter-spacing:.02em">
+      Let's Create an Exam ✦
+    </button>
+    <div style="font-size:8px;color:var(--muted);margin-top:12px;letter-spacing:.06em">
+      Laxman Nimmagadda · laxmanchowday159@gmail.com
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DONE POPUP ════════════════════════════════════════════════ -->
+<div id="donePopup" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(8,7,6,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center">
+  <div style="max-width:440px;width:90%;padding:40px 36px;border:1px solid rgba(92,152,112,.3);background:var(--ink2);position:relative;text-align:center">
+    <div style="font-size:44px;margin-bottom:12px;animation:ckPop .5s cubic-bezier(.22,1,.36,1)">✦</div>
+    <div style="font-family:var(--serif);font-size:28px;font-weight:300;color:var(--bright);line-height:1.2;margin-bottom:6px">
+      Paper <em style="color:var(--ac);font-style:italic">Ready!</em>
+    </div>
+    <div id="doneSubtitle" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:26px"></div>
+    <div style="border:1px solid rgba(200,169,110,.15);background:rgba(200,169,110,.04);border-left:2px solid var(--ac);padding:14px 18px;margin-bottom:24px;text-align:left">
+      <div style="font-size:7.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ac);margin-bottom:8px">Exam Wisdom</div>
+      <div id="doneJoke" style="font-family:var(--serif);font-size:14px;font-style:italic;color:var(--muted2);line-height:1.6"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeDonePopup(false)" style="flex:1;padding:12px;background:none;border:1px solid var(--line2);font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase">
+        Close
+      </button>
+      <button onclick="closeDonePopup(true)" style="flex:2;padding:12px;background:var(--ac);border:none;font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)">
+        Download PDF ↓
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- CURSOR MUST BE LAST IN DOM — after all backdrop-filter/transform elements -->
 <canvas id="confetti-canvas" aria-hidden="true"></canvas>
 <div id="cur-ring" aria-hidden="true"></div>

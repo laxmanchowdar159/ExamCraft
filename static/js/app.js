@@ -48,21 +48,10 @@ function applyAppTheme(idx, dark) {
   if (window._marksChart) updateMarksChart();
 }
 
-let _autoThemeTimer = null;
-function startAppThemeRotation() {
-  clearInterval(_autoThemeTimer);
-  _autoThemeTimer = setInterval(() => {
-    appThemeIdx = (appThemeIdx + 1) % APP_THEMES.length;
-    applyAppTheme(appThemeIdx, isDark);
-  }, 45000);
-}
-
 window.cycleTheme = function() {
-  clearInterval(_autoThemeTimer);
   appThemeIdx = (appThemeIdx + 1) % APP_THEMES.length;
   applyAppTheme(appThemeIdx, isDark);
   showToast('Theme: ' + APP_THEMES[appThemeIdx].name);
-  startAppThemeRotation();
 };
 window.toggleDark = function() { isDark = !isDark; applyAppTheme(appThemeIdx, isDark); };
 window.toggleTheme = window.toggleDark;
@@ -521,6 +510,7 @@ async function generatePaper() {
     showSuccessPanel();
     launchConfetti();
     setActiveStep(6);
+    setTimeout(() => showDonePopup(currentMeta), 700);
 
   } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
 }
@@ -727,13 +717,15 @@ window.closeMobileSidebar = function() {
 ══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
 
+  /* ── Hello popup ── */
+  setTimeout(showHelloPopup, 600);
+
   /* ── Restore & apply theme ── */
   try {
     appThemeIdx = Math.min(parseInt(localStorage.getItem('themeIdx') || '0', 10), APP_THEMES.length-1);
     isDark = localStorage.getItem('themeDark') !== '0';
   } catch {}
   applyAppTheme(appThemeIdx, isDark);
-  startAppThemeRotation();
 
   /* ── Init form ── */
   updateFormVisibility();
@@ -755,27 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Hero joke rotation ── */
   setInterval(rotateHeroJoke, 7500);
 
-  /* ── Loading joke ticker ── */
-  let _loaderJokeTimer = null;
-  const _origShowLoading = showLoading;
-  window._showLoadingHook = function(show, title) {
-    _origShowLoading(show, title);
-    const je = document.getElementById('loaderJoke'); if (!je) return;
-    clearInterval(_loaderJokeTimer);
-    if (show) {
-      let li = 0; je.textContent = LOADING_JOKES[li++ % LOADING_JOKES.length]; je.style.opacity = '1';
-      _loaderJokeTimer = setInterval(() => {
-        je.style.opacity = '0';
-        setTimeout(() => { je.textContent = LOADING_JOKES[li++ % LOADING_JOKES.length]; je.style.opacity = '1'; }, 400);
-      }, 4500);
-    } else { je.style.opacity = '0'; }
-  };
-  // Patch showLoading globally
-  const _sl = showLoading;
-  window.showLoading = function(show, title) {
-    _sl(show, title);
-    window._showLoadingHook && window._showLoadingHook(show, title);
-  };
+  /* Loading is handled by unified showLoading defined at bottom of file */
 
   /* ── Chart.js init ── */
   if (typeof Chart !== 'undefined') updateMarksChart();
@@ -896,6 +868,66 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Close sidebar on overlay click ── */
   document.getElementById('mob-overlay')?.addEventListener('click', closeMobileSidebar);
 });
+
+
+/* ══════════════════════════════════════════════════════════════
+   HELLO POPUP — shown once per session on load
+══════════════════════════════════════════════════════════════ */
+const HELLO_JOKES = [
+  "Why did the student eat his homework? Because the teacher told him it was a piece of cake.",
+  "A photon checks into a hotel. The bellhop asks: 'Can I help with your luggage?' Photon: 'No thanks, I'm travelling light.'",
+  "Why is 6 afraid of 7? Because 7 8 9. But why did 7 eat 9? To get 3 squared meals a day.",
+  "A teacher asked: 'If I gave you 2 cats and another 2 cats, how many would you have?' Student: '5.' Teacher: 'No — 4.' Student: 'I already have one at home.'",
+  "Why do mathematicians confuse Halloween and Christmas? Because Oct 31 = Dec 25.",
+  "A student was late and told the teacher the dog ate his homework. Teacher: 'But we did it on a computer.' Student: 'The dog ate my laptop.'",
+  "Teacher: 'What is the chemical formula for water?' Student: 'HIJKLMNO.' Teacher: 'That is wrong.' Student: 'But you said it was H to O.'",
+  "An atom walks into a bar and says: 'I think I lost an electron.' Bartender: 'Are you sure?' Atom: 'I'm positive.'",
+];
+
+const DONE_JOKES = [
+  "Your exam is ready — now the only question is: who has to grade it?",
+  "Paper generated. Students will later question every comma. You have been warned.",
+  "Done! Remember: a good exam separates the students who studied from the ones who prayed.",
+  "Paper complete. The AI worked hard. The students will have to work harder.",
+  "Congratulations! You just created 45 minutes of panic for 30 students.",
+  "Your paper is ready. May the passing rate be ever in your favour.",
+  "Generated successfully. Einstein failed exams too — but your students are not Einstein.",
+  "Paper done! Pro tip: the hardest question is always the one worth the fewest marks.",
+];
+
+let _helloShown = false;
+function showHelloPopup() {
+  if (_helloShown) return;
+  _helloShown = true;
+  const popup = document.getElementById('helloPopup');
+  if (!popup) return;
+  // Pick a random joke
+  const jokeEl = document.getElementById('helloJoke');
+  if (jokeEl) jokeEl.textContent = HELLO_JOKES[Math.floor(Math.random() * HELLO_JOKES.length)];
+  popup.style.display = 'flex';
+}
+window.closeHelloPopup = function() {
+  const popup = document.getElementById('helloPopup');
+  if (popup) popup.style.display = 'none';
+};
+
+function showDonePopup(meta) {
+  const popup = document.getElementById('donePopup');
+  if (!popup) return;
+  const jokeEl = document.getElementById('doneJoke');
+  if (jokeEl) jokeEl.textContent = DONE_JOKES[Math.floor(Math.random() * DONE_JOKES.length)];
+  const sub = document.getElementById('doneSubtitle');
+  if (sub && meta) {
+    const parts = [meta.subject, meta.board, meta.marks ? meta.marks+'M' : null].filter(Boolean);
+    sub.textContent = parts.join(' · ');
+  }
+  popup.style.display = 'flex';
+}
+window.closeDonePopup = function(download) {
+  const popup = document.getElementById('donePopup');
+  if (popup) popup.style.display = 'none';
+  if (download) window.downloadPDF && window.downloadPDF(false);
+};
 
 /* ══════════════════════════════════════════════════════════════
    TRIVIA GAME — Loading Screen Mini Game
@@ -1054,9 +1086,8 @@ function populateRecap() {
   });
 }
 
-/* Override showLoading to trigger game + recap */
-const _origShowLoading = window.showLoading || function(){};
-window.showLoading = function(show, title) {
+/* ── Master showLoading — wires game, recap, and BOTH step lists (desktop + mobile) */
+window.showLoading = function(show) {
   const modal = document.getElementById('loadingModal');
   if (!modal) return;
   modal.style.display = show ? 'flex' : 'none';
@@ -1064,18 +1095,35 @@ window.showLoading = function(show, title) {
   if (show) {
     populateRecap();
     initGame();
-    // Progress steps
-    const ids = ['ls1','ls2','ls3','ls4','ls5'];
-    ids.forEach(id => { const el = document.getElementById(id); if(el){el.classList.remove('active','done');} });
-    let _st = [];
-    const delays = [0,5000,12000,19000,28000];
-    ids.forEach((id,i) => {
-      _st.push(setTimeout(() => {
-        if(i>0){const p=document.getElementById(ids[i-1]);if(p){p.classList.remove('active');p.classList.add('done');}}
-        const cur=document.getElementById(id);if(cur)cur.classList.add('active');
-      }, delays[i]));
+
+    // Clear all step states
+    const deskIds = ['ls1','ls2','ls3','ls4','ls5'];
+    const mobIds  = ['mls1','mls2','mls3','mls4','mls5'];
+    [...deskIds, ...mobIds].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active','done');
     });
-    window._loadStepTimers = _st;
+
+    // Shared step timer — drives both desktop sidebar steps AND mobile steps
+    if (window._loadStepTimers) window._loadStepTimers.forEach(clearTimeout);
+    window._loadStepTimers = [];
+    const delays = [0, 5000, 12000, 19000, 28000];
+    delays.forEach((delay, i) => {
+      window._loadStepTimers.push(setTimeout(() => {
+        // mark previous done in both lists
+        if (i > 0) {
+          [deskIds[i-1], mobIds[i-1]].forEach(id => {
+            const p = document.getElementById(id);
+            if (p) { p.classList.remove('active'); p.classList.add('done'); }
+          });
+        }
+        // activate current in both lists
+        [deskIds[i], mobIds[i]].forEach(id => {
+          const cur = document.getElementById(id);
+          if (cur) cur.classList.add('active');
+        });
+      }, delay));
+    });
   } else {
     _gameActive = false;
     clearTimeout(_gameTimer);
