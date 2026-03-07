@@ -64,8 +64,17 @@ window.cycleTheme = function() {
   showToast('Theme: ' + APP_THEMES[appThemeIdx].name);
   startAppThemeRotation();
 };
-window.toggleDark  = function() { isDark = !isDark; applyAppTheme(appThemeIdx, isDark); };
+window.toggleDark = function() { isDark = !isDark; applyAppTheme(appThemeIdx, isDark); };
 window.toggleTheme = window.toggleDark;
+window.toggleDarkMode = function() {
+  isDark = !isDark;
+  applyAppTheme(appThemeIdx, isDark);
+  // Update icon
+  const icon = document.getElementById('modeIcon');
+  if (icon) icon.textContent = isDark ? '☀' : '☾';
+  showToast(isDark ? 'Night mode' : 'Day mode');
+  try { localStorage.setItem('themeDark', isDark ? '1' : '0'); } catch {}
+};
 
 /* ── Competitive exam info ─────────────────────────────────── */
 const COMP_INFO = {
@@ -87,6 +96,17 @@ function addToHistory(meta, paper, key) {
   h.unshift({ id: Date.now(), timestamp: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), date: new Date().toLocaleDateString([],{day:'numeric',month:'short'}), ...meta, paper, answerKey: key });
   if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
   saveHistory(h); renderHistory();
+  // Flash the newest item to draw attention
+  requestAnimationFrame(() => {
+    const first = document.querySelector('.history-item');
+    if (first) {
+      first.classList.add('new-flash');
+      setTimeout(() => first.classList.remove('new-flash'), 900);
+    }
+    // Scroll sidebar to top so history is visible
+    const sbInner = document.querySelector('.sb-inner');
+    if (sbInner) sbInner.scrollTop = 0;
+  });
 }
 
 function renderHistory() {
@@ -760,27 +780,62 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Chart.js init ── */
   if (typeof Chart !== 'undefined') updateMarksChart();
 
-  /* ── Custom cursor ── */
+  /* ── Custom cursor — GPU transform path, always on top ── */
   const dot  = document.getElementById('cur-dot');
   const ring = document.getElementById('cur-ring');
   const bgGl = document.querySelector('.bg-glow');
-  let mx=0,my=0,rx=0,ry=0;
+
+  // Use raw numbers — translate3d for GPU compositing
+  let mx = -200, my = -200;   // off-screen until real mouse
+  let rx = -200, ry = -200;
+
+  function setCursorPos(el, x, y, half) {
+    if (!el) return;
+    // Subtract half element size so it centres on mouse
+    el.style.transform = 'translate3d(' + (x - half) + 'px,' + (y - half) + 'px,0)';
+  }
+
+  const DOT_HALF  = 4;   // half of 8px dot
+  const RING_HALF = 17;  // half of 34px ring
+
+  // RAF loop — dot is instant, ring lerps
+  (function loop() {
+    rx += (mx - rx) * 0.20;
+    ry += (my - ry) * 0.20;
+    setCursorPos(ring, rx, ry, RING_HALF);
+    requestAnimationFrame(loop);
+  })();
+
   document.addEventListener('mousemove', e => {
-    mx=e.clientX; my=e.clientY;
-    if (dot) { dot.style.left=mx+'px'; dot.style.top=my+'px'; }
-    if (bgGl) { bgGl.style.setProperty('--cx', mx+'px'); bgGl.style.setProperty('--cy', my+'px'); }
-  });
+    mx = e.clientX; my = e.clientY;
+    setCursorPos(dot, mx, my, DOT_HALF);   // dot: instant, no lerp
+    if (bgGl) {
+      bgGl.style.setProperty('--cx', mx + 'px');
+      bgGl.style.setProperty('--cy', my + 'px');
+    }
+  }, { passive: true });
+
   document.addEventListener('mousedown', () => ring?.classList.add('click'));
   document.addEventListener('mouseup',   () => ring?.classList.remove('click'));
-  (function lerpRing() {
-    rx += (mx-rx)*.11; ry += (my-ry)*.11;
-    if (ring) { ring.style.left=rx+'px'; ring.style.top=ry+'px'; }
-    requestAnimationFrame(lerpRing);
-  })();
-  document.querySelectorAll('button,.type-card,.scope-card,.chip,.diff-btn,.history-item,[role="button"]').forEach(el => {
-    el.addEventListener('mouseenter', () => ring?.classList.add('hov'));
-    el.addEventListener('mouseleave', () => ring?.classList.remove('hov'));
+
+  document.addEventListener('mouseleave', () => {
+    if (dot)  dot.style.opacity = '0';
+    if (ring) ring.style.opacity = '0';
   });
+  document.addEventListener('mouseenter', () => {
+    if (dot)  dot.style.opacity = '1';
+    if (ring) ring.style.opacity = '';
+  });
+
+  // Delegation: covers dynamic elements (history items, game buttons etc.)
+  document.addEventListener('mouseover', e => {
+    const t = e.target.closest(
+      'button,a,.type-card,.scope-card,.chip,.diff-btn,' +
+      '.history-item,.game-opt,.succ-btn,.tb-btn,.gen-btn,' +
+      '.sb-logo,.hist-clear,.history-dl-btn,select,label,[role="button"]'
+    );
+    ring?.classList.toggle('hov', !!t);
+  }, { passive: true });
 
   /* ── GSAP + Lenis ── */
   if (typeof gsap !== 'undefined') {

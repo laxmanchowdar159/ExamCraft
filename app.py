@@ -1397,14 +1397,14 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Tier 3: gemini-2.5-flash-preview  stable alias for 2.5-flash
 # Tier 4: gemini-1.5-flash          legacy wide-availability fallback
 # NOTE: gemini-2.0-flash series shows 0/0 remaining — excluded
-_PRIMARY_MODEL   = "gemini-2.0-flash"
-_FALLBACK_MODEL  = "gemini-1.5-flash"
+_PRIMARY_MODEL   = "gemini-1.5-flash"
+_FALLBACK_MODEL  = "gemini-1.5-flash-8b"
 _GEMINI_MODELS   = [
-    "gemini-2.0-flash",                  # Tier 1 — stable, fast, widely available
-    "gemini-2.0-flash-lite",             # Tier 2 — lighter, higher RPM
-    "gemini-1.5-flash",                  # Tier 3 — proven stable legacy
-    "gemini-1.5-flash-8b",               # Tier 4 — smallest, most available
-    "gemini-2.5-flash-preview-05-20",    # Tier 5 — preview if accessible
+    # Only models confirmed available on standard API keys (no preview/lab access needed)
+    "gemini-1.5-flash",        # Most reliable — stable GA, high quota
+    "gemini-1.5-flash-8b",     # Lighter version, very high availability
+    "gemini-1.5-pro",          # Higher quality, lower RPM — kept as fallback only
+    # Note: gemini-2.x and 2.5-preview require allowlisted API keys — excluded
 ]
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 

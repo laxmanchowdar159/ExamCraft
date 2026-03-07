@@ -24,9 +24,6 @@
   <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
   <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
 </div>
-<div id="cur-dot" aria-hidden="true"></div>
-<div id="cur-ring" aria-hidden="true"></div>
-<canvas id="confetti-canvas" aria-hidden="true"></canvas>
 <div id="notificationToast" role="status" aria-live="polite"></div>
 
 <!-- ═══ LOADING MODAL ═══════════════════════════════════════════ -->
@@ -229,6 +226,11 @@
         <span class="tb-hint" id="hintText">Select a paper type to begin</span>
       </div>
       <div class="tb-right">
+        <button class="theme-mode-btn" onclick="toggleDarkMode()" title="Toggle day/night mode">
+          <span class="mode-icon mode-sun" id="modeIcon">☀</span>
+          <span class="mode-icon-label" id="modeLbl"></span>
+        </button>
+        <div class="tb-divider"></div>
         <button class="tb-btn" onclick="cycleTheme()">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="5"/>
@@ -500,5 +502,9 @@
 </div><!-- /app -->
 
 <script src="/static/js/app.js"></script>
+<!-- CURSOR MUST BE LAST IN DOM — after all backdrop-filter/transform elements -->
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+<div id="cur-ring" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
 </body>
 </html>
