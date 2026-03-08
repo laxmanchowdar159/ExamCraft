@@ -444,13 +444,13 @@ window.selectType = function(val) {
     document.getElementById('scopeSelect').value = 'single';
     document.querySelectorAll('#boardScopeRow .scope-card').forEach(b => b.classList.remove('active'));
     const def = document.getElementById('bscope-single'); if (def) def.classList.add('active');
-    setHint('Select Andhra Pradesh or Telangana, then choose paper scope.');
+    setHint('Choose Andhra Pradesh or Telangana, then set the paper scope.');
   } else {
     compScope = 'topic';
     document.getElementById('scopeSelect').value = 'single';
     document.querySelectorAll('#compScopeRow .scope-card').forEach(b => b.classList.remove('active'));
     const def = document.getElementById('cscope-topic'); if (def) def.classList.add('active');
-    setHint('Select competitive exam, then choose how broad the paper should be.');
+    setHint('Choose your exam, then decide how much of the syllabus to cover.');
   }
   updateFormVisibility(); updateSubjects(); updateSidebar();
   setActiveStep(2);
@@ -464,7 +464,7 @@ window.selectBoardScope = function(val) {
   const btn = document.getElementById(val === 'all' ? 'bscope-all' : 'bscope-single');
   if (btn) btn.classList.add('active');
   updateFormVisibility(); applySmartMarkDefault(val); updateSidebar();
-  setHint(val === 'all' ? 'Full syllabus — select subject and class.' : 'One chapter — select subject and specific chapter.');
+  setHint(val === 'all' ? 'Full syllabus selected — pick a subject and class.' : 'Single chapter selected — pick a subject and the specific chapter.');
   setActiveStep(3);
 };
 
@@ -474,7 +474,7 @@ window.selectCompScope = function(val) {
   document.querySelectorAll('#compScopeRow .scope-card').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('cscope-' + val); if (btn) btn.classList.add('active');
   updateFormVisibility(); applySmartMarkDefault(val === 'topic' ? 'single' : 'all'); updateSidebar();
-  const hints = { topic:'One Topic — pick subject and topic.', subject:'Full Subject — all topics covered.', all:'All Subjects — complete exam syllabus.' };
+  const hints = { topic:'Single topic — pick a subject and the specific topic below.', subject:'Full subject — all topics will be covered in the paper.', all:'All subjects — complete exam coverage across the syllabus.' };
   setHint(hints[val] || '');
   setActiveStep(3);
 };
@@ -487,9 +487,11 @@ function updateCompInfo() {
   if (!infoBox || !infoTxt) return;
   if (!exam || !COMP_INFO[exam]) { infoBox.style.display = 'none'; return; }
   const info = COMP_INFO[exam];
-  infoTxt.innerHTML = `<b>${exam}</b>: ${info.papers}<br>
-    <span style="opacity:.8">Marks: ${info.marks} · Time: ${info.time} · ${info.marking}</span><br>
-    <span style="color:var(--ac2)">💡 ${info.tip}</span>`;
+  infoTxt.innerHTML =
+    `<div style="font-weight:600;margin-bottom:4px">${exam} — What to expect</div>` +
+    `<div style="opacity:.85;margin-bottom:3px">${info.papers}</div>` +
+    `<div style="opacity:.65;font-size:11px;margin-bottom:4px">${info.marks} &nbsp;·&nbsp; ${info.time} &nbsp;·&nbsp; ${info.marking}</div>` +
+    `<div style="color:var(--ac2);font-size:11px">💡 ${info.tip}</div>`;
   infoBox.style.display = 'block';
   updateSubjects().then(() => updateChapters());
 }
@@ -558,7 +560,7 @@ async function generatePaper() {
   window._pdfDirect = null;
 
   showLoading(true, 'Crafting your paper…');
-  setHint('Generating — usually 25–50 seconds…');
+  setHint('Generating — this usually takes 1 to 1.5 minutes, please wait…');
   setActiveStep(6);
 
   try {
@@ -1364,8 +1366,9 @@ window.showLoading = function(show) {
       }, 1000);
     }
 
-    // Stage transitions
-    const delays = [0, 5000, 12000, 19000, 28000];
+    // Stage transitions — spread across realistic 1–1.5 min generation window
+    // Stage 1 instantly, then spread the rest across ~90s
+    const delays = [0, 6000, 22000, 50000, 78000];
     delays.forEach((delay, i) => {
       window._loadStepTimers.push(setTimeout(() => _setLoaderStage(i), delay));
     });
