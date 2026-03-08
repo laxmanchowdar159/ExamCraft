@@ -121,14 +121,14 @@ button, a, select, label, [role="button"],
 #cur-dot { display:none }
 
 /* ═══ BACKGROUND ════════════════════════════════════════════════ */
-#bg-layer { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden }
+#bg-layer { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; contain:strict; will-change:transform }
 .bg-grid { position:absolute; inset:0;
   background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
   background-size:80px 80px }
 .bg-mesh { position:absolute; inset:0;
   background-image:radial-gradient(rgba(200,169,110,.05) 1px,transparent 1px);
   background-size:28px 28px }
-.bg-orb { position:absolute; border-radius:50%; filter:blur(120px) }
+.bg-orb { position:absolute; border-radius:50%; filter:blur(30px); will-change:transform; contain:paint }
 .orb-a { width:700px; height:700px; top:-200px; left:-150px;
   background:radial-gradient(circle,#C8A96E 0%,transparent 70%); opacity:.08;
   animation:orbF 28s ease-in-out infinite }
@@ -138,13 +138,13 @@ button, a, select, label, [role="button"],
 .orb-c { width:300px; height:300px; top:60%; left:50%;
   background:radial-gradient(circle,#C8A96E 0%,transparent 70%); opacity:.04;
   animation:orbF 22s ease-in-out infinite 8s }
-@keyframes orbF { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(36px,-28px) scale(1.06)} 66%{transform:translate(-18px,22px) scale(.95)} }
+@keyframes orbF { 0%,100%{transform:translate3d(0,0,0)} 50%{transform:translate3d(24px,-18px,0)} }
 .bg-noise { position:absolute; inset:0; opacity:.35;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E") }
 .bg-glow { position:absolute; pointer-events:none; width:500px; height:500px;
   background:radial-gradient(circle at center,rgba(200,169,110,.05) 0%,transparent 70%);
   transform:translate(calc(var(--cx,50%) - 250px),calc(var(--cy,50%) - 250px));
-  transition:transform .1s linear }
+  will-change:transform }
 .bg-lines { position:absolute; inset:0;
   background-image:repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(255,255,255,.015) 79px,rgba(255,255,255,.015) 80px) }
 
@@ -154,11 +154,12 @@ button, a, select, label, [role="button"],
 /* ═══ SIDEBAR ════════════════════════════════════════════════════ */
 #sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
   border-right:1px solid var(--line2); background:var(--ink2); overflow:hidden; z-index:100;
-  transition:transform .4s cubic-bezier(.22,1,.36,1) }
+  transition:transform .4s cubic-bezier(.22,1,.36,1); contain:layout style }
 #sidebar::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
   background:linear-gradient(90deg,transparent,var(--ac),var(--ac2),transparent); opacity:.6 }
-.sb-inner { display:flex; flex-direction:column; height:100%; overflow-y:auto;
-  scrollbar-width:thin; scrollbar-color:var(--surf2) transparent }
+.sb-inner { display:flex; flex-direction:column; height:100%; overflow-y:scroll;
+  scrollbar-width:thin; scrollbar-color:var(--surf2) transparent;
+  overscroll-behavior:contain; -webkit-overflow-scrolling:touch }
 .sb-inner::-webkit-scrollbar { width:2px }
 .sb-inner::-webkit-scrollbar-thumb { background:var(--surf2) }
 
@@ -224,8 +225,8 @@ button, a, select, label, [role="button"],
   animation:histBarPulse 2.5s ease-in-out infinite
 }
 @keyframes histBarPulse {
-  0%,100% { opacity:1; box-shadow:0 0 6px var(--ac) }
-  50%      { opacity:.55; box-shadow:0 0 14px var(--ac2) }
+  0%,100% { opacity:1 }
+  50%      { opacity:.6 }
 }
 .hist-count {
   font-size:9px; font-weight:700;
@@ -998,20 +999,12 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 }
 .step.done .step-num { position:relative; overflow:hidden }
 
-/* Step entrance animation */
-.step { transition:opacity .3s, transform .3s }
-.step.active { animation:stepActivate .4s cubic-bezier(.22,1,.36,1) }
-@keyframes stepActivate {
-  from { transform:translateX(-4px); opacity:.4 }
-  to   { transform:none; opacity:1 }
-}
+/* Step transitions — opacity only, no transform (perf) */
+.step { transition:opacity .3s }
 
-/* History section when at bottom — give it flex-grow so it fills space */
+/* History section sits at bottom with fixed max-height */
 .sb-hist {
-  flex:1 1 auto !important
-}
-.sb-hist .history-list-inner {
-  max-height:none !important; /* let it fill remaining space */
+  flex-shrink:0
 }
 
 /* Current Status label tweak */
@@ -1025,19 +1018,7 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   border-bottom:1px solid var(--line) !important
 }
 
-/* Live shimmer on sb-progress border */
-.sb-progress {
-  position:relative; overflow:hidden
-}
-.sb-progress::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--ac), transparent);
-  animation:progressShimmer 3s ease-in-out infinite; opacity:.4
-}
-@keyframes progressShimmer {
-  0%   { transform:translateX(-100%) }
-  100% { transform:translateX(100%) }
-}
+/* sb-progress — no shimmer animation (perf) */
 
 /* Topbar live AI badge — make it pulse more dramatically */
 .tb-ai-badge {

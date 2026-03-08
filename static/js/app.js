@@ -868,11 +868,16 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(lerpRing);
   })();
 
+  let _glFrame = false;
   document.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
-    if (bgGl) {
-      bgGl.style.setProperty('--cx', mx + 'px');
-      bgGl.style.setProperty('--cy', my + 'px');
+    if (bgGl && !_glFrame) {
+      _glFrame = true;
+      requestAnimationFrame(() => {
+        bgGl.style.setProperty('--cx', mx + 'px');
+        bgGl.style.setProperty('--cy', my + 'px');
+        _glFrame = false;
+      });
     }
   }, { passive: true });
 
@@ -894,13 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof gsap !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger);
 
-    /* Lenis */
-    if (typeof Lenis !== 'undefined') {
-      const lenis = new Lenis({ lerp:.08, smoothWheel:true, syncTouch:false });
-      function rafLoop(t) { lenis.raf(t); ScrollTrigger.update(); requestAnimationFrame(rafLoop); }
-      requestAnimationFrame(rafLoop);
-      lenis.on('scroll', ScrollTrigger.update);
-    }
+    /* Lenis disabled — it intercepts sidebar scroll events */
 
     /* Page entrance */
     gsap.timeline({ defaults:{ ease:'power3.out' } })
@@ -912,11 +911,11 @@ document.addEventListener('DOMContentLoaded', () => {
       .from('.hero-sub',   { y:20,  opacity:0, duration:.7 }, .45)
       .from('.joke-box',   { y:16,  opacity:0, duration:.6 }, .55);
 
-    /* Stagger section cards */
-    gsap.utils.toArray('.gcard, .sec-div').forEach((el, i) => {
+    /* Stagger first 6 visible cards only — rest load instantly */
+    gsap.utils.toArray('.gcard, .sec-div').slice(0, 6).forEach((el, i) => {
       gsap.from(el, {
-        scrollTrigger:{ trigger:el, start:'top 90%', toggleActions:'play none none none' },
-        y:28, opacity:0, duration:.7, ease:'power2.out', delay: i * 0.04
+        scrollTrigger:{ trigger:el, start:'top 92%', toggleActions:'play none none none' },
+        y:18, opacity:0, duration:.5, ease:'power2.out', delay: i * 0.03
       });
     });
 
@@ -945,6 +944,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[role="button"]').forEach(el => {
     el.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); el.click(); } });
   });
+
+  /* ── Sidebar: stop wheel events from bubbling to GSAP ScrollTrigger ── */
+  document.getElementById('sidebar')?.addEventListener('wheel', e => {
+    e.stopPropagation();
+  }, { passive: true });
 
   /* ── Close sidebar on overlay click ── */
   document.getElementById('mob-overlay')?.addEventListener('click', closeMobileSidebar);

@@ -121,7 +121,8 @@ def apply_security_headers(response):
 
     return response
 
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_KEY  = os.environ.get("GEMINI_API_KEY",   "").strip()
+GEMINI_KEY_2 = os.environ.get("GEMINI_API_KEY_2", "").strip()  # backup key — tried when primary key exhausts all models
 
 # ═══════════════════════════════════════════════════════════════════════
 # ERROR EMAIL SYSTEM
@@ -1511,21 +1512,34 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Tier 3: gemini-2.5-flash-preview  stable alias for 2.5-flash
 # Tier 4: gemini-1.5-flash          legacy wide-availability fallback
 # NOTE: gemini-2.0-flash series shows 0/0 remaining — excluded
-_PRIMARY_MODEL   = "gemini-2.5-flash"
-_FALLBACK_MODEL  = "gemini-2.5-flash-lite"
-_GEMINI_MODELS   = [
-    # ── Models with confirmed quota on current key ──────────────
-    "gemini-2.5-flash",           # Best quality — 5 RPM / 250K TPM / 20 RPD
-    "gemini-2.5-flash-lite",      # Fastest fallback — 10 RPM / 250K TPM / 20 RPD
+# ── Models ordered by API call efficiency (RPM descending) ──────────────────
+# Source: AI Studio quota dashboard (Mar 2025).
+# KEY 1 quota (non-zero only — zero-quota models tried only via GEMINI_API_KEY_2):
+#   Gemma 3 1B              16 RPM  12.3K TPM  36 RPD
+#   Gemini 2.5 Flash         8 RPM   5.97K TPM  32 RPD
+#   Gemma 3 4B               6 RPM   4.57K TPM   7 RPD
+#   Gemini 2.5 Flash Lite    6 RPM   7.67K TPM  30 RPD
+#
+# Zero-quota on key 1 (0/0/0) — kept for GEMINI_API_KEY_2 fallback only,
+# ordered by their max RPD limit so the most capable runs first there too.
+_GEMINI_MODELS = [
+    # ── Has quota on key 1 — ordered highest RPM first ──────────────
+    "gemma-3-1b-it",                  # 16 RPM  — fastest throughput
+    "gemini-2.5-flash-preview-05-20", # 8  RPM  — best quality with quota
+    "gemma-3-4b-it",                  # 6  RPM  — more capable than 1B
+    "gemini-2.5-flash-lite-preview-06-17",  # 6 RPM  — lightweight flash
 
-    # ── Add a second API key to unlock these ────────────────────
-    # All are 0/0 on current key but valid model strings
-    "gemini-2.5-pro",             # Highest quality Gemini available
-    "gemini-2.0-flash",           # Gemini 2 stable
-    "gemini-2.0-flash-lite",      # Gemini 2 lite
-    "gemini-1.5-flash",           # Legacy — very wide availability
-    "gemini-1.5-flash-8b",        # Legacy lite — highest RPM historically
+    # ── Zero quota on key 1 — try these via backup key only ─────────
+    "gemini-2.5-pro-preview-06-05",   # Pro — highest quality available
+    "gemini-2.5-flash",               # Stable flash alias (may work on key 2)
+    "gemini-2.0-flash",               # Gemini 2 stable
+    "gemini-2.0-flash-lite",          # Gemini 2 lite
+    "gemini-1.5-pro",                 # 1.5 Pro — reliable legacy
+    "gemini-1.5-flash",               # 1.5 Flash — reliable legacy
+    "gemini-1.5-flash-8b",            # 1.5 Flash 8B — highest legacy RPM
 ]
+_PRIMARY_MODEL  = "gemma-3-1b-it"
+_FALLBACK_MODEL = "gemini-2.5-flash-preview-05-20"
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # LangChain chain — built lazily on first call so startup stays fast
@@ -1533,14 +1547,15 @@ _lc_chain        = None
 _lc_chain_fb     = None  # fallback chain
 
 
-def _get_lc_chain(model_name: str):
+def _get_lc_chain(model_name: str, api_key: str = None):
     """Build (or return cached) a LangChain chain for the given model."""
-    if not LANGCHAIN_AVAILABLE or not GEMINI_KEY:
+    key = api_key or GEMINI_KEY
+    if not LANGCHAIN_AVAILABLE or not key:
         return None
     try:
         llm = ChatGoogleGenerativeAI(
             model=model_name,
-            google_api_key=GEMINI_KEY,
+            google_api_key=key,
             temperature=0.2,
             max_output_tokens=16384,
             top_p=0.85,
@@ -1576,18 +1591,20 @@ def discover_models():
     return _GEMINI_MODELS
 
 
-def call_gemini(prompt: str):
+def _call_gemini_with_key(prompt: str, api_key: str):
     """
-    Call Gemini via LangChain (primary) or plain REST (fallback).
-    Returns (text, error_or_None).
+    Try ALL _GEMINI_MODELS with a specific API key.
+    Returns (text, all_errors_summary_string).
     """
-    if not GEMINI_KEY:
-        return None, "GEMINI_API_KEY not set."
+    if not api_key:
+        return None, "API key not set."
 
-    # ── LangChain path (preferred) ────────────────────────────────────
+    all_errors = {}  # model_name → error string (collect ALL, not just last)
+
+    # ── LangChain path — try every model, don't break on non-quota errors ─
     if LANGCHAIN_AVAILABLE:
-        for model_name in _GEMINI_MODELS[:3]:
-            chain = _get_lc_chain(model_name)
+        for model_name in _GEMINI_MODELS[:4]:  # only models with actual quota
+            chain = _get_lc_chain(model_name, api_key=api_key)
             if chain is None:
                 continue
             try:
@@ -1596,15 +1613,10 @@ def call_gemini(prompt: str):
                     call_gemini._last_model_used = model_name
                     return result.strip(), None
             except Exception as lc_err:
-                last_lc_error = str(lc_err)
-                # 429 quota → try next model immediately
-                if "429" in str(lc_err) or "quota" in str(lc_err).lower():
-                    continue
-                # Other errors: log and fall through to REST fallback
-                break
+                all_errors[model_name + "(lc)"] = str(lc_err)[:120]
+                # Always continue to next model — don't break on any error type
 
-    # ── Plain REST fallback (no LangChain installed or LangChain failed) ─
-    last_error = ""
+    # ── Plain REST — try every model, collect every error ────────────
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -1615,7 +1627,7 @@ def call_gemini(prompt: str):
         },
     }
     for model_name in _GEMINI_MODELS:
-        url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={GEMINI_KEY}"
+        url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={api_key}"
         for attempt in range(2):
             try:
                 resp = _requests.post(url, json=payload, timeout=180)
@@ -1628,29 +1640,66 @@ def call_gemini(prompt: str):
                     if text:
                         call_gemini._last_model_used = model_name
                         return text, None
-                    last_error = f"{model_name}: empty response"
+                    all_errors[model_name] = "empty response"
                     break
+                elif resp.status_code == 403:
+                    # Invalid key or no access — no point retrying other models
+                    return None, f"HTTP 403 — invalid API key or permission denied ({model_name})"
                 elif resp.status_code in (404, 400):
-                    last_error = f"{model_name}: HTTP {resp.status_code}"
+                    # Wrong model name or bad request — try next model
+                    body = resp.text[:120]
+                    all_errors[model_name] = f"HTTP {resp.status_code}: {body}"
                     break
                 elif resp.status_code == 429:
-                    last_error = f"{model_name}: quota exceeded"
+                    all_errors[model_name] = "quota/rate-limit (429)"
                     time.sleep(0.5)
                     break
                 else:
-                    last_error = f"{model_name}: HTTP {resp.status_code} — {resp.text[:200]}"
+                    err_body = resp.text[:120]
+                    all_errors[model_name] = f"HTTP {resp.status_code}: {err_body}"
                     if attempt == 0:
-                        time.sleep(1.5)
+                        time.sleep(1.0)
                         continue
                     break
             except Exception as e:
-                last_error = f"{model_name} ({attempt+1}): {e}"
+                all_errors[model_name] = f"exception: {e}"
                 if attempt == 0:
-                    time.sleep(1.5)
+                    time.sleep(1.0)
                     continue
                 break
 
-    return None, last_error
+    summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
+    return None, summary
+
+
+def call_gemini(prompt: str):
+    """
+    Call Gemini using primary key first; if ALL models on primary key fail,
+    automatically retry with GEMINI_API_KEY_2 (backup key).
+    Returns (text, error_or_None).
+    """
+    if not GEMINI_KEY and not GEMINI_KEY_2:
+        return None, "No GEMINI_API_KEY set."
+
+    # ── Try primary key ───────────────────────────────────────────────
+    if GEMINI_KEY:
+        text, err = _call_gemini_with_key(prompt, GEMINI_KEY)
+        if text:
+            return text, None
+        primary_error = err
+    else:
+        primary_error = "GEMINI_API_KEY not set."
+
+    # ── All models on primary key exhausted → try backup key ─────────
+    if GEMINI_KEY_2:
+        print(f"[ExamCraft] Primary key exhausted ({primary_error}). "
+              f"Retrying with GEMINI_API_KEY_2…")
+        text, err = _call_gemini_with_key(prompt, GEMINI_KEY_2)
+        if text:
+            return text, None
+        return None, f"Primary key error: {primary_error} | Backup key error: {err}"
+
+    return None, primary_error
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -3043,6 +3092,8 @@ def generate():
                         "gemini_key_set": bool(GEMINI_KEY),
                         "langchain_available": LANGCHAIN_AVAILABLE,
                         "models_tried": str(_GEMINI_MODELS),
+                        "per_model_errors": api_error or "—",
+                        "backup_key_set": bool(GEMINI_KEY_2),
                         "prompt_length_chars": len(prompt),
                         "prompt_preview_100chars": prompt[:100],
                     },
@@ -3214,9 +3265,12 @@ def download_pdf():
 def health():
     configured = bool(GEMINI_KEY and GENAI_AVAILABLE)
     models     = discover_models() if configured else []
-    return jsonify({"status": "ok",
-                    "gemini": "configured" if configured else "not configured",
-                    "models_available": models})
+    return jsonify({
+        "status": "ok",
+        "gemini": "configured" if configured else "not configured",
+        "gemini_backup_key": "set" if GEMINI_KEY_2 else "not set",
+        "models_available": models,
+    })
 
 
 @app.route("/chapters")
