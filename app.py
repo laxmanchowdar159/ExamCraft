@@ -851,9 +851,8 @@ def _opts_table(opts, st, pw):
 
 
 def _pipe_table(rows, st, pw):
-    """Render a markdown pipe-table as Paragraph flowables — no ReportLab Table
-    objects so there is zero risk of the negative-width / infinite-height crash
-    that occurs when paragraph styles carry leftIndent into table cells."""
+    """Render a markdown pipe-table as a proper ReportLab Table with borders,
+    header styling, and alternating row colors — exam-quality output."""
     if not rows:
         return None
     mc = max(len(r) for r in rows)
@@ -863,49 +862,71 @@ def _pipe_table(rows, st, pw):
 
     R, B = _f("Reg"), _f("Bold")
 
-    # Column widths in points (distribute evenly, leave 0 indent)
-    col_w = pw / mc          # logical column width
-    cell_pad = 8             # horizontal padding per cell
+    # ── Cell paragraph styles (no leftIndent — avoids negative-width crash) ──
+    hdr_sty = ParagraphStyle(
+        name="_tbl_hdr",
+        fontName=B, fontSize=9.5, leading=14,
+        textColor=white, alignment=TA_CENTER,
+        spaceBefore=0, spaceAfter=0,
+        firstLineIndent=0, leftIndent=0, rightIndent=0,
+    )
+    odd_sty = ParagraphStyle(
+        name="_tbl_odd",
+        fontName=R, fontSize=9.5, leading=14,
+        textColor=C_STEEL, alignment=TA_CENTER,
+        spaceBefore=0, spaceAfter=0,
+        firstLineIndent=0, leftIndent=0, rightIndent=0,
+    )
+    even_sty = ParagraphStyle(
+        name="_tbl_even",
+        fontName=R, fontSize=9.5, leading=14,
+        textColor=C_STEEL, alignment=TA_CENTER,
+        spaceBefore=0, spaceAfter=0,
+        firstLineIndent=0, leftIndent=0, rightIndent=0,
+    )
 
-    # Build one Paragraph per row: cells joined with thin separator chars
-    # and rendered with tab-stop spacing so columns align.
-    elems = []
+    # Distribute columns evenly across page width
+    col_w = pw / mc
+
+    table_data = []
     for ri, row in enumerate(norm):
         is_hdr = (ri == 0)
-        fn = B if is_hdr else R
-        fs = 9.5
-        leading = 15
+        sty = hdr_sty if is_hdr else (odd_sty if ri % 2 == 1 else even_sty)
+        cells = [Paragraph(_process(cell.strip()), sty) for cell in row]
+        table_data.append(cells)
 
-        # Build the line: each cell in a fixed-width slot using spaces
-        # We use a tab-stop approach via XML: one paragraph per row where
-        # cells are separated by a visible pipe char and padded.
-        parts = []
-        for ci, cell in enumerate(row):
-            txt = _process(cell.strip())
-            if is_hdr:
-                txt = f'<b>{txt}</b>'
-            parts.append(txt)
-        line = '  <font color="#aaaaaa">|</font>  '.join(parts)
+    tbl = Table(table_data, colWidths=[col_w] * mc, repeatRows=1)
 
-        bg = HexColor("#dde3ee") if is_hdr else (
-            white if ri % 2 == 0 else HexColor("#f4f6fb"))
+    # Build TableStyle commands
+    ts_cmds = [
+        # Outer border — navy
+        ("BOX",           (0, 0), (-1, -1), 1.0, C_NAVY),
+        # Horizontal lines between all rows
+        ("LINEBELOW",     (0, 0), (-1, -1), 0.5, C_LGREY),
+        # Vertical lines between columns
+        ("LINEBEFORE",    (1, 0), (-1, -1), 0.5, C_LGREY),
+        # Padding
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        # Header row — navy background, heavier bottom border
+        ("BACKGROUND",    (0, 0), (-1, 0),  C_NAVY),
+        ("LINEBELOW",     (0, 0), (-1, 0),  1.2, C_ACCENT),
+    ]
 
-        sty = ParagraphStyle(
-            name=f"_ptrow_{ri}",
-            fontName=fn, fontSize=fs, leading=leading,
-            textColor=C_NAVY if is_hdr else C_BODY,
-            leftIndent=cell_pad, rightIndent=cell_pad,
-            firstLineIndent=0,
-            spaceBefore=0, spaceAfter=0,
-            backColor=bg,
-            borderPadding=0,
-        )
-        elems.append(Paragraph(line, sty))
+    # Alternating row backgrounds for data rows
+    for ri in range(1, len(table_data)):
+        bg = HexColor("#f4f6fb") if ri % 2 == 0 else white
+        ts_cmds.append(("BACKGROUND", (0, ri), (-1, ri), bg))
+
+    tbl.setStyle(TableStyle(ts_cmds))
 
     # Wrap in KeepTogether so short tables don't straddle pages awkwardly
-    if len(elems) <= 12:
-        return KeepTogether(elems)
-    return elems  # caller must handle list
+    if len(table_data) <= 15:
+        return KeepTogether([Spacer(1, 4), tbl, Spacer(1, 6)])
+    return [Spacer(1, 4), tbl, Spacer(1, 6)]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1394,9 +1415,20 @@ def create_exam_pdf(text, subject, chapter, board="",
                         drawing = svg_to_best_image(diagrams[best_key], width_pt=PW * 0.65)
 
             if drawing is not None:
-                elems.append(Spacer(1, 3))
-                # Centre the drawing
-                outer_d = Table([[drawing]], colWidths=[PW])
+                elems.append(Spacer(1, 4))
+                # Centre the drawing with a subtle border box
+                inner = Table([[drawing]], colWidths=[PW * 0.72])
+                inner.setStyle(TableStyle([
+                    ('BOX',           (0,0),(-1,-1), 0.8, C_LGREY),
+                    ('BACKGROUND',    (0,0),(-1,-1), HexColor('#fafbfc')),
+                    ('TOPPADDING',    (0,0),(-1,-1), 6),
+                    ('BOTTOMPADDING', (0,0),(-1,-1), 6),
+                    ('LEFTPADDING',   (0,0),(-1,-1), 6),
+                    ('RIGHTPADDING',  (0,0),(-1,-1), 6),
+                    ('ALIGN',         (0,0),(-1,-1), 'CENTER'),
+                    ('VALIGN',        (0,0),(-1,-1), 'MIDDLE'),
+                ]))
+                outer_d = Table([[inner]], colWidths=[PW])
                 outer_d.setStyle(TableStyle([
                     ('ALIGN',         (0,0),(-1,-1), 'CENTER'),
                     ('TOPPADDING',    (0,0),(-1,-1), 2),
@@ -1404,22 +1436,47 @@ def create_exam_pdf(text, subject, chapter, board="",
                 ]))
                 elems.append(outer_d)
             else:
-                # Clean placeholder box — no stray text inside, just a neat space
-                blank_height_mm = 38  # ~38 mm reserved for hand-drawn diagram
+                # Clean placeholder box — styled, with dimension label
+                blank_height_mm = 42  # ~42 mm reserved for hand-drawn diagram
+                R_f = _f("Reg")
                 ph_label = Paragraph(
-                    f'<i>[ Draw diagram here: {desc} ]</i>',
-                    st["DiagLabel"])
-                box = Table(
-                    [[ph_label],
-                     [Spacer(1, blank_height_mm * mm - 20)]],
-                    colWidths=[PW * 0.72])
-                box.setStyle(TableStyle([
-                    ('BOX',           (0,0),(-1,-1), 0.6, C_RULE),
-                    ('BACKGROUND',    (0,0),(-1,-1), HexColor('#f9f9f9')),
-                    ('TOPPADDING',    (0,0),(-1,-1), 6),
-                    ('BOTTOMPADDING', (0,0),(-1,-1), 6),
+                    f'<font color="#0f2149"><b>[ Diagram: {desc} ]</b></font>',
+                    ParagraphStyle(name="_ph_lbl", fontName=_f("Ital"),
+                                   fontSize=8.5, textColor=C_GREY,
+                                   leading=12, leftIndent=0, firstLineIndent=0))
+                ph_hint  = Paragraph(
+                    '<font color="#94a3b8"><i>Draw / paste diagram here</i></font>',
+                    ParagraphStyle(name="_ph_hint", fontName=_f("Ital"),
+                                   fontSize=8, textColor=C_LGREY,
+                                   leading=11, alignment=TA_CENTER,
+                                   leftIndent=0, firstLineIndent=0))
+                # Dotted inner area
+                box_inner = Table(
+                    [[ph_hint]],
+                    colWidths=[PW * 0.68 - 20])
+                box_inner.setStyle(TableStyle([
+                    ('BOX',           (0,0),(-1,-1), 0.5, HexColor('#c8d5e5')),
+                    ('BACKGROUND',    (0,0),(-1,-1), HexColor('#f8fafc')),
+                    ('ROWHEIGHT',     (0,0),(-1,-1), blank_height_mm * mm - 28),
+                    ('TOPPADDING',    (0,0),(-1,-1), 8),
+                    ('BOTTOMPADDING', (0,0),(-1,-1), 8),
                     ('LEFTPADDING',   (0,0),(-1,-1), 10),
                     ('RIGHTPADDING',  (0,0),(-1,-1), 10),
+                    ('VALIGN',        (0,0),(-1,-1), 'MIDDLE'),
+                ]))
+                box = Table(
+                    [[ph_label], [box_inner]],
+                    colWidths=[PW * 0.70])
+                box.setStyle(TableStyle([
+                    ('BOX',           (0,0),(-1,-1), 0.8, C_NAVY2),
+                    ('BACKGROUND',    (0,0),(0,0),   HexColor('#eef2f8')),
+                    ('BACKGROUND',    (0,1),(0,1),   HexColor('#f8fafc')),
+                    ('TOPPADDING',    (0,0),(0,0),   5),
+                    ('BOTTOMPADDING', (0,0),(0,0),   5),
+                    ('LEFTPADDING',   (0,0),(-1,-1), 10),
+                    ('RIGHTPADDING',  (0,0),(-1,-1), 10),
+                    ('TOPPADDING',    (0,1),(0,1),   6),
+                    ('BOTTOMPADDING', (0,1),(0,1),   6),
                     ('VALIGN',        (0,0),(-1,-1), 'TOP'),
                 ]))
                 outer = Table([[box]], colWidths=[PW])
@@ -1708,16 +1765,18 @@ def discover_models():
 def _call_gemini_with_key(prompt: str, api_key: str):
     """
     Try ALL _GEMINI_MODELS with a specific API key.
-    Returns (text, all_errors_summary_string).
+    Returns (text, all_errors_summary_string, rate_limited_bool).
+    The rate_limited_bool is True if ≥2 models returned 429 — signals caller
+    to try the backup key without waiting to exhaust all remaining models.
     """
     if not api_key:
-        return None, "API key not set."
+        return None, "API key not set.", False
 
-    all_errors = {}  # model_name → error string (collect ALL, not just last)
+    all_errors = {}          # model_name → error string
+    rate_limit_count = 0     # how many models returned 429
 
     # ── LangChain path — try capable models, skip tiny Gemma models ─
     if LANGCHAIN_AVAILABLE:
-        # Only use models that reliably produce structured exam output
         capable_models = [m for m in _GEMINI_MODELS if 'gemma' not in m.lower()]
         for model_name in capable_models[:4]:  # try top 4 capable models
             chain = _get_lc_chain(model_name, api_key=api_key)
@@ -1727,10 +1786,17 @@ def _call_gemini_with_key(prompt: str, api_key: str):
                 result = chain.invoke({"prompt": prompt})
                 if result and result.strip():
                     call_gemini._last_model_used = model_name
-                    return result.strip(), None
+                    return result.strip(), None, False
             except Exception as lc_err:
-                all_errors[model_name + "(lc)"] = str(lc_err)[:120]
-                # Always continue to next model — don't break on any error type
+                err_str = str(lc_err)
+                all_errors[model_name + "(lc)"] = err_str[:120]
+                # Detect rate limit in LangChain error message
+                if "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
+                    rate_limit_count += 1
+                    if rate_limit_count >= 2:
+                        # Rate limited — signal to try backup key immediately
+                        summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
+                        return None, summary, True
 
     # ── Plain REST — try every model, collect every error ────────────
     payload = {
@@ -1755,20 +1821,23 @@ def _call_gemini_with_key(prompt: str, api_key: str):
                                 .get("text", "")).strip()
                     if text:
                         call_gemini._last_model_used = model_name
-                        return text, None
+                        return text, None, False
                     all_errors[model_name] = "empty response"
                     break
                 elif resp.status_code == 403:
-                    # Invalid key or no access — no point retrying other models
-                    return None, f"HTTP 403 — invalid API key or permission denied ({model_name})"
+                    return None, f"HTTP 403 — invalid API key or permission denied ({model_name})", False
                 elif resp.status_code in (404, 400):
-                    # Wrong model name or bad request — try next model
                     body = resp.text[:120]
                     all_errors[model_name] = f"HTTP {resp.status_code}: {body}"
                     break
                 elif resp.status_code == 429:
+                    rate_limit_count += 1
                     all_errors[model_name] = "quota/rate-limit (429)"
                     time.sleep(0.5)
+                    # After 2 rate-limited models, bail early and let caller try key 2
+                    if rate_limit_count >= 2:
+                        summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
+                        return None, summary, True
                     break
                 else:
                     err_body = resp.text[:120]
@@ -1785,13 +1854,15 @@ def _call_gemini_with_key(prompt: str, api_key: str):
                 break
 
     summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
-    return None, summary
+    return None, summary, rate_limit_count > 0
 
 
 def call_gemini(prompt: str):
     """
-    Call Gemini using primary key first; if ALL models on primary key fail,
-    automatically retry with GEMINI_API_KEY_2 (backup key).
+    Call Gemini using primary key first; automatically retry with
+    GEMINI_API_KEY_2 (backup key) if:
+      - all models on primary key fail, OR
+      - primary key hits rate limits on ≥2 models (fast-switch on quota)
     Returns (text, error_or_None).
     """
     if not GEMINI_KEY and not GEMINI_KEY_2:
@@ -1799,18 +1870,21 @@ def call_gemini(prompt: str):
 
     # ── Try primary key ───────────────────────────────────────────────
     if GEMINI_KEY:
-        text, err = _call_gemini_with_key(prompt, GEMINI_KEY)
+        text, err, rate_limited = _call_gemini_with_key(prompt, GEMINI_KEY)
         if text:
             return text, None
         primary_error = err
+        if rate_limited:
+            print(f"[ExamCraft] Primary key rate-limited. Switching to GEMINI_API_KEY_2…")
     else:
         primary_error = "GEMINI_API_KEY not set."
+        rate_limited = False
 
-    # ── All models on primary key exhausted → try backup key ─────────
+    # ── Backup key — try on rate-limit OR full exhaustion ────────────
     if GEMINI_KEY_2:
-        print(f"[ExamCraft] Primary key exhausted ({primary_error}). "
-              f"Retrying with GEMINI_API_KEY_2…")
-        text, err = _call_gemini_with_key(prompt, GEMINI_KEY_2)
+        print(f"[ExamCraft] Primary key {'rate-limited' if rate_limited else 'exhausted'} "
+              f"({primary_error}). Retrying with GEMINI_API_KEY_2…")
+        text, err, _ = _call_gemini_with_key(prompt, GEMINI_KEY_2)
         if text:
             return text, None
         return None, f"Primary key error: {primary_error} | Backup key error: {err}"
@@ -3445,6 +3519,7 @@ def health():
         "status": "ok",
         "gemini": "configured" if configured else "not configured",
         "gemini_backup_key": "set" if GEMINI_KEY_2 else "not set",
+        "key_switching": "on-rate-limit (≥2 models return 429)" if GEMINI_KEY_2 else "disabled",
         "models_available": models,
     })
 
