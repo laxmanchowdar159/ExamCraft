@@ -1397,14 +1397,20 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Tier 3: gemini-2.5-flash-preview  stable alias for 2.5-flash
 # Tier 4: gemini-1.5-flash          legacy wide-availability fallback
 # NOTE: gemini-2.0-flash series shows 0/0 remaining — excluded
-_PRIMARY_MODEL   = "gemini-1.5-flash"
-_FALLBACK_MODEL  = "gemini-1.5-flash-8b"
+_PRIMARY_MODEL   = "gemini-2.5-flash"
+_FALLBACK_MODEL  = "gemini-2.5-flash-lite"
 _GEMINI_MODELS   = [
-    # Only models confirmed available on standard API keys (no preview/lab access needed)
-    "gemini-1.5-flash",        # Most reliable — stable GA, high quota
-    "gemini-1.5-flash-8b",     # Lighter version, very high availability
-    "gemini-1.5-pro",          # Higher quality, lower RPM — kept as fallback only
-    # Note: gemini-2.x and 2.5-preview require allowlisted API keys — excluded
+    # ── Models with confirmed quota on current key ──────────────
+    "gemini-2.5-flash",           # Best quality — 5 RPM / 250K TPM / 20 RPD
+    "gemini-2.5-flash-lite",      # Fastest fallback — 10 RPM / 250K TPM / 20 RPD
+
+    # ── Add a second API key to unlock these ────────────────────
+    # All are 0/0 on current key but valid model strings
+    "gemini-2.5-pro",             # Highest quality Gemini available
+    "gemini-2.0-flash",           # Gemini 2 stable
+    "gemini-2.0-flash-lite",      # Gemini 2 lite
+    "gemini-1.5-flash",           # Legacy — very wide availability
+    "gemini-1.5-flash-8b",        # Legacy lite — highest RPM historically
 ]
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 

@@ -510,7 +510,6 @@ async function generatePaper() {
     showSuccessPanel();
     launchConfetti();
     setActiveStep(6);
-    setTimeout(() => showDonePopup(currentMeta), 700);
 
   } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
 }
@@ -874,14 +873,16 @@ document.addEventListener('DOMContentLoaded', () => {
    HELLO POPUP — shown once per session on load
 ══════════════════════════════════════════════════════════════ */
 const HELLO_JOKES = [
-  "Why did the student eat his homework? Because the teacher told him it was a piece of cake.",
-  "A photon checks into a hotel. The bellhop asks: 'Can I help with your luggage?' Photon: 'No thanks, I'm travelling light.'",
-  "Why is 6 afraid of 7? Because 7 8 9. But why did 7 eat 9? To get 3 squared meals a day.",
-  "A teacher asked: 'If I gave you 2 cats and another 2 cats, how many would you have?' Student: '5.' Teacher: 'No — 4.' Student: 'I already have one at home.'",
-  "Why do mathematicians confuse Halloween and Christmas? Because Oct 31 = Dec 25.",
-  "A student was late and told the teacher the dog ate his homework. Teacher: 'But we did it on a computer.' Student: 'The dog ate my laptop.'",
-  "Teacher: 'What is the chemical formula for water?' Student: 'HIJKLMNO.' Teacher: 'That is wrong.' Student: 'But you said it was H to O.'",
-  "An atom walks into a bar and says: 'I think I lost an electron.' Bartender: 'Are you sure?' Atom: 'I'm positive.'",
+  "Why did the student bring a ladder to school? Because he wanted to go to high school.",
+  "A student asked: 'Will we be tested on what we don't know?' Teacher: 'That's literally what a test is.'",
+  "Teacher: 'Name a liquid that cannot be frozen.' Student: 'Hot water.' Teacher: '...' Student: 'It becomes ice. So it was never frozen, it just became ice.'",
+  "Why do teachers wear sunglasses? Because their students are so bright.",
+  "Teacher: 'If you had 10 chocolates and I asked for 3, how many would you have?' Student: '10.' Teacher: 'Why?' Student: 'Because I wouldn't give you any.'",
+  "A student told the teacher: 'I don't deserve a zero.' Teacher replied: 'I know. But it's the lowest mark I can give.'",
+  "Teacher: 'Give me a sentence with the word 'defeat'.' Student: 'De-feet of de-dog are under de-table.'",
+  "Why did the math book look so sad? Because it had too many problems.",
+  "Teacher: 'You missed school yesterday, didn't you?' Student: 'Not really.'",
+  "Teacher: 'What do you call someone who keeps talking when nobody is listening?' Student: 'A teacher.'",
 ];
 
 const DONE_JOKES = [
