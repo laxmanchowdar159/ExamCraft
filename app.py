@@ -3337,28 +3337,40 @@ def generate():
         paper, key = split_key(generated_text)
 
         # ── Build PDFs inline — no second API call needed ────────────
-        # Diagram generation in parallel, best-effort (won't delay response if fails)
+        # ── Diagram generation — sequential with generous per-diagram timeout ──
+        # Each diagram is a separate Gemini call (~10-20s each).
+        # Sequential is more reliable than parallel under tight quotas.
         diagrams = {}
-        try:
-            if GEMINI_KEY:
+        active_keys = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
+        if active_keys:
+            try:
                 full_text = paper + "\n" + (key or "")
                 diag_descs_raw = re.findall(
                     r'\[DIAGRAM:\s*([^\]]+)\]', full_text, re.IGNORECASE)
                 unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
                 if unique_descs:
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-                    max_w = max(1, min(3, len(unique_descs)))
+                    from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
+                    # Use up to 4 workers so diagrams generate in parallel but not all at once
+                    max_w = max(1, min(4, len(unique_descs)))
                     with ThreadPoolExecutor(max_workers=max_w) as ex:
                         futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
-                        for future in as_completed(futures, timeout=25):
-                            d = futures[future]
-                            try:
-                                svg = future.result(timeout=25)
-                                if svg: diagrams[d] = svg
-                            except Exception:
-                                pass
-        except Exception:
-            pass
+                        # 90 seconds total wall-clock, 80 seconds per individual diagram
+                        try:
+                            for future in as_completed(futures, timeout=90):
+                                d = futures[future]
+                                try:
+                                    svg = future.result(timeout=80)
+                                    if svg:
+                                        diagrams[d] = svg
+                                        print(f"[ExamCraft] Diagram OK: {d[:60]}")
+                                    else:
+                                        print(f"[ExamCraft] Diagram empty: {d[:60]}")
+                                except Exception as de:
+                                    print(f"[ExamCraft] Diagram error ({d[:40]}): {de}")
+                        except FutureTimeout:
+                            print(f"[ExamCraft] Diagram wall-clock timeout — got {len(diagrams)}/{len(unique_descs)}")
+            except Exception as e:
+                print(f"[ExamCraft] Diagram generation outer error: {e}")
 
         marks_safe = str(marks or "100").strip()
         chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
