@@ -581,18 +581,74 @@ async function generatePaper() {
 
     window._pdfDirect = { paper:result.pdf_b64||null, withKey:result.pdf_key_b64||null, board:boardText, subject:currentMeta.subject, chapter:currentMeta.chapter };
 
-    // Auto-download (only if PDF was generated successfully)
-    if (window._pdfDirect.paper) {
-      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
-    } else if (result.pdf_error) {
-      showToast('⚠ Paper generated but PDF rendering failed — use the Download button to retry');
-      console.error('[ExamCraft PDF Error]', result.pdf_error);
-    }
-
     addToHistory(currentMeta, currentPaper, currentAnswerKey);
-    showPaperReadyPopup();
-    launchConfetti();
-    setActiveStep(6);
+
+    // ── 25-second PDF finalisation countdown ─────────────────────────
+    // Gives the browser time to fully receive and decode the PDF before download
+    if (window._pdfDirect.paper) {
+      const WAIT_SEC = 12;
+      let remaining  = WAIT_SEC;
+
+      // Build countdown overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'pdfCountdownOverlay';
+      overlay.style.cssText = [
+        'position:fixed','inset:0','z-index:9999',
+        'background:rgba(10,15,30,0.82)',
+        'display:flex','flex-direction:column',
+        'align-items:center','justify-content:center',
+        'backdrop-filter:blur(6px)',
+        '-webkit-backdrop-filter:blur(6px)',
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+      ].join(';');
+
+      overlay.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0f2149,#1a3a6e);border-radius:20px;padding:40px 52px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6);max-width:360px;width:88%">
+          <div style="font-size:48px;margin-bottom:12px">📄</div>
+          <div style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px">Finalising PDF…</div>
+          <div style="color:#94a3b8;font-size:13px;margin-bottom:28px;line-height:1.5">Ensuring all content is fully rendered<br>before your download starts</div>
+          <div id="pdfCountdownRing" style="position:relative;width:88px;height:88px;margin:0 auto 20px">
+            <svg width="88" height="88" style="transform:rotate(-90deg)">
+              <circle cx="44" cy="44" r="38" fill="none" stroke="#1e293b" stroke-width="6"/>
+              <circle id="pdfCountdownArc" cx="44" cy="44" r="38" fill="none"
+                stroke="#2563eb" stroke-width="6"
+                stroke-dasharray="${2*Math.PI*38}" stroke-dashoffset="0"
+                stroke-linecap="round" style="transition:stroke-dashoffset .9s linear"/>
+            </svg>
+            <div id="pdfCountdownNum" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800">${remaining}</div>
+          </div>
+          <div style="color:#64748b;font-size:12px">Download will start automatically</div>
+        </div>`;
+
+      document.body.appendChild(overlay);
+
+      const arc     = overlay.querySelector('#pdfCountdownArc');
+      const numEl   = overlay.querySelector('#pdfCountdownNum');
+      const circum  = 2 * Math.PI * 38;
+
+      const tick = setInterval(() => {
+        remaining--;
+        numEl.textContent = remaining;
+        arc.style.strokeDashoffset = circum * (1 - remaining / WAIT_SEC);
+        if (remaining <= 0) {
+          clearInterval(tick);
+          overlay.remove();
+          _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+          showPaperReadyPopup();
+          launchConfetti();
+          setActiveStep(6);
+        }
+      }, 1000);
+
+    } else {
+      if (result.pdf_error) {
+        showToast('⚠ Paper generated but PDF rendering failed — use the Download button to retry');
+        console.error('[ExamCraft PDF Error]', result.pdf_error);
+      }
+      showPaperReadyPopup();
+      launchConfetti();
+      setActiveStep(6);
+    }
 
   } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
 }

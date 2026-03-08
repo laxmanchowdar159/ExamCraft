@@ -1399,7 +1399,7 @@ def create_exam_pdf(text, subject, chapter, board="",
             if diagrams:
                 # Exact match first
                 if desc in diagrams and diagrams[desc]:
-                    drawing = svg_to_best_image(diagrams[desc], width_pt=PW * 0.88)
+                    drawing = svg_to_best_image(diagrams[desc], width_pt=PW * 0.50)
                 if drawing is None:
                     # Fuzzy match: find diagram key with most word overlap
                     desc_words = set(re.findall(r'\w+', desc.lower()))
@@ -1412,12 +1412,12 @@ def create_exam_pdf(text, subject, chapter, board="",
                         if overlap > best_score:
                             best_score, best_key = overlap, d_key
                     if best_key and best_score >= 2:
-                        drawing = svg_to_best_image(diagrams[best_key], width_pt=PW * 0.88)
+                        drawing = svg_to_best_image(diagrams[best_key], width_pt=PW * 0.50)
 
             if drawing is not None:
                 elems.append(Spacer(1, 4))
                 # Centre the drawing with a subtle border box
-                inner = Table([[drawing]], colWidths=[PW * 0.90])
+                inner = Table([[drawing]], colWidths=[PW * 0.55])
                 inner.setStyle(TableStyle([
                     ('BOX',           (0,0),(-1,-1), 0.8, C_LGREY),
                     ('BACKGROUND',    (0,0),(-1,-1), HexColor('#fafbfc')),
@@ -1437,7 +1437,7 @@ def create_exam_pdf(text, subject, chapter, board="",
                 elems.append(outer_d)
             else:
                 # Clean placeholder box — styled, with dimension label
-                blank_height_mm = 42  # ~42 mm reserved for hand-drawn diagram
+                blank_height_mm = 28  # ~28 mm reserved for hand-drawn diagram
                 R_f = _f("Reg")
                 ph_label = Paragraph(
                     f'<font color="#0f2149"><b>[ Diagram: {desc} ]</b></font>',
@@ -1453,7 +1453,7 @@ def create_exam_pdf(text, subject, chapter, board="",
                 # Dotted inner area
                 box_inner = Table(
                     [[ph_hint]],
-                    colWidths=[PW * 0.86 - 20])
+                    colWidths=[PW * 0.52 - 20])
                 box_inner.setStyle(TableStyle([
                     ('BOX',           (0,0),(-1,-1), 0.5, HexColor('#c8d5e5')),
                     ('BACKGROUND',    (0,0),(-1,-1), HexColor('#f8fafc')),
@@ -1466,7 +1466,7 @@ def create_exam_pdf(text, subject, chapter, board="",
                 ]))
                 box = Table(
                     [[ph_label], [box_inner]],
-                    colWidths=[PW * 0.88])
+                    colWidths=[PW * 0.55])
                 box.setStyle(TableStyle([
                     ('BOX',           (0,0),(-1,-1), 0.8, C_NAVY2),
                     ('BACKGROUND',    (0,0),(0,0),   HexColor('#eef2f8')),
