@@ -576,36 +576,13 @@
 <div id="helloPopup" class="popup-overlay">
   <div class="popup-card">
     <div class="popup-header">
-      <div class="popup-kicker">✦ &nbsp; ExamCraft AI &nbsp; ✦</div>
-      <div class="popup-title">Ready to make<br><em>great papers?</em></div>
-      <div class="popup-subtitle" style="margin-bottom:0">AI-Powered · Board-Accurate · Print-Ready</div>
+      <div class="popup-kicker">Welcome to ExamCraft</div>
+      <div class="popup-title">Hello, <em>Teacher</em></div>
+      <div class="popup-subtitle" style="margin-bottom:0">AI Examination System · 2026</div>
     </div>
-    <div class="popup-joke-box" style="margin:20px 28px 0">
-      <div class="popup-joke-label">Today's Classroom Wisdom</div>
+    <div class="popup-joke-box">
+      <div class="popup-joke-label">Joke of the Day</div>
       <div class="popup-joke-text" id="helloJoke"></div>
-    </div>
-    <div class="hello-features">
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">✦</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">Board-Aligned Papers</div>
-          <div class="hello-feat-desc">AP · TS · CBSE · NTSE · NSO · IMO — every format, every class</div>
-        </div>
-      </div>
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">◈</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">Auto Answer Keys</div>
-          <div class="hello-feat-desc">Full step-by-step solutions generated alongside every paper</div>
-        </div>
-      </div>
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">◉</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">History &amp; Re-download</div>
-          <div class="hello-feat-desc">Every paper is saved locally — revisit, re-download anytime</div>
-        </div>
-      </div>
     </div>
     <div class="popup-actions">
       <button class="popup-btn-primary" onclick="closeHelloPopup()">
@@ -655,11 +632,28 @@
 </div>
 
 <!-- DOWNLOAD DONE POPUP -->
-<div id="dlDonePopup" class="dl-done-overlay">
+<div id="dlDonePopup" class="dl-done-overlay" onclick="this.classList.remove('show')">
   <div class="dl-done-card">
-    <div class="dl-done-icon">↓</div>
-    <div class="dl-done-text" id="dlDoneText">PDF Downloaded</div>
-    <div class="dl-done-sub" id="dlDoneSub">Saved to your Downloads folder</div>
+    <div class="dl-done-top">
+      <div class="dl-done-icon-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="dl-done-title-area">
+        <div class="dl-done-text" id="dlDoneText">PDF Downloaded</div>
+        <div class="dl-done-sub" id="dlDoneSub">Saved to your Downloads folder</div>
+      </div>
+      <button class="dl-done-close" onclick="event.stopPropagation();document.getElementById('dlDonePopup').classList.remove('show')">✕</button>
+    </div>
+    <div class="dl-done-details" id="dlDoneDetails">
+      <div class="dl-done-row"><span class="dl-done-lbl">Subject</span><span class="dl-done-val" id="dlDoneSubject">—</span></div>
+      <div class="dl-done-row"><span class="dl-done-lbl">Board</span><span class="dl-done-val" id="dlDoneBoard">—</span></div>
+      <div class="dl-done-row"><span class="dl-done-lbl">Marks</span><span class="dl-done-val" id="dlDoneMarks">—</span></div>
+      <div class="dl-done-row"><span class="dl-done-lbl">Chapter</span><span class="dl-done-val" id="dlDoneChapter">—</span></div>
+    </div>
+    <div class="dl-done-history-tip">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Saved in History — re-download anytime from the sidebar
+    </div>
   </div>
 </div>
 
