@@ -121,8 +121,9 @@ def apply_security_headers(response):
 
     return response
 
-GEMINI_KEY  = os.environ.get("GEMINI_API_KEY",   "").strip()
-GEMINI_KEY_2 = os.environ.get("GEMINI_API_KEY_2", "").strip()  # backup key — tried when primary key exhausts all models
+GEMINI_KEY   = os.environ.get("GEMINI_API_KEY",   "").strip()
+GEMINI_KEY_2 = os.environ.get("GEMINI_API_KEY_2", "").strip()
+GEMINI_KEY_3 = os.environ.get("GEMINI_API_KEY_3", "").strip()
 
 # ═══════════════════════════════════════════════════════════════════════
 # ERROR EMAIL SYSTEM
@@ -1691,28 +1692,25 @@ def create_exam_pdf(text, subject, chapter, board="",
 #
 # Zero-quota on key 1 (0/0/0) — kept for GEMINI_API_KEY_2 fallback only,
 # ordered by their max RPD limit so the most capable runs first there too.
+# Models ordered by actual available quota (verified from AI Studio dashboard).
+# Only models with non-zero RPD are listed — zero-quota models cause 429/404
+# and waste retry attempts before the backup key is tried.
+#
+# Key 1 quota:  gemini-2.5-flash (32 RPD), gemini-2.5-flash-lite (30 RPD),
+#               gemma-3-4b-it (60 RPD), gemma-3-1b-it (92 RPD)
+# Key 2 quota:  same models, 0 current usage (full quota available)
 _GEMINI_MODELS = [
-    # Tier 1: Stable production models (lowest 404 risk)
-    "gemini-2.0-flash",                # Gemini 2 stable - most reliable
-    "gemini-2.0-flash-lite",           # Gemini 2 lite - high RPM
-    "gemini-1.5-flash",                # 1.5 Flash - battle-tested
-    "gemini-1.5-flash-8b",             # 1.5 Flash 8B - highest RPM
+    # Best quality with quota — try these first
+    "gemini-2.5-flash",                # 8 RPM, 32 RPD on key 1
+    "gemini-2.5-flash-lite",           # 6 RPM, 30 RPD on key 1
+    "gemini-2.5-flash-lite-preview-06-17",  # alternate name for 2.5 flash lite
 
-    # Tier 2: 2.5 series (preview - may 404 if rotated by Google)
-    "gemini-2.5-flash",                # 2.5 stable alias
-    "gemini-2.5-flash-lite-preview-06-17",  # 2.5 lite preview
-
-    # Tier 3: Pro and older previews
-    "gemini-1.5-pro",                  # 1.5 Pro - reliable legacy
-    "gemini-2.5-flash-preview-05-20",  # Older 2.5 preview (may 404)
-    "gemini-2.5-pro-preview-06-05",    # 2.5 Pro preview (may 404)
-
-    # Tier 4: Small models (last resort)
-    "gemma-3-4b-it",                   # Gemma 3 4B
-    "gemma-3-1b-it",                   # Gemma 3 1B - least capable
+    # Gemma models — highest RPD, great fallback for structured output
+    "gemma-3-4b-it",                   # 10 RPM, 60 RPD — solid quality
+    "gemma-3-1b-it",                   # 16 RPM, 92 RPD — highest throughput
 ]
-_PRIMARY_MODEL  = "gemini-2.0-flash"
-_FALLBACK_MODEL = "gemini-1.5-flash"
+_PRIMARY_MODEL  = "gemini-2.5-flash"
+_FALLBACK_MODEL = "gemma-3-4b-it"
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # LangChain chain — built lazily on first call so startup stays fast
@@ -1721,188 +1719,174 @@ _lc_chain_fb     = None  # fallback chain
 
 
 def _get_lc_chain(model_name: str, api_key: str = None):
-    """Build (or return cached) a LangChain chain for the given model."""
+    """Build a LangChain chain for the given model."""
     key = api_key or GEMINI_KEY
     if not LANGCHAIN_AVAILABLE or not key:
         return None
     try:
+        is_gemma = 'gemma' in model_name.lower()
         llm = ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=key,
             temperature=0.2,
-            max_output_tokens=16384,
-            top_p=0.85,
+            max_output_tokens=8192 if is_gemma else 16384,
+            top_p=0.9  if is_gemma else 0.85,
             top_k=40,
             timeout=180,
-            max_retries=2,
+            max_retries=1,  # fail fast — we have multiple models to try
         )
-        # System + Human message structure — better instruction following than
-        # a single monolithic string prompt. The system message grounds the
-        # model's role; the human message carries the full paper spec.
-        prompt_tpl = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                (
-                    "You are an expert Indian school exam paper setter with 20 years of experience. "
-                    "You follow instructions with military precision. "
-                    "Output ONLY the exam paper and answer key — no preamble, "
-                    "no commentary, no markdown fences. "
-                    "Start directly with the paper header."
-                ),
-            ),
-            ("human", "{prompt}"),
-        ])
+        system_msg = (
+            "You are an expert Indian school exam paper setter with 20 years of experience. "
+            "You follow instructions with military precision. "
+            "Output ONLY the exam paper and answer key — no preamble, "
+            "no commentary, no markdown fences. "
+            "Start directly with the paper content."
+        )
+        # Gemma models don't support system role via ChatGoogleGenerativeAI —
+        # prepend the instruction to the human message instead.
+        if is_gemma:
+            prompt_tpl = ChatPromptTemplate.from_messages([
+                ("human", system_msg + "\n\n{prompt}"),
+            ])
+        else:
+            prompt_tpl = ChatPromptTemplate.from_messages([
+                ("system", system_msg),
+                ("human", "{prompt}"),
+            ])
         return prompt_tpl | llm | StrOutputParser()
-    except Exception as e:
+    except Exception:
         return None
 
 
 def discover_models():
     """Return model list for health endpoint."""
-    if not GEMINI_KEY:
-        return []
-    return _GEMINI_MODELS
+    keys = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
+    return _GEMINI_MODELS if keys else []
 
 
-def _call_gemini_with_key(prompt: str, api_key: str):
+def _try_one(model_name: str, api_key: str, prompt: str, all_errors: dict) -> tuple:
     """
-    Try ALL _GEMINI_MODELS with a specific API key.
-    Returns (text, all_errors_summary_string, rate_limited_bool).
-    The rate_limited_bool is True if ≥2 models returned 429 — signals caller
-    to try the backup key without waiting to exhaust all remaining models.
+    Try a single (model, key) combination.
+    Returns (text_or_None, is_rate_limited, is_not_found).
+    Tries LangChain first, falls back to plain REST.
     """
-    if not api_key:
-        return None, "API key not set.", False
+    label = f"key{[GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3].index(api_key) + 1 if api_key in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] else '?'}"
 
-    all_errors = {}          # model_name → error string
-    rate_limit_count = 0     # how many models returned 429
+    def _is_429(s): return "429" in s or "quota" in s.lower() or "RESOURCE_EXHAUSTED" in s
+    def _is_404(s): return "404" in s or "NOT_FOUND" in s
 
-    # ── LangChain path — skip Gemma models, skip 404-prone previews first ─
+    # ── LangChain attempt ─────────────────────────────────────────────
     if LANGCHAIN_AVAILABLE:
-        # Tier 1 only: stable models with low 404 risk
-        stable_first = [m for m in _GEMINI_MODELS
-                        if 'gemma' not in m.lower() and 'preview' not in m.lower()]
-        # Then add preview models as fallback
-        preview_models = [m for m in _GEMINI_MODELS
-                          if 'gemma' not in m.lower() and 'preview' in m.lower()]
-        capable_models = stable_first + preview_models
-        for model_name in capable_models[:6]:  # try top 6 capable models
-            chain = _get_lc_chain(model_name, api_key=api_key)
-            if chain is None:
-                continue
+        chain = _get_lc_chain(model_name, api_key=api_key)
+        if chain is not None:
             try:
                 result = chain.invoke({"prompt": prompt})
                 if result and result.strip():
-                    call_gemini._last_model_used = model_name
-                    return result.strip(), None, False
+                    return result.strip(), False, False
+                all_errors[f"{model_name}({label}/lc)"] = "empty"
             except Exception as lc_err:
                 err_str = str(lc_err)
-                all_errors[model_name + "(lc)"] = err_str[:120]
-                # 404 = model doesn't exist — skip silently, don't count as rate limit
-                if "404" in err_str or "NOT_FOUND" in err_str:
-                    continue
-                # Detect rate limit in LangChain error message
-                if "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
-                    rate_limit_count += 1
-                    if rate_limit_count >= 4:
-                        # Only fast-switch after 4 rate limits (not 2) to avoid
-                        # premature key switching when just one model is quota-exhausted
-                        summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
-                        return None, summary, True
+                all_errors[f"{model_name}({label}/lc)"] = err_str[:100]
+                if _is_404(err_str):
+                    return None, False, True   # model dead on this key — skip REST too
+                if _is_429(err_str):
+                    return None, True, False   # quota exhausted on this key for this model
 
-    # ── Plain REST — try every model, collect every error ────────────
+    # ── Plain REST fallback ───────────────────────────────────────────
+    is_gemma = "gemma" in model_name.lower()
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature":     0.2,
-            "maxOutputTokens": 16384,
-            "topP":            0.85,
+            "maxOutputTokens": 8192 if is_gemma else 16384,
+            "topP":            0.9  if is_gemma else 0.85,
             "topK":            40,
         },
     }
-    for model_name in _GEMINI_MODELS:
-        url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={api_key}"
-        for attempt in range(2):
-            try:
-                resp = _requests.post(url, json=payload, timeout=180)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    text = (data.get("candidates", [{}])[0]
-                                .get("content", {})
-                                .get("parts", [{}])[0]
-                                .get("text", "")).strip()
-                    if text:
-                        call_gemini._last_model_used = model_name
-                        return text, None, False
-                    all_errors[model_name] = "empty response"
-                    break
-                elif resp.status_code == 403:
-                    return None, f"HTTP 403 — invalid API key or permission denied ({model_name})", False
-                elif resp.status_code in (404, 400):
-                    body = resp.text[:120]
-                    all_errors[model_name] = f"HTTP {resp.status_code}: {body}"
-                    break
-                elif resp.status_code == 429:
-                    rate_limit_count += 1
-                    all_errors[model_name] = "quota/rate-limit (429)"
-                    time.sleep(0.5)
-                    # After 4 rate-limited models, bail early and let caller try key 2
-                    # (raised from 2 to avoid premature switching on single-model quota)
-                    if rate_limit_count >= 4:
-                        summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
-                        return None, summary, True
-                    break
-                else:
-                    err_body = resp.text[:120]
-                    all_errors[model_name] = f"HTTP {resp.status_code}: {err_body}"
-                    if attempt == 0:
-                        time.sleep(1.0)
-                        continue
-                    break
-            except Exception as e:
-                all_errors[model_name] = f"exception: {e}"
-                if attempt == 0:
-                    time.sleep(1.0)
-                    continue
-                break
-
-    summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
-    return None, summary, rate_limit_count > 0
+    url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={api_key}"
+    try:
+        resp = _requests.post(url, json=payload, timeout=180)
+        if resp.status_code == 200:
+            data = resp.json()
+            text = (data.get("candidates", [{}])[0]
+                        .get("content", {})
+                        .get("parts", [{}])[0]
+                        .get("text", "")).strip()
+            if text:
+                return text, False, False
+            all_errors[f"{model_name}({label}/rest)"] = "empty"
+            return None, False, False
+        elif resp.status_code == 403:
+            all_errors[f"{model_name}({label}/rest)"] = "403 forbidden"
+            return None, False, False
+        elif resp.status_code in (404, 400):
+            all_errors[f"{model_name}({label}/rest)"] = f"HTTP {resp.status_code}"
+            return None, False, True   # model not found
+        elif resp.status_code == 429:
+            all_errors[f"{model_name}({label}/rest)"] = "429 quota"
+            return None, True, False   # rate limited
+        else:
+            all_errors[f"{model_name}({label}/rest)"] = f"HTTP {resp.status_code}"
+            return None, False, False
+    except Exception as e:
+        all_errors[f"{model_name}({label}/rest)"] = f"exception:{e}"
+        return None, False, False
 
 
 def call_gemini(prompt: str):
     """
-    Call Gemini using primary key first; automatically retry with
-    GEMINI_API_KEY_2 (backup key) if:
-      - all models on primary key fail, OR
-      - primary key hits rate limits on ≥2 models (fast-switch on quota)
+    Round-robin across all available API keys for each model in priority order.
+
+    Strategy:
+      For each model (best → worst quality):
+        Try key1 → key2 → key3
+      Move to next model only when all keys are exhausted/rate-limited for that model.
+
+    This means:
+      gemini-2.5-flash / key1  →  gemini-2.5-flash / key2  →  gemini-2.5-flash / key3
+      gemini-2.5-flash-lite / key1  →  key2  →  key3
+      gemma-3-4b-it / key1  →  key2  →  key3
+      gemma-3-1b-it / key1  →  key2  →  key3
+      ... (all models exhausted on all keys) → fallback paper
+
     Returns (text, error_or_None).
     """
-    if not GEMINI_KEY and not GEMINI_KEY_2:
+    # Build list of active keys in order
+    active_keys = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
+    if not active_keys:
         return None, "No GEMINI_API_KEY set."
 
-    # ── Try primary key ───────────────────────────────────────────────
-    if GEMINI_KEY:
-        text, err, rate_limited = _call_gemini_with_key(prompt, GEMINI_KEY)
-        if text:
-            return text, None
-        primary_error = err
-        if rate_limited:
-            print(f"[ExamCraft] Primary key rate-limited. Switching to GEMINI_API_KEY_2…")
-    else:
-        primary_error = "GEMINI_API_KEY not set."
-        rate_limited = False
+    all_errors   = {}
+    # Track which (model, key_index) combos are rate-limited — don't retry them
+    rate_limited = set()   # elements: (model_name, key_idx)
+    not_found    = set()   # elements: model_name — 404 on any key means skip model on all keys
 
-    # ── Backup key — try on rate-limit OR full exhaustion ────────────
-    if GEMINI_KEY_2:
-        print(f"[ExamCraft] Primary key {'rate-limited' if rate_limited else 'exhausted'} "
-              f"({primary_error}). Retrying with GEMINI_API_KEY_2…")
-        text, err, _ = _call_gemini_with_key(prompt, GEMINI_KEY_2)
-        if text:
-            return text, None
-        return None, f"Primary key error: {primary_error} | Backup key error: {err}"
+    for model_name in _GEMINI_MODELS:
+        for ki, api_key in enumerate(active_keys):
+            if model_name in not_found:
+                break   # model is dead everywhere — skip all remaining keys
+            if (model_name, ki) in rate_limited:
+                continue  # this combo already 429'd — try next key
 
-    return None, primary_error
+            print(f"[ExamCraft] Trying {model_name} / key{ki+1}…")
+            text, is_rl, is_nf = _try_one(model_name, api_key, prompt, all_errors)
+
+            if text:
+                call_gemini._last_model_used = f"{model_name}/key{ki+1}"
+                print(f"[ExamCraft] Success: {model_name} / key{ki+1}")
+                return text, None
+
+            if is_rl:
+                rate_limited.add((model_name, ki))
+                print(f"[ExamCraft] Rate-limited: {model_name} / key{ki+1} — trying next key")
+
+            if is_nf:
+                not_found.add(model_name)
+                print(f"[ExamCraft] Not found: {model_name} — skipping on all keys")
+                break   # no point trying other keys for a dead model
+
+    summary = " | ".join(f"{k}={v}" for k, v in all_errors.items())
+    return None, summary
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -3338,7 +3322,7 @@ def generate():
                         "langchain_available": LANGCHAIN_AVAILABLE,
                         "models_tried": str(_GEMINI_MODELS),
                         "per_model_errors": api_error or "—",
-                        "backup_key_set": bool(GEMINI_KEY_2),
+                        "key_2_set": bool(GEMINI_KEY_2), "key_3_set": bool(GEMINI_KEY_3),
                         "prompt_length_chars": len(prompt),
                         "prompt_preview_100chars": prompt[:100],
                     },
@@ -3531,8 +3515,9 @@ def health():
     return jsonify({
         "status": "ok",
         "gemini": "configured" if configured else "not configured",
-        "gemini_backup_key": "set" if GEMINI_KEY_2 else "not set",
-        "key_switching": "on-rate-limit (≥2 models return 429)" if GEMINI_KEY_2 else "disabled",
+        "gemini_key_2": "set" if GEMINI_KEY_2 else "not set",
+        "gemini_key_3": "set" if GEMINI_KEY_3 else "not set",
+        "key_strategy": "round-robin across all keys per model",
         "models_available": models,
     })
 
