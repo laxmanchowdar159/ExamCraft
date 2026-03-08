@@ -3216,7 +3216,11 @@ def _sanitize_filename(filename):
 @app.route("/download-pdf", methods=["POST"])
 def download_pdf():
     try:
-        data        = request.get_json(force=True) or {}
+        # Accept both JSON (legacy) and form-encoded data (new form-submit approach)
+        if request.is_json or (request.content_type or '').startswith('application/json'):
+            data = request.get_json(force=True) or {}
+        else:
+            data = request.form.to_dict()
         paper_text  = data.get("paper", "")
         answer_key  = data.get("answer_key", "")
         subject     = (data.get("subject") or "Question Paper").strip()

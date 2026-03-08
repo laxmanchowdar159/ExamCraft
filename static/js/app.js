@@ -684,20 +684,41 @@ function showDownloadDone(fname) {
   clearTimeout(overlay._timer);
   overlay._timer = setTimeout(() => overlay.classList.remove('show'), 6000);
 }
-async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
+function triggerPDFDownload(payload, board, subject, chapter, withKey) {
+  // Use form submission instead of fetch+blob — form.submit() is never blocked
+  // by browsers (unlike a.click() inside an async/await context which modern
+  // browsers silently suppress as an untrusted gesture).
   showLoading(true, 'Rendering PDF…');
   try {
-    const res = await fetch('/download-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    if (!res.ok) { let e = `Server error ${res.status}`; try { const j = await res.json(); e = j.error||e; } catch {} showToast('PDF error: '+e); showLoading(false); return; }
-    const blob = await res.blob();
-    if (!blob.size) { showToast('PDF was empty — try regenerating'); showLoading(false); return; }
-    const url = URL.createObjectURL(blob);
-    const safe = [board,subject,chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/download-pdf';
+    form.style.display = 'none';
+
+    const addField = (name, value) => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = name;
+      inp.value = (value !== undefined && value !== null) ? String(value) : '';
+      form.appendChild(inp);
+    };
+
+    addField('paper',      payload.paper      || '');
+    addField('answer_key', payload.answer_key || '');
+    addField('subject',    payload.subject    || '');
+    addField('chapter',    payload.chapter    || '');
+    addField('board',      payload.board      || '');
+    addField('includeKey', payload.includeKey ? 'true' : 'false');
+    addField('marks',      payload.marks      || '');
+
+    document.body.appendChild(form);
+    form.submit();
+    // Clean up after a short delay (the form must stay in DOM until submit fires)
+    setTimeout(() => { if (form.parentNode) form.parentNode.removeChild(form); showLoading(false); }, 2000);
+
+    const safe = [board, subject, chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
     const fname = safe + (withKey ? '_with_key' : '') + '.pdf';
-    const a = Object.assign(document.createElement('a'), {href:url, download:fname});
-    document.body.appendChild(a); a.click(); a.remove();   // must be in DOM for Firefox/Safari
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    showLoading(false); showDownloadDone(fname);
+    showDownloadDone(fname);
   } catch (err) { showLoading(false); showToast('Download failed: ' + err.message); }
 }
 
