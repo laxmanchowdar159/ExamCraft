@@ -22,7 +22,20 @@
   <canvas id="star-canvas"></canvas>
   <div class="bg-mesh"></div><div class="bg-grid"></div>
   <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
+  <div class="bg-orb orb-d"></div><div class="bg-orb orb-e"></div>
   <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
+  <!-- Floating geometric shapes -->
+  <div class="bg-shapes" id="bgShapes"></div>
+  <!-- Scanline sweep -->
+  <div class="bg-scanline"></div>
+  <!-- Corner accent brackets -->
+  <div class="bg-corner corner-tl"></div>
+  <div class="bg-corner corner-tr"></div>
+  <div class="bg-corner corner-bl"></div>
+  <div class="bg-corner corner-br"></div>
+  <!-- Pulsing ring accents -->
+  <div class="bg-ring ring-1"></div>
+  <div class="bg-ring ring-2"></div>
 </div>
 <div id="notificationToast" role="status" aria-live="polite"></div>
 
@@ -590,6 +603,61 @@
       </button>
       <div class="popup-byline">Laxman Nimmagadda · laxmanchowday159@gmail.com</div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ AI ERROR POPUP ══════════════════════════════════════════ -->
+<div id="aiErrorPopup" class="popup-overlay" role="alertdialog" aria-modal="true" aria-labelledby="aiErrTitle">
+  <div class="popup-card ai-err-card">
+    <div class="ai-err-top-bar"></div>
+
+    <div class="ai-err-icon-area">
+      <div class="ai-err-icon-ring">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="ai-err-header">
+      <div class="ai-err-kicker">⚠ &nbsp; System Notice &nbsp; ⚠</div>
+      <div class="ai-err-title" id="aiErrTitle">Something Went<br><em>Wrong</em></div>
+    </div>
+
+    <div class="ai-err-body">
+      <p class="ai-err-message" id="aiErrMessage">
+        We encountered an unexpected error while generating your exam paper. This was not your fault — the AI service returned an issue we couldn't recover from automatically.
+      </p>
+      <div class="ai-err-detail-box">
+        <div class="ai-err-detail-label">Error Details</div>
+        <div class="ai-err-detail-text" id="aiErrDetail">—</div>
+      </div>
+      <p class="ai-err-apology">
+        We sincerely apologise for this interruption. Your time is valuable, and we understand how frustrating this is. Please try again in a moment — the issue is usually temporary.
+      </p>
+    </div>
+
+    <div class="ai-err-notif-strip">
+      <div class="ai-err-notif-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <div class="ai-err-notif-text">
+        <strong>Laxman</strong> has been notified automatically at <em>laxmanchowday159@gmail.com</em> — he'll look into this right away.
+      </div>
+    </div>
+
+    <div class="ai-err-actions">
+      <button class="ai-err-btn-primary" onclick="closeAiErrorPopup(); generatePaper()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+        Try Again
+      </button>
+      <button class="ai-err-btn-secondary" onclick="closeAiErrorPopup()">
+        Dismiss
+      </button>
+    </div>
+    <div class="ai-err-byline">ExamCraft · Built by Laxman Nimmagadda</div>
   </div>
 </div>
 

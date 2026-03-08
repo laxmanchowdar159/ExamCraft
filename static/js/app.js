@@ -567,7 +567,7 @@ async function generatePaper() {
     showLoading(false);
 
     if (!result.success) {
-      showToast(result.error || 'Generation failed — please try again');
+      showAiErrorPopup(result.error || 'The AI service returned an unexpected response. Please try again.');
       setHint('Something went wrong. Check selections and try again.');
       return;
     }
@@ -603,7 +603,7 @@ async function generatePaper() {
       console.warn('History save failed:', he);
     }
 
-  } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
+  } catch (err) { showLoading(false); showAiErrorPopup('Server error: ' + err.message); }
 }
 
 /* ── PDF helpers ───────────────────────────────────────────── */
@@ -1008,6 +1008,7 @@ function initStarField() {
 document.addEventListener('DOMContentLoaded', () => {
 
   initStarField();
+  initBgShapes();
 
   /* ── Hello popup ── */
   setTimeout(showHelloPopup, 600);
@@ -1208,6 +1209,47 @@ window.closeHelloPopup = function() {
   const popup = document.getElementById('helloPopup');
   if (popup) popup.classList.remove('visible');
 };
+
+/* ══════════════════════════════════════════════════════════════
+   AI ERROR POPUP — big modal for API/generation failures
+══════════════════════════════════════════════════════════════ */
+window.showAiErrorPopup = function(errDetail) {
+  showLoading(false);
+  const popup = document.getElementById('aiErrorPopup');
+  if (!popup) { showToast(errDetail || 'Something went wrong'); return; }
+  const detailEl = document.getElementById('aiErrDetail');
+  if (detailEl) detailEl.textContent = errDetail || 'Unknown error — please try again.';
+  popup.classList.add('visible');
+};
+window.closeAiErrorPopup = function() {
+  const popup = document.getElementById('aiErrorPopup');
+  if (popup) popup.classList.remove('visible');
+};
+
+/* ══════════════════════════════════════════════════════════════
+   FLOATING BACKGROUND SHAPES
+══════════════════════════════════════════════════════════════ */
+function initBgShapes() {
+  const container = document.getElementById('bgShapes');
+  if (!container) return;
+  const shapes = [
+    { type:'circle', size:60, x:10, y:20, dur:18, delay:0  },
+    { type:'diamond',size:40, x:80, y:15, dur:22, delay:3  },
+    { type:'circle', size:30, x:60, y:70, dur:26, delay:6  },
+    { type:'diamond',size:50, x:25, y:80, dur:20, delay:9  },
+    { type:'circle', size:20, x:90, y:60, dur:16, delay:1  },
+    { type:'diamond',size:35, x:45, y:10, dur:24, delay:4  },
+    { type:'circle', size:45, x:5,  y:55, dur:30, delay:7  },
+    { type:'diamond',size:25, x:70, y:85, dur:19, delay:11 },
+  ];
+  container.innerHTML = shapes.map((s, i) => {
+    const isD = s.type === 'diamond';
+    const base = `position:absolute;left:${s.x}%;top:${s.y}%;width:${s.size}px;height:${s.size}px;opacity:0;border:1px solid rgba(200,169,110,0.12);animation:bgShapeFloat ${s.dur}s ease-in-out infinite ${s.delay}s;will-change:transform,opacity;`;
+    if (isD) return `<div style="${base}transform:rotate(45deg);animation-name:bgDiamondFloat;"></div>`;
+    return `<div style="${base}border-radius:50%;animation-name:bgCircleFloat;"></div>`;
+  }).join('');
+}
+
 
 function showDonePopup(meta) {
   const popup = document.getElementById('donePopup');
