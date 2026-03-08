@@ -594,7 +594,53 @@ def _process(text: str) -> str:
     out = re.sub(r'<super></super>', '', out)
     out = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', out)
     out = re.sub(r'\*(.+?)\*',     r'<i>\1</i>', out)
+    # Balance any unclosed/mismatched XML tags to prevent ReportLab Paragraph crashes
+    out = _balance_xml_tags(out)
     return out
+
+
+def _balance_xml_tags(text: str) -> str:
+    """Ensure all ReportLab-supported inline tags are properly balanced.
+    Closes unclosed tags and strips unknown tags that would cause parse errors."""
+    _RL_INLINE = {'b', 'i', 'u', 'sub', 'super', 'font'}
+    stack = []
+    result = []
+    pos = 0
+    tag_re = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s[^>]*)?)(/?)>', re.S)
+    for m in tag_re.finditer(text):
+        # Append text before this tag
+        result.append(text[pos:m.start()])
+        pos = m.end()
+        closing, tagname, attrs, self_close = m.group(1), m.group(2).lower(), m.group(3), m.group(4)
+        if tagname not in _RL_INLINE:
+            # Unknown tag — strip it (already escaped to &lt; by _process, but just in case)
+            continue
+        if self_close or tagname in ('br',):
+            result.append(m.group(0))
+            continue
+        if not closing:
+            stack.append(tagname)
+            result.append(f'<{tagname}{attrs}>')
+        else:
+            if tagname in stack:
+                # Close all tags opened after this one, then close it, then reopen them
+                tail = []
+                while stack and stack[-1] != tagname:
+                    t = stack.pop()
+                    result.append(f'</{t}>')
+                    tail.append(t)
+                if stack:
+                    stack.pop()
+                    result.append(f'</{tagname}>')
+                for t in reversed(tail):
+                    stack.append(t)
+                    result.append(f'<{t}>')
+            # else: stray close tag — ignore
+    result.append(text[pos:])
+    # Close any remaining open tags
+    for t in reversed(stack):
+        result.append(f'</{t}>')
+    return ''.join(result)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -698,6 +744,21 @@ def _styles():
       leading=12, spaceAfter=3, spaceBefore=0, leftIndent=6)
 
     return base
+def _safe_para(text: str, style, fallback_style=None):
+    """Build a Paragraph, falling back to plain-text if XML parsing fails."""
+    from reportlab.platypus import Paragraph as _Para
+    try:
+        return _Para(text, style)
+    except Exception:
+        # Strip all tags and retry
+        plain = re.sub(r'<[^>]+>', '', text).replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+        try:
+            plain_escaped = plain.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            return _Para(plain_escaped, fallback_style or style)
+        except Exception:
+            return None  # Skip this line entirely
+
+
 class ExamCanvas:
     """Page template: thin navy top-rule, subtle footer with page number."""
     def __call__(self, canvas, doc):
@@ -1386,7 +1447,8 @@ def create_exam_pdf(text, subject, chapter, board="",
                          r'Questions?\s+are|This\s+section)\b', s, re.I)):
             flush_opts()
             in_instr = False
-            elems.append(Paragraph(_process(s), st["InstrNote"]))
+            p = _safe_para(_process(s), st["InstrNote"])
+            if p: elems.append(p)
             continue
 
         opt_m = re.match(r'^\s*[\(\[]\s*([a-dA-D])\s*[\)\]\.]?\s+(.+)', s)
@@ -1446,7 +1508,8 @@ def create_exam_pdf(text, subject, chapter, board="",
             continue
 
         flush_opts()
-        elems.append(Paragraph(_process(s), st["QCont"]))
+        p = _safe_para(_process(s), st["QCont"])
+    if p: elems.append(p)
 
     flush_opts()
     if in_table:
@@ -1520,16 +1583,19 @@ def create_exam_pdf(text, subject, chapter, board="",
                 continue
 
             if raw_k.startswith('   ') or raw_k.startswith('\t'):
-                elems.append(Paragraph(_process(sk), st["KStep"]))
+                p = _safe_para(_process(sk), st["KStep"])
+                if p: elems.append(p)
                 continue
 
             if (sk.startswith('$') or
                     re.match(r'^[A-Za-z]\s*[=<>≤≥]', sk) or
                     re.match(r'^\s*(∴|Therefore|Hence|Thus)\b', sk, re.I)):
-                elems.append(Paragraph(_process(sk), st["KStep"]))
+                p = _safe_para(_process(sk), st["KStep"])
+                if p: elems.append(p)
                 continue
 
-            elems.append(Paragraph(_process(sk), st["KStep"]))
+            p = _safe_para(_process(sk), st["KStep"])
+            if p: elems.append(p)
 
     doc.build(elems, onFirstPage=ExamCanvas(), onLaterPages=ExamCanvas())
     pdf = buf.getvalue()
@@ -1557,20 +1623,22 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Zero-quota on key 1 (0/0/0) — kept for GEMINI_API_KEY_2 fallback only,
 # ordered by their max RPD limit so the most capable runs first there too.
 _GEMINI_MODELS = [
-    # ── Has quota on key 1 — ordered highest RPM first ──────────────
-    "gemma-3-1b-it",                  # 16 RPM  — fastest throughput
-    "gemini-2.5-flash-preview-05-20", # 8  RPM  — best quality with quota
-    "gemma-3-4b-it",                  # 6  RPM  — more capable than 1B
-    "gemini-2.5-flash-lite-preview-06-17",  # 6 RPM  — lightweight flash
+    # ── Best quality models — try first ────────────────────────────
+    "gemini-2.5-flash-preview-05-20",  # Best quality, good quota
+    "gemini-2.5-flash",                # Stable flash alias
+    "gemini-2.5-flash-lite-preview-06-17",  # Lightweight, high RPM
+    "gemini-2.0-flash",                # Gemini 2 stable
+    "gemini-2.0-flash-lite",           # Gemini 2 lite
 
-    # ── Zero quota on key 1 — try these via backup key only ─────────
-    "gemini-2.5-pro-preview-06-05",   # Pro — highest quality available
-    "gemini-2.5-flash",               # Stable flash alias (may work on key 2)
-    "gemini-2.0-flash",               # Gemini 2 stable
-    "gemini-2.0-flash-lite",          # Gemini 2 lite
-    "gemini-1.5-pro",                 # 1.5 Pro — reliable legacy
-    "gemini-1.5-flash",               # 1.5 Flash — reliable legacy
-    "gemini-1.5-flash-8b",            # 1.5 Flash 8B — highest legacy RPM
+    # ── Legacy fallbacks ────────────────────────────────────────────
+    "gemini-1.5-pro",                  # 1.5 Pro — reliable legacy
+    "gemini-1.5-flash",                # 1.5 Flash — reliable legacy
+    "gemini-1.5-flash-8b",             # 1.5 Flash 8B — high RPM
+
+    # ── Small models (last resort — may not produce structured exam output) ──
+    "gemini-2.5-pro-preview-06-05",    # Pro — highest quality if available
+    "gemma-3-4b-it",                   # Gemma 3 4B
+    "gemma-3-1b-it",                   # Gemma 3 1B — least capable for exams
 ]
 _PRIMARY_MODEL  = "gemma-3-1b-it"
 _FALLBACK_MODEL = "gemini-2.5-flash-preview-05-20"
@@ -1635,9 +1703,11 @@ def _call_gemini_with_key(prompt: str, api_key: str):
 
     all_errors = {}  # model_name → error string (collect ALL, not just last)
 
-    # ── LangChain path — try every model, don't break on non-quota errors ─
+    # ── LangChain path — try capable models, skip tiny Gemma models ─
     if LANGCHAIN_AVAILABLE:
-        for model_name in _GEMINI_MODELS[:4]:  # only models with actual quota
+        # Only use models that reliably produce structured exam output
+        capable_models = [m for m in _GEMINI_MODELS if 'gemma' not in m.lower()]
+        for model_name in capable_models[:4]:  # try top 4 capable models
             chain = _get_lc_chain(model_name, api_key=api_key)
             if chain is None:
                 continue
@@ -3209,6 +3279,7 @@ def generate():
         chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
 
         pdf_b64 = pdf_key_b64 = None
+        pdf_error_msg = None
         try:
             pdf_bytes = create_exam_pdf(
                 paper, subject, chapter_safe,
@@ -3217,7 +3288,23 @@ def generate():
                 marks=marks_safe)
             pdf_b64 = base64.b64encode(pdf_bytes).decode()
         except Exception as pdf_err:
-            pdf_b64 = None
+            import traceback as _tb2
+            pdf_error_msg = str(pdf_err)
+            print(f"[PDF ERROR] create_exam_pdf failed: {pdf_error_msg}")
+            print(_tb2.format_exc())
+            # Try again with stripped/simplified text as fallback
+            try:
+                safe_paper = re.sub(r'[^\x00-\x7F\u0080-\u024F\u0370-\u03FF\u2200-\u22FF]', ' ', paper)
+                pdf_bytes = create_exam_pdf(
+                    safe_paper, subject, chapter_safe,
+                    board=board, answer_key=None,
+                    include_key=False, diagrams={},
+                    marks=marks_safe)
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                pdf_error_msg = None  # Fallback succeeded
+            except Exception as pdf_err2:
+                pdf_b64 = None
+                pdf_error_msg = f"PDF rendering failed: {pdf_err}. Fallback also failed: {pdf_err2}"
 
         if key and key.strip():
             try:
@@ -3236,6 +3323,7 @@ def generate():
             "board": board, "subject": subject, "chapter": chapter,
             "pdf_b64": pdf_b64,
             "pdf_key_b64": pdf_key_b64,  # null if no answer key — hides the button
+            "pdf_error": pdf_error_msg,   # non-null only if PDF rendering failed
         })
 
     except Exception as e:

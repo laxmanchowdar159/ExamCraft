@@ -579,8 +579,13 @@ async function generatePaper() {
 
     window._pdfDirect = { paper:result.pdf_b64||null, withKey:result.pdf_key_b64||null, board:boardText, subject:currentMeta.subject, chapter:currentMeta.chapter };
 
-    // Auto-download
-    if (window._pdfDirect.paper) _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+    // Auto-download (only if PDF was generated successfully)
+    if (window._pdfDirect.paper) {
+      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+    } else if (result.pdf_error) {
+      showToast('⚠ Paper generated but PDF rendering failed — use the Download button to retry');
+      console.error('[ExamCraft PDF Error]', result.pdf_error);
+    }
 
     addToHistory(currentMeta, currentPaper, currentAnswerKey);
     showPaperReadyPopup();
@@ -625,13 +630,16 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
 window.downloadPDF = function(withKey) {
   const d = window._pdfDirect;
   if (d) {
-    // withKey=false → paper-only (pdf_b64, no answer key appended)
-    // withKey=true  → paper + answer key (pdf_key_b64)
     const b64 = withKey ? d.withKey : d.paper;
-    if (b64 && _b64Download(b64, _safeName(d, withKey))) {
-      showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');
-      return;
+    if (b64) {
+      if (_b64Download(b64, _safeName(d, withKey))) {
+        showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');
+        return;
+      }
     }
+    // b64 is null — PDF failed during generation, re-render on server
+    if (!currentPaper?.trim()) { showToast('No paper content available — please generate again'); return; }
+    showToast('Re-rendering PDF on server…');
   }
   // Fallback: re-render on server
   if (!currentPaper?.trim()) { showToast('Generate a paper first'); return; }
@@ -836,6 +844,7 @@ window.toggleMobileSidebar = function() {
   if (!sb) return;
   const open = sb.classList.toggle('mob-open');
   if (ov) { ov.classList.toggle('open', open); }
+  // Prevent body scroll when sidebar open
   document.body.style.overflow = open ? 'hidden' : '';
 };
 window.closeMobileSidebar = function() {
@@ -843,41 +852,6 @@ window.closeMobileSidebar = function() {
   document.getElementById('mob-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
 };
-
-/* ── Swipe gestures for mobile sidebar ─────────────────────── */
-(function() {
-  let touchStartX = 0, touchStartY = 0;
-  document.addEventListener('touchstart', function(e) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-  document.addEventListener('touchend', function(e) {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-    const sb = document.getElementById('sidebar');
-    if (!sb) return;
-    // swipe left on open sidebar → close
-    if (dx < -60 && dy < 80 && sb.classList.contains('mob-open')) {
-      closeMobileSidebar();
-    }
-    // swipe right from very left edge → open
-    if (dx > 60 && dy < 80 && touchStartX < 30 && !sb.classList.contains('mob-open')) {
-      toggleMobileSidebar();
-    }
-  }, { passive: true });
-
-  // Also attach click listener directly on overlay as belt-and-suspenders
-  document.addEventListener('DOMContentLoaded', function() {
-    const ov = document.getElementById('mob-overlay');
-    if (ov) {
-      ov.addEventListener('click', closeMobileSidebar);
-      ov.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        closeMobileSidebar();
-      });
-    }
-  });
-})();
 
 /* ══════════════════════════════════════════════════════════════
    DOMContentLoaded — boot sequence

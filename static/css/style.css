@@ -154,7 +154,7 @@ button, a, select, label, [role="button"],
 /* ═══ SIDEBAR ════════════════════════════════════════════════════ */
 #sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
   border-right:1px solid var(--line2); background:var(--ink2); overflow:hidden; z-index:100;
-  transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s; contain:layout style }
+  transition:transform .4s cubic-bezier(.22,1,.36,1); contain:layout style }
 #sidebar::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
   background:linear-gradient(90deg,transparent,var(--ac),var(--ac2),transparent); opacity:.6 }
 .sb-inner { display:flex; flex-direction:column; height:100%; overflow-y:scroll;
@@ -770,24 +770,13 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   #sidebar {
     position:fixed; top:0; left:0; bottom:0;
     transform:translateX(-100%);
-    z-index:300; width:85%; max-width:340px;
-    overflow:hidden;
-    box-shadow:none;
-    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s
+    z-index:200; width:85%; max-width:340px;
+    box-shadow:none; transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s
   }
   #sidebar.mob-open {
     transform:translateX(0);
-    box-shadow:8px 0 48px rgba(0,0,0,.7)
+    box-shadow:8px 0 40px rgba(0,0,0,.6)
   }
-  #sidebar .sb-inner {
-    height:100%;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
-    padding-bottom:env(safe-area-inset-bottom, 16px)
-  }
-  /* overlay z-index must be BELOW sidebar (300) but ABOVE page content */
-  #mob-overlay { z-index:200 }
   .mob-toggle { display:flex !important }
   .form-area { padding:0 20px 100px }
   .topbar { padding:0 16px }
@@ -804,14 +793,7 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   .succ-bar { flex-direction:column; align-items:flex-start }
   .gen-btn { font-size:15px; padding:15px 20px }
   .game-opts { grid-template-columns:1fr }
-  .mob-toggle { min-width:44px; min-height:44px; justify-content:center; align-items:center }
 }
-  .succ-bar { flex-direction:column; align-items:flex-start }
-  .gen-btn { font-size:15px; padding:15px 20px }
-  .game-opts { grid-template-columns:1fr }
-  /* comfortably tappable hamburger */
-  .mob-toggle { min-width:44px; min-height:44px; justify-content:center; align-items:center }
-
 
 /* ── Support note under generate btn ─────────────────────────── */
 .support-note {
