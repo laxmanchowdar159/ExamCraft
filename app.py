@@ -3107,17 +3107,71 @@ def generate():
 
         paper, key = split_key(generated_text)
 
-        # ── Return paper text immediately — PDFs are rendered on-demand
-        # when the user clicks "Paper PDF" or "+ Answer Key".
-        # Previously we tried to generate 2× PDFs + diagrams inline here,
-        # which pushed the Vercel function past its timeout and killed the
-        # entire request with no response and no logs.
+        # ── Build PDFs inline — no second API call needed ────────────
+        diagrams = {}
+        try:
+            if GEMINI_KEY:
+                full_text = paper + "\n" + (key or "")
+                diag_descs_raw = re.findall(
+                    r'\[DIAGRAM:\s*([^\]]+)\]', full_text, re.IGNORECASE)
+                unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
+                if unique_descs:
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    max_w = max(1, min(3, len(unique_descs)))
+                    with ThreadPoolExecutor(max_workers=max_w) as ex:
+                        futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
+                        for future in as_completed(futures, timeout=25):
+                            d = futures[future]
+                            try:
+                                svg = future.result(timeout=25)
+                                if svg: diagrams[d] = svg
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+
+        marks_safe = str(marks or "100").strip()
+        chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
+
+        pdf_b64 = pdf_key_b64 = None
+        print("[PDF] Generating PDFs...")
+        try:
+            pdf_bytes = create_exam_pdf(
+                paper, subject, chapter_safe,
+                board=board, answer_key=key,
+                include_key=False, diagrams=diagrams,
+                marks=marks_safe)
+            if pdf_bytes and len(pdf_bytes) > 500:
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                print(f"[PDF] ✓ Paper: {len(pdf_bytes)} bytes → b64 {len(pdf_b64)} chars")
+            else:
+                print(f"[PDF] ✗ Paper generation failed: {len(pdf_bytes) if pdf_bytes else 0} bytes")
+        except Exception as e:
+            print(f"[PDF] ✗ Paper error: {e}")
+
+        if key and key.strip():
+            try:
+                pdf_key_bytes = create_exam_pdf(
+                    paper, subject, chapter_safe,
+                    board=board, answer_key=key,
+                    include_key=True, diagrams=diagrams,
+                    marks=marks_safe)
+                if pdf_key_bytes and len(pdf_key_bytes) > 500:
+                    pdf_key_b64 = base64.b64encode(pdf_key_bytes).decode()
+                    print(f"[PDF] ✓ Key: {len(pdf_key_bytes)} bytes → b64 {len(pdf_key_b64)} chars")
+                else:
+                    print(f"[PDF] Key generation failed, using paper")
+                    pdf_key_b64 = pdf_b64
+            except Exception as e:
+                print(f"[PDF] ✗ Key error: {e}")
+                pdf_key_b64 = pdf_b64
+
         return jsonify({
             "success": True, "paper": paper, "answer_key": key,
             "api_error": api_error, "used_fallback": use_fallback,
             "board": board, "subject": subject, "chapter": chapter,
-            "pdf_b64": None,
-            "pdf_key_b64": None,
+            "pdf_b64": pdf_b64,
+            "pdf_key_b64": pdf_key_b64 or pdf_b64,
         })
 
     except Exception as e:

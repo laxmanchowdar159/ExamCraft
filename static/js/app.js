@@ -600,13 +600,11 @@ async function generatePaper() {
       console.warn('History save failed:', he);
     }
 
-    // Auto-download is intentionally skipped here: this code runs after an
-    // await fetch(), which is an async (non-trusted) context.  Browsers
-    // silently block programmatic a.click() downloads in that context with
-    // no catchable error.  The paperReadyPopup (shown above) already has
-    // "Paper PDF" and "+ Answer Key" buttons that trigger from a real user
-    // click (trusted gesture) and will download correctly.
-    if (!window._pdfDirect.paper) {
+    // Auto-download via b64 if available (blob URL from already-fetched data
+    // works fine even after await — no new async call needed).
+    if (window._pdfDirect.paper) {
+      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+    } else {
       showToast('Paper generated — click "Paper PDF" to download');
     }
 
@@ -684,53 +682,20 @@ function showDownloadDone(fname) {
   clearTimeout(overlay._timer);
   overlay._timer = setTimeout(() => overlay.classList.remove('show'), 6000);
 }
-function triggerPDFDownload(payload, board, subject, chapter, withKey) {
-  // Submit to a hidden iframe so the main page never navigates away.
-  // (fetch+blob a.click() is silently blocked after async/await;
-  //  plain form.submit() without a target navigates the page to the PDF response.)
+async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
   showLoading(true, 'Rendering PDF…');
   try {
-    const frameName = 'pdf_dl_frame_' + Date.now();
-    const iframe = document.createElement('iframe');
-    iframe.name = frameName;
-    iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;';
-    document.body.appendChild(iframe);
-
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/download-pdf';
-    form.target = frameName;          // <-- key: submit INTO the iframe, not the main window
-    form.style.display = 'none';
-
-    const addField = (name, value) => {
-      const inp = document.createElement('input');
-      inp.type = 'hidden';
-      inp.name = name;
-      inp.value = (value !== undefined && value !== null) ? String(value) : '';
-      form.appendChild(inp);
-    };
-
-    addField('paper',      payload.paper      || '');
-    addField('answer_key', payload.answer_key || '');
-    addField('subject',    payload.subject    || '');
-    addField('chapter',    payload.chapter    || '');
-    addField('board',      payload.board      || '');
-    addField('includeKey', payload.includeKey ? 'true' : 'false');
-    addField('marks',      payload.marks      || '');
-
-    document.body.appendChild(form);
-    form.submit();
-
-    // Clean up after the browser has had time to initiate the download
-    setTimeout(() => {
-      if (form.parentNode)   form.parentNode.removeChild(form);
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      showLoading(false);
-    }, 8000);
-
-    const safe = [board, subject, chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
+    const res = await fetch('/download-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    if (!res.ok) { let e = `Server error ${res.status}`; try { const j = await res.json(); e = j.error||e; } catch {} showToast('PDF error: '+e); showLoading(false); return; }
+    const blob = await res.blob();
+    if (!blob.size) { showToast('PDF was empty — try regenerating'); showLoading(false); return; }
+    const url = URL.createObjectURL(blob);
+    const safe = [board,subject,chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
     const fname = safe + (withKey ? '_with_key' : '') + '.pdf';
-    showDownloadDone(fname);
+    const a = Object.assign(document.createElement('a'), {href:url, download:fname});
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    showLoading(false); showDownloadDone(fname);
   } catch (err) { showLoading(false); showToast('Download failed: ' + err.message); }
 }
 
@@ -769,51 +734,18 @@ function copyPaper() {
 
 /* ── Success panel ─────────────────────────────────────────── */
 function showSuccessPanel() {
+  // Show as centered popup instead of bottom bar
   const popup = document.getElementById('paperReadyPopup');
-  const d = window._pdfDirect || {};
-  const m = window.currentMeta || {};
-
-  if (popup) {
-    // Build meta line: subject · board · chapter · marks
-    const me = document.getElementById('prMeta');
-    if (me) {
-      const ch = m.chapter || d.chapter || '';
-      const parts = [
-        d.subject || m.subject,
-        d.board   || m.board,
-        ch || 'Full Syllabus',
-        (d.marks  || m.marks) ? (d.marks || m.marks) + ' Marks' : null
-      ].filter(Boolean);
-      me.textContent = parts.join(' · ') || 'Paper Ready';
-    }
-
-    // Show Answer Key button only if key PDF is available
-    const dk = document.getElementById('prBtnKey');
-    if (dk) dk.style.display = d.withKey ? 'flex' : 'none';
-
-    popup.classList.add('visible');
+  if (!popup) return;
+  const d  = window._pdfDirect;
+  const me = document.getElementById('prMeta');
+  const dk = document.getElementById('prBtnKey');
+  if (me && d) {
+    const parts = [d.subject, d.board, d.marks ? d.marks + ' Marks' : null].filter(Boolean);
+    me.textContent = parts.join(' · ');
   }
-
-  // Immediately show the details notification card so user sees all info
-  // (previously this only showed after clicking a download button)
-  const overlay = document.getElementById('dlDonePopup');
-  if (overlay) {
-    const txt = document.getElementById('dlDoneText');
-    const sub = document.getElementById('dlDoneSub');
-    if (txt) txt.textContent = 'Paper Ready to Download!';
-    if (sub) sub.textContent = 'Choose Paper PDF or + Answer Key above.';
-
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
-    const ch = m.chapter || d.chapter || 'Full Syllabus';
-    setVal('dlDoneSubject', m.subject  || d.subject);
-    setVal('dlDoneBoard',   m.board    || d.board);
-    setVal('dlDoneMarks',   (m.marks || d.marks) ? (m.marks || d.marks) + ' Marks' : null);
-    setVal('dlDoneChapter', ch);
-
-    overlay.classList.add('show');
-    clearTimeout(overlay._timer);
-    overlay._timer = setTimeout(() => overlay.classList.remove('show'), 15000);
-  }
+  if (dk) dk.style.display = d?.withKey ? 'flex' : 'none';
+  popup.classList.add('visible');
 }
 window.closePaperReadyPopup = function() {
   const p = document.getElementById('paperReadyPopup');
