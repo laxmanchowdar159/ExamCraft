@@ -589,10 +589,6 @@ async function generatePaper() {
       chapter: currentMeta.chapter,
       marks:   marks,
     };
-    
-    console.log('[GENERATION] PDF data stored:');
-    console.log('[GENERATION]   Paper PDF:', window._pdfDirect.paper ? window._pdfDirect.paper.length + ' chars base64' : 'null');
-    console.log('[GENERATION]   Key PDF:', window._pdfDirect.withKey ? window._pdfDirect.withKey.length + ' chars base64' : 'null');
 
     // Show popup FIRST — before anything that can throw
     showSuccessPanel();
@@ -619,42 +615,26 @@ async function generatePaper() {
 
 /* ── PDF helpers ───────────────────────────────────────────── */
 function _b64Download(b64, fname) {
+  console.log('[DL] Starting _b64Download, fname=' + fname);
   try {
-    if (!b64 || b64.length < 100) {
-      console.error('[DOWNLOAD] Base64 data invalid or too short:', b64 ? b64.length : 'null');
-      showToast('Download error: PDF data corrupted or empty');
-      return false;
-    }
-    console.log('[DOWNLOAD] Converting base64 (' + b64.length + ' chars) to PDF...');
+    if (!b64) { console.error('[DL] No b64 data!'); showToast('No PDF data'); return false; }
+    console.log('[DL] b64 length: ' + b64.length);
     const bin = atob(b64), buf = new Uint8Array(bin.length);
+    console.log('[DL] Decoded to ' + buf.length + ' bytes');
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    
-    if (buf.length < 1000) {
-      console.error('[DOWNLOAD] PDF too small:', buf.length, 'bytes');
-      showToast('Download error: PDF corrupted (too small)');
-      return false;
-    }
-    
-    if (buf[0] !== 0x25 || buf[1] !== 0x50 || buf[2] !== 0x44 || buf[3] !== 0x46) { // %PDF
-      console.error('[DOWNLOAD] Invalid PDF header');
-      showToast('Download error: Not a valid PDF');
-      return false;
-    }
-    
-    console.log('[DOWNLOAD] Creating blob from ' + buf.length + ' bytes...');
+    if (buf.length < 500) { console.error('[DL] PDF too small!'); showToast('PDF corrupted'); return false; }
+    console.log('[DL] Creating blob...');
     const blob = new Blob([buf], {type:'application/pdf'});
     const url = URL.createObjectURL(blob);
+    console.log('[DL] URL created, downloading ' + fname);
     const a = Object.assign(document.createElement('a'), {href:url, download:fname});
-    document.body.appendChild(a); 
-    console.log('[DOWNLOAD] Triggering download: ' + fname);
-    a.click(); 
-    a.remove();
+    document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 12000);
+    console.log('[DL] ✓ Download triggered');
     showDownloadDone(fname);
-    console.log('[DOWNLOAD] ✓ Success');
     return true;
   } catch (e) { 
-    console.error('[DOWNLOAD] ✗ Error:', e);
+    console.error('[DL] ✗ Error:', e);
     showToast('Download error: ' + e.message); 
     return false; 
   }
@@ -722,22 +702,13 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
 }
 
 window.downloadPDF = function(withKey) {
+  console.log('[DL] downloadPDF called, withKey=' + withKey);
   const d = window._pdfDirect;
-  console.log('[DOWNLOAD] downloadPDF called, withKey=' + withKey);
-  console.log('[DOWNLOAD] window._pdfDirect:', d);
+  console.log('[DL] _pdfDirect exists:', !!d);
   if (d) {
     const b64 = withKey ? d.withKey : d.paper;
-    console.log('[DOWNLOAD] Selected base64 length:', b64 ? b64.length : 'null');
-    if (!b64) {
-      console.warn('[DOWNLOAD] No base64 data available for', withKey ? 'answer key' : 'paper');
-      if (withKey && !d.withKey && d.paper) {
-        console.log('[DOWNLOAD] Using paper PDF instead of key');
-        if (_b64Download(d.paper, _safeName(d, false))) {
-          showToast('Answer Key not available, using paper PDF');
-          return;
-        }
-      }
-    } else if (_b64Download(b64, _safeName(d, withKey))) {
+    console.log('[DL] Selected b64 length:', b64 ? b64.length : 'null');
+    if (b64 && _b64Download(b64, _safeName(d, withKey))) {
       showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');
       return;
     }
