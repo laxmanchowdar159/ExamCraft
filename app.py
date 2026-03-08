@@ -1692,25 +1692,27 @@ def create_exam_pdf(text, subject, chapter, board="",
 # Zero-quota on key 1 (0/0/0) — kept for GEMINI_API_KEY_2 fallback only,
 # ordered by their max RPD limit so the most capable runs first there too.
 _GEMINI_MODELS = [
-    # ── Best quality models — try first ────────────────────────────
-    "gemini-2.5-flash-preview-05-20",  # Best quality, good quota
-    "gemini-2.5-flash",                # Stable flash alias
-    "gemini-2.5-flash-lite-preview-06-17",  # Lightweight, high RPM
-    "gemini-2.0-flash",                # Gemini 2 stable
-    "gemini-2.0-flash-lite",           # Gemini 2 lite
+    # Tier 1: Stable production models (lowest 404 risk)
+    "gemini-2.0-flash",                # Gemini 2 stable - most reliable
+    "gemini-2.0-flash-lite",           # Gemini 2 lite - high RPM
+    "gemini-1.5-flash",                # 1.5 Flash - battle-tested
+    "gemini-1.5-flash-8b",             # 1.5 Flash 8B - highest RPM
 
-    # ── Legacy fallbacks ────────────────────────────────────────────
-    "gemini-1.5-pro",                  # 1.5 Pro — reliable legacy
-    "gemini-1.5-flash",                # 1.5 Flash — reliable legacy
-    "gemini-1.5-flash-8b",             # 1.5 Flash 8B — high RPM
+    # Tier 2: 2.5 series (preview - may 404 if rotated by Google)
+    "gemini-2.5-flash",                # 2.5 stable alias
+    "gemini-2.5-flash-lite-preview-06-17",  # 2.5 lite preview
 
-    # ── Small models (last resort — may not produce structured exam output) ──
-    "gemini-2.5-pro-preview-06-05",    # Pro — highest quality if available
+    # Tier 3: Pro and older previews
+    "gemini-1.5-pro",                  # 1.5 Pro - reliable legacy
+    "gemini-2.5-flash-preview-05-20",  # Older 2.5 preview (may 404)
+    "gemini-2.5-pro-preview-06-05",    # 2.5 Pro preview (may 404)
+
+    # Tier 4: Small models (last resort)
     "gemma-3-4b-it",                   # Gemma 3 4B
-    "gemma-3-1b-it",                   # Gemma 3 1B — least capable for exams
+    "gemma-3-1b-it",                   # Gemma 3 1B - least capable
 ]
-_PRIMARY_MODEL  = "gemma-3-1b-it"
-_FALLBACK_MODEL = "gemini-2.5-flash-preview-05-20"
+_PRIMARY_MODEL  = "gemini-2.0-flash"
+_FALLBACK_MODEL = "gemini-1.5-flash"
 _GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # LangChain chain — built lazily on first call so startup stays fast
@@ -1775,10 +1777,16 @@ def _call_gemini_with_key(prompt: str, api_key: str):
     all_errors = {}          # model_name → error string
     rate_limit_count = 0     # how many models returned 429
 
-    # ── LangChain path — try capable models, skip tiny Gemma models ─
+    # ── LangChain path — skip Gemma models, skip 404-prone previews first ─
     if LANGCHAIN_AVAILABLE:
-        capable_models = [m for m in _GEMINI_MODELS if 'gemma' not in m.lower()]
-        for model_name in capable_models[:4]:  # try top 4 capable models
+        # Tier 1 only: stable models with low 404 risk
+        stable_first = [m for m in _GEMINI_MODELS
+                        if 'gemma' not in m.lower() and 'preview' not in m.lower()]
+        # Then add preview models as fallback
+        preview_models = [m for m in _GEMINI_MODELS
+                          if 'gemma' not in m.lower() and 'preview' in m.lower()]
+        capable_models = stable_first + preview_models
+        for model_name in capable_models[:6]:  # try top 6 capable models
             chain = _get_lc_chain(model_name, api_key=api_key)
             if chain is None:
                 continue
@@ -1790,11 +1798,15 @@ def _call_gemini_with_key(prompt: str, api_key: str):
             except Exception as lc_err:
                 err_str = str(lc_err)
                 all_errors[model_name + "(lc)"] = err_str[:120]
+                # 404 = model doesn't exist — skip silently, don't count as rate limit
+                if "404" in err_str or "NOT_FOUND" in err_str:
+                    continue
                 # Detect rate limit in LangChain error message
                 if "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
                     rate_limit_count += 1
-                    if rate_limit_count >= 2:
-                        # Rate limited — signal to try backup key immediately
+                    if rate_limit_count >= 4:
+                        # Only fast-switch after 4 rate limits (not 2) to avoid
+                        # premature key switching when just one model is quota-exhausted
                         summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
                         return None, summary, True
 
@@ -1834,8 +1846,9 @@ def _call_gemini_with_key(prompt: str, api_key: str):
                     rate_limit_count += 1
                     all_errors[model_name] = "quota/rate-limit (429)"
                     time.sleep(0.5)
-                    # After 2 rate-limited models, bail early and let caller try key 2
-                    if rate_limit_count >= 2:
+                    # After 4 rate-limited models, bail early and let caller try key 2
+                    # (raised from 2 to avoid premature switching on single-model quota)
+                    if rate_limit_count >= 4:
                         summary = " | ".join(f"{m}={e}" for m, e in all_errors.items())
                         return None, summary, True
                     break
