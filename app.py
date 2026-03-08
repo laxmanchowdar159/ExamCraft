@@ -1190,6 +1190,7 @@ def create_exam_pdf(text, subject, chapter, board="",
     in_table    = False
     pending_opts = []
     in_instr    = False
+    _seen_banners = set()  # dedup repeated section headers
 
     def flush_table():
         nonlocal tbl_rows, in_table
@@ -1368,9 +1369,13 @@ def create_exam_pdf(text, subject, chapter, board="",
         if _is_sec_hdr(line) and not _is_general_instr(s):
             flush_opts()
             in_instr = False
-            elems.append(Spacer(1, 4))
-            elems.append(_sec_banner(s, st, PW))
-            elems.append(Spacer(1, 3))
+            # Deduplicate repeated section/part headers (AI sometimes echoes them)
+            _banner_key = re.sub(r'[\s\W]+', '', s).upper()[:28]
+            if _banner_key not in _seen_banners:
+                _seen_banners.add(_banner_key)
+                elems.append(Spacer(1, 4))
+                elems.append(_sec_banner(s, st, PW))
+                elems.append(Spacer(1, 3))
             continue
 
         if _is_instr_line(s):
@@ -1443,6 +1448,18 @@ def create_exam_pdf(text, subject, chapter, board="",
             elems.append(Paragraph(
                 f'<b>({sl})</b>  {_process(sbod)}{mark2}',
                 st["QSub"]))
+            continue
+
+        # Skip structural/summary lines that should not appear in the body
+        _SKIP_STRUCTURAL = re.compile(
+            r'^PART\s+[A-Z]\s*(TOTAL|—\s*OBJECTIVE|—\s*WRITTEN)\s*[=:(]?'
+            r'|^SECTION\s+[A-Z]\s*TOTAL'
+            r'|^PART\s+[AB]\s+TOTAL'
+            r'|^(★\s*)?GRAND\s+TOTAL'
+            r'|^PART\s+[A-Z]\s*—\s*OBJECTIVE'  # duplicate part-A header
+            r'|^PART\s+[A-Z]\s*—\s*WRITTEN',   # duplicate part-B header
+            re.IGNORECASE)
+        if _SKIP_STRUCTURAL.match(s):
             continue
 
         flush_opts()

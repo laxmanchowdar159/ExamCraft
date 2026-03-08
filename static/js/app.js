@@ -561,8 +561,11 @@ async function generatePaper() {
   setHint('Generating — usually 25–50 seconds…');
   setActiveStep(6);
 
+  // Cancel controller — lets user abort if needed
+  window._genAbortCtrl = new AbortController();
+
   try {
-    const res    = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const res    = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal: window._genAbortCtrl.signal });
     const result = await res.json();
     showLoading(false);
 
@@ -587,8 +590,18 @@ async function generatePaper() {
     launchConfetti();
     setActiveStep(6);
 
-  } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
+  } catch (err) {
+    showLoading(false);
+    if (err.name === 'AbortError') { showToast('Generation cancelled'); return; }
+    showToast('Server error: ' + err.message);
+  }
 }
+
+window.cancelGeneration = function() {
+  if (window._genAbortCtrl) { window._genAbortCtrl.abort(); window._genAbortCtrl = null; }
+  showLoading(false);
+  showToast('Generation cancelled');
+};
 
 /* ── PDF helpers ───────────────────────────────────────────── */
 function _b64Download(b64, fname) {
@@ -1152,118 +1165,201 @@ window.closeDonePopup = function(download) {
 /* ══════════════════════════════════════════════════════════════
    TRIVIA GAME — Loading Screen Mini Game
 ══════════════════════════════════════════════════════════════ */
-const TRIVIA_QS = [
-  { q:"Which instrument measures atmospheric pressure?", opts:["Barometer","Thermometer","Hygrometer","Anemometer"], a:0 },
-  { q:"The powerhouse of the cell is the…", opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"], a:2 },
-  { q:"Which planet is known as the Red Planet?", opts:["Venus","Jupiter","Saturn","Mars"], a:3 },
-  { q:"HCF of 12 and 18 is?", opts:["3","4","6","9"], a:2 },
-  { q:"Light travels at approximately… m/s", opts:["3×10⁸","3×10⁶","3×10⁷","3×10⁹"], a:0 },
-  { q:"Water boils at °C at standard pressure?", opts:["90","95","100","110"], a:2 },
-  { q:"The smallest prime number is?", opts:["0","1","2","3"], a:2 },
-  { q:"Chemical formula of water?", opts:["H₂O₂","HO","H₂O","H₃O"], a:2 },
-  { q:"Newton's 2nd law: F = ?", opts:["mv","ma","m/a","m+a"], a:1 },
-  { q:"The pH of pure water is?", opts:["5","6","7","8"], a:2 },
-  { q:"Number of bones in adult human body?", opts:["196","206","216","226"], a:1 },
-  { q:"Which gas do plants absorb for photosynthesis?", opts:["O₂","N₂","CO₂","H₂"], a:2 },
-  { q:"Sum of angles in a triangle?", opts:["90°","180°","270°","360°"], a:1 },
-  { q:"Speed = Distance ÷ ?", opts:["Force","Time","Mass","Area"], a:1 },
-  { q:"Ohm's Law: V = ?", opts:["I+R","I×R","I/R","I²R"], a:1 },
-  { q:"The unit of electric current is?", opts:["Volt","Ohm","Ampere","Watt"], a:2 },
-  { q:"Which organelle is site of protein synthesis?", opts:["Mitochondria","Ribosome","Vacuole","Nucleus"], a:1 },
-  { q:"Area of circle with radius r?", opts:["2πr","πr²","2πr²","πr"], a:1 },
-  { q:"An atom of carbon has how many protons?", opts:["4","6","8","12"], a:1 },
-  { q:"Refraction of light is caused by change in…?", opts:["Speed","Colour","Frequency","Amplitude"], a:0 },
-  { q:"Which blood group is universal donor?", opts:["A","B","AB","O"], a:3 },
-  { q:"Who proposed the theory of evolution?", opts:["Newton","Einstein","Darwin","Mendel"], a:2 },
-  { q:"LCM of 4 and 6 is?", opts:["8","10","12","24"], a:2 },
-  { q:"The human body has how many chromosomes?", opts:["23","44","46","48"], a:2 },
-  { q:"Current through 5Ω if voltage is 10V?", opts:["0.5A","1A","2A","5A"], a:2 },
+// ── Word Unscramble Game ──────────────────────────────────────────
+const SCRAMBLE_WORDS = [
+  { word:'TRIANGLE',   hint:'A polygon with 3 sides and 3 angles' },
+  { word:'PHOTOSYNTHESIS', hint:'How plants make food from sunlight' },
+  { word:'VELOCITY',   hint:'Speed in a given direction' },
+  { word:'CHROMOSOME', hint:'Carries genetic information in cells' },
+  { word:'POLYNOMIAL', hint:'Algebraic expression with multiple terms' },
+  { word:'REFRACTION', hint:'Bending of light as it changes medium' },
+  { word:'CONGRUENT',  hint:'Shapes that are identical in size and shape' },
+  { word:'EVAPORATION',hint:'Liquid turning into vapour' },
+  { word:'QUADRATIC',  hint:'An equation with degree 2' },
+  { word:'MITOCHONDRIA',hint:'Powerhouse of the cell' },
+  { word:'ELECTROLYSIS',hint:'Decomposition using electric current' },
+  { word:'SYMMETRY',   hint:'Balanced proportions along an axis' },
+  { word:'DIFFUSION',  hint:'Spreading of particles from high to low concentration' },
+  { word:'HYPOTHESIS', hint:'A testable scientific prediction' },
+  { word:'PARALLELOGRAM',hint:'Quadrilateral with opposite sides parallel' },
+  { word:'RESPIRATION',hint:'Process of releasing energy in cells' },
+  { word:'INTEGER',    hint:'Whole numbers including negatives' },
+  { word:'REFLECTION', hint:'Light bouncing off a surface' },
+  { word:'HEREDITY',   hint:'Passing of traits from parents to offspring' },
+  { word:'PERIMETER',  hint:'Total length of all sides of a shape' },
 ];
 
-let _gameScore = 0, _gameStreak = 0, _gameCurrent = 0, _gameActive = false;
-let _gameShuffled = [], _gameAnswered = false, _gameTimer = null;
-
-function _shuffleArr(arr) {
-  const a = [...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;
-}
+let _scrScore = 0, _scrBest = 0, _scrActive = false;
+let _scrWord = '', _scrHint = '', _scrGuess = [], _scrTiles = [];
+let _scrPool = [], _scrPoolIdx = 0;
 
 function initGame() {
-  _gameScore = 0; _gameStreak = 0; _gameCurrent = 0;
-  _gameShuffled = _shuffleArr(TRIVIA_QS);
-  _gameActive = true;
-  document.getElementById('gameScore').textContent = '0';
-  document.getElementById('gameStreak').textContent = '0';
-  loadGameQuestion();
+  _scrScore = 0; _scrBest = 0; _scrActive = true;
+  _scrPool = _shuffleArr([...SCRAMBLE_WORDS]);
+  _scrPoolIdx = 0;
+  const gs = document.getElementById('gameScore');
+  const gst = document.getElementById('gameStreak');
+  if (gs) gs.textContent = '0';
+  if (gst) gst.textContent = '0';
+  _loadScrambleWord();
 }
 
-function loadGameQuestion() {
-  if (!_gameActive) return;
-  _gameAnswered = false;
-  clearTimeout(_gameTimer);
-  const idx = _gameCurrent % _gameShuffled.length;
-  const q = _gameShuffled[idx];
-
-  const qEl = document.getElementById('gameQ');
-  const fb  = document.getElementById('gameFeedback');
-  if (!qEl) return;
-
-  qEl.classList.add('fade');
-  setTimeout(() => {
-    qEl.textContent = q.q;
-    qEl.classList.remove('fade');
-    fb.textContent = '';
-    fb.className = 'game-feedback';
-
-    // Shuffle options for display
-    const optIdxs = _shuffleArr([0,1,2,3]);
-    for (let i = 0; i < 4; i++) {
-      const btn = document.getElementById('go' + i);
-      if (!btn) continue;
-      btn.textContent = q.opts[optIdxs[i]];
-      btn.dataset.realIdx = optIdxs[i];
-      btn.className = 'game-opt';
-      btn.disabled = false;
-    }
-    // Progress
-    const fill = document.getElementById('gameProgressFill');
-    if (fill) fill.style.width = ((_gameCurrent % TRIVIA_QS.length) / TRIVIA_QS.length * 100) + '%';
-  }, 200);
+function _shuffleArr(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
-window.answerQ = function(btnIdx) {
-  if (_gameAnswered || !_gameActive) return;
-  _gameAnswered = true;
-  const idx = _gameCurrent % _gameShuffled.length;
-  const q = _gameShuffled[idx];
-  const btn = document.getElementById('go' + btnIdx);
-  const chosen = parseInt(btn.dataset.realIdx);
+function _loadScrambleWord() {
+  if (!_scrActive) return;
+  const item = _scrPool[_scrPoolIdx % _scrPool.length];
+  _scrPoolIdx++;
+  _scrWord = item.word.toUpperCase();
+  _scrHint = item.hint;
+  _scrGuess = Array(_scrWord.length).fill('');
+  // Scramble letters (ensure not same order)
+  let scrambled;
+  let attempts = 0;
+  do {
+    scrambled = _shuffleArr(_scrWord.split(''));
+    attempts++;
+  } while (scrambled.join('') === _scrWord && attempts < 10);
+  _scrTiles = scrambled;
+
+  // Update progress
+  const fill = document.getElementById('gameProgressFill');
+  if (fill) fill.style.width = ((_scrPoolIdx % SCRAMBLE_WORDS.length) / SCRAMBLE_WORDS.length * 100) + '%';
+
+  // Render
+  _renderScramble();
   const fb = document.getElementById('gameFeedback');
+  if (fb) { fb.textContent = ''; fb.className = 'game-feedback'; }
+  const hint = document.getElementById('scrambleHint');
+  if (hint) hint.textContent = '';
+}
 
-  // Lock all buttons
-  for (let i = 0; i < 4; i++) {
-    const b = document.getElementById('go' + i);
-    b.disabled = true;
-    if (parseInt(b.dataset.realIdx) === q.a) b.classList.add('correct');
+function _renderScramble() {
+  // Scrambled tiles
+  const wordEl = document.getElementById('scrambleWord');
+  if (wordEl) {
+    wordEl.innerHTML = '';
+    _scrTiles.forEach((letter, i) => {
+      const t = document.createElement('div');
+      t.className = 'scr-tile' + (t.used ? ' used' : '');
+      t.textContent = letter;
+      t.dataset.idx = i;
+      t.onclick = () => _pickTile(i, t);
+      wordEl.appendChild(t);
+    });
   }
+  // Input slots
+  const inputRow = document.getElementById('scrambleInputRow');
+  if (inputRow) {
+    inputRow.innerHTML = '';
+    for (let i = 0; i < _scrWord.length; i++) {
+      const s = document.createElement('div');
+      s.className = 'scr-input-tile';
+      s.id = 'sit-' + i;
+      s.onclick = () => _unpickSlot(i);
+      inputRow.appendChild(s);
+    }
+  }
+  _scrGuess = Array(_scrWord.length).fill('');
+}
 
-  if (chosen === q.a) {
-    _gameScore++; _gameStreak++;
-    document.getElementById('gameScore').textContent = _gameScore;
-    document.getElementById('gameStreak').textContent = _gameStreak;
-    fb.textContent = ['Excellent! ✦', 'Correct! ★', 'Well done! ◈', 'Brilliant! ⬡'][Math.floor(Math.random()*4)];
-    fb.className = 'game-feedback correct-msg';
+function _pickTile(tileIdx, tileEl) {
+  if (!_scrActive) return;
+  if (tileEl.classList.contains('used')) return;
+  // Find first empty slot
+  const slot = _scrGuess.indexOf('');
+  if (slot === -1) return;
+  _scrGuess[slot] = _scrTiles[tileIdx];
+  // Store tile index on slot for undo
+  const sitEl = document.getElementById('sit-' + slot);
+  if (sitEl) {
+    sitEl.textContent = _scrTiles[tileIdx];
+    sitEl.classList.add('filled');
+    sitEl.dataset.tileIdx = tileIdx;
+  }
+  tileEl.classList.add('used');
+
+  // Check if complete
+  if (_scrGuess.indexOf('') === -1) {
+    _checkWord();
+  }
+}
+
+function _unpickSlot(slotIdx) {
+  if (!_scrActive) return;
+  const val = _scrGuess[slotIdx];
+  if (!val) return;
+  const sitEl = document.getElementById('sit-' + slotIdx);
+  const tileIdx = sitEl ? parseInt(sitEl.dataset.tileIdx) : -1;
+
+  // Restore tile
+  if (tileIdx >= 0) {
+    const tileEl = document.querySelector(`.scr-tile[data-idx="${tileIdx}"]`);
+    if (tileEl) tileEl.classList.remove('used');
+  }
+  _scrGuess[slotIdx] = '';
+  if (sitEl) { sitEl.textContent = ''; sitEl.classList.remove('filled'); delete sitEl.dataset.tileIdx; }
+}
+
+function _checkWord() {
+  const guess = _scrGuess.join('');
+  const fb = document.getElementById('gameFeedback');
+  if (guess === _scrWord) {
+    // Correct!
+    _scrScore++;
+    if (_scrScore > _scrBest) _scrBest = _scrScore;
+    const gs = document.getElementById('gameScore');
+    const gst = document.getElementById('gameStreak');
+    if (gs) gs.textContent = _scrScore;
+    if (gst) gst.textContent = _scrBest;
+
+    // Green flash all input tiles
+    for (let i = 0; i < _scrWord.length; i++) {
+      const s = document.getElementById('sit-' + i);
+      if (s) s.classList.add('correct-tile');
+    }
+    if (fb) { fb.textContent = ['Brilliant! ✦', 'Perfect! ★', 'Excellent! ◈', 'Correct! ⬡'][Math.floor(Math.random()*4)]; fb.className = 'game-feedback correct-msg'; }
+    setTimeout(_loadScrambleWord, 1400);
   } else {
-    btn.classList.add('wrong');
-    _gameStreak = 0;
-    document.getElementById('gameStreak').textContent = '0';
-    fb.textContent = 'Not quite — the correct answer is highlighted above.';
-    fb.className = 'game-feedback wrong-msg';
+    // Wrong — shake and reset input
+    if (fb) { fb.textContent = 'Not quite — try again!'; fb.className = 'game-feedback wrong-msg'; }
+    const inputRow = document.getElementById('scrambleInputRow');
+    if (inputRow) inputRow.querySelectorAll('.scr-input-tile').forEach(t => t.classList.add('scr-tile'));
+    setTimeout(() => {
+      // Reset guess
+      _scrGuess = Array(_scrWord.length).fill('');
+      // Unmark used tiles
+      document.querySelectorAll('.scr-tile.used').forEach(t => t.classList.remove('used'));
+      // Clear input row
+      for (let i = 0; i < _scrWord.length; i++) {
+        const s = document.getElementById('sit-' + i);
+        if (s) { s.textContent = ''; s.classList.remove('filled','correct-tile','scr-tile'); delete s.dataset.tileIdx; }
+      }
+      if (fb) { fb.textContent = ''; fb.className = 'game-feedback'; }
+    }, 600);
   }
-  _gameCurrent++;
-  _gameTimer = setTimeout(loadGameQuestion, 1800);
+}
+
+window.scrambleHintBtn = function() {
+  const hint = document.getElementById('scrambleHint');
+  if (hint) hint.textContent = '💡 ' + _scrHint;
 };
 
-/* Populate the loading recap panel with current selections */
+window.scrambleSkip = function() {
+  if (!_scrActive) return;
+  const fb = document.getElementById('gameFeedback');
+  if (fb) { fb.textContent = 'Answer: ' + _scrWord; fb.className = 'game-feedback wrong-msg'; }
+  setTimeout(_loadScrambleWord, 1200);
+};
+
+/* Populate the loading recap panel/* Populate the loading recap panel with current selections */
 /* ── Big-status loader data ─────────────────────────────────── */
 const LS_STAGES = [
   { num:'1', line1:'Parsing your',       line2:'requirements',      sub:'Analysing board · marks · difficulty…',  pct: 8  },
