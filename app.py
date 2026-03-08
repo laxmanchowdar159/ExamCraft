@@ -1,4 +1,3 @@
-
 import os
 import re
 import json
@@ -3181,6 +3180,28 @@ def generate():
         return jsonify({"success": False, "error": str(e), "trace": tb_str}), 500
 
 
+def _sanitize_filename(filename):
+    """
+    Sanitize filename for use in Content-Disposition header.
+    Removes/replaces invalid characters that cause download issues.
+    """
+    # Replace invalid filename characters with underscores
+    filename = re.sub(r'[<>:"/\\|?*\n\r\t]', '_', filename)
+    # Collapse multiple underscores
+    filename = re.sub(r'_{2,}', '_', filename)
+    # Remove leading/trailing dots and spaces
+    filename = filename.strip('. ')
+    # Limit to 200 chars to avoid header size issues
+    if len(filename) > 200:
+        # Keep extension, truncate the middle
+        if '.' in filename:
+            parts = filename.rsplit('.', 1)
+            filename = parts[0][:195] + '.' + parts[1]
+        else:
+            filename = filename[:200]
+    return filename
+
+
 @app.route("/download-pdf", methods=["POST"])
 def download_pdf():
     try:
@@ -3233,7 +3254,14 @@ def download_pdf():
 
         parts    = [p for p in [board, subject, chapter] if p]
         filename = ("_".join(parts) + ".pdf").replace(" ", "_").replace("/", "-")
-        return send_file(BytesIO(pdf_bytes), as_attachment=True,
+        # Sanitize filename to prevent download issues
+        filename = _sanitize_filename(filename)
+        
+        # Create BytesIO object and ensure pointer is at start
+        pdf_buffer = BytesIO(pdf_bytes)
+        pdf_buffer.seek(0)
+        
+        return send_file(pdf_buffer, as_attachment=True,
                          download_name=filename, mimetype="application/pdf")
     except Exception as e:
         import traceback as _tb2
