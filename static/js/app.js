@@ -594,30 +594,30 @@ async function generatePaper() {
       overlay.id = 'pdfCountdownOverlay';
       overlay.style.cssText = [
         'position:fixed','inset:0','z-index:9999',
-        'background:rgba(10,15,30,0.82)',
+        'background:rgba(10,9,8,0.88)',
         'display:flex','flex-direction:column',
         'align-items:center','justify-content:center',
-        'backdrop-filter:blur(6px)',
-        '-webkit-backdrop-filter:blur(6px)',
+        'backdrop-filter:blur(8px)',
+        '-webkit-backdrop-filter:blur(8px)',
         'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
       ].join(';');
 
       overlay.innerHTML = `
-        <div style="background:linear-gradient(135deg,#0f2149,#1a3a6e);border-radius:20px;padding:40px 52px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6);max-width:360px;width:88%">
-          <div style="font-size:48px;margin-bottom:12px">📄</div>
-          <div style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px">Finalising PDF…</div>
-          <div style="color:#94a3b8;font-size:13px;margin-bottom:28px;line-height:1.5">Ensuring all content is fully rendered<br>before your download starts</div>
-          <div id="pdfCountdownRing" style="position:relative;width:88px;height:88px;margin:0 auto 20px">
+        <div style="background:linear-gradient(135deg,#141210,#1c1916);border:1px solid rgba(200,169,110,0.18);border-radius:20px;padding:40px 52px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.7),0 0 0 1px rgba(200,169,110,0.06);max-width:360px;width:88%">
+          <div style="font-size:44px;margin-bottom:14px">📄</div>
+          <div style="color:#ede7d6;font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px;font-family:Georgia,serif">Finalising PDF…</div>
+          <div style="color:rgba(220,212,196,0.5);font-size:12px;margin-bottom:28px;line-height:1.6;letter-spacing:.03em">Ensuring all content is fully rendered<br>before your download starts</div>
+          <div id="pdfCountdownRing" style="position:relative;width:88px;height:88px;margin:0 auto 22px">
             <svg width="88" height="88" style="transform:rotate(-90deg)">
-              <circle cx="44" cy="44" r="38" fill="none" stroke="#1e293b" stroke-width="6"/>
+              <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(200,169,110,0.12)" stroke-width="5"/>
               <circle id="pdfCountdownArc" cx="44" cy="44" r="38" fill="none"
-                stroke="#2563eb" stroke-width="6"
+                stroke="#C8A96E" stroke-width="5"
                 stroke-dasharray="${2*Math.PI*38}" stroke-dashoffset="0"
-                stroke-linecap="round" style="transition:stroke-dashoffset .9s linear"/>
+                stroke-linecap="round" style="transition:stroke-dashoffset .9s linear;filter:drop-shadow(0 0 6px rgba(200,169,110,0.4))"/>
             </svg>
-            <div id="pdfCountdownNum" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800">${remaining}</div>
+            <div id="pdfCountdownNum" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#E0C07E;font-size:28px;font-weight:800;letter-spacing:-.02em">${remaining}</div>
           </div>
-          <div style="color:#64748b;font-size:12px">Download will start automatically</div>
+          <div style="color:rgba(200,169,110,0.4);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Download starts automatically</div>
         </div>`;
 
       document.body.appendChild(overlay);
