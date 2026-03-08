@@ -770,27 +770,27 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   #sidebar {
     position:fixed; top:0; left:0; bottom:0;
     transform:translateX(-100%);
-    /* raised above overlay (250) and topbar (90), below modals (1000+) */
     z-index:300; width:85%; max-width:340px;
-    /* allow sidebar itself to scroll on mobile */
-    overflow-y:auto; overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
+    overflow:hidden;
     box-shadow:none;
-    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;
-    padding-bottom:env(safe-area-inset-bottom, 0px)
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s
   }
   #sidebar.mob-open {
     transform:translateX(0);
     box-shadow:8px 0 48px rgba(0,0,0,.7)
   }
-  /* overlay sits above main content but below sidebar */
-  #mob-overlay { z-index:250 }
-  /* let sidebar handle scroll; sb-inner doesn't need double scroll layer */
-  #sidebar .sb-inner { overflow-y:visible; height:auto; min-height:100% }
+  #sidebar .sb-inner {
+    height:100%;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding-bottom:env(safe-area-inset-bottom, 16px)
+  }
+  /* overlay z-index must be BELOW sidebar (300) but ABOVE page content */
+  #mob-overlay { z-index:200 }
   .mob-toggle { display:flex !important }
   .form-area { padding:0 20px 100px }
-  .topbar { padding:0 16px; z-index:90 }
+  .topbar { padding:0 16px }
   .gen-wrap { padding:16px 20px }
   #successPanel { margin:0 20px 20px }
   .type-grid { grid-template-columns:1fr }
@@ -804,9 +804,14 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   .succ-bar { flex-direction:column; align-items:flex-start }
   .gen-btn { font-size:15px; padding:15px 20px }
   .game-opts { grid-template-columns:1fr }
-  /* comfortably tappable hamburger */
   .mob-toggle { min-width:44px; min-height:44px; justify-content:center; align-items:center }
 }
+  .succ-bar { flex-direction:column; align-items:flex-start }
+  .gen-btn { font-size:15px; padding:15px 20px }
+  .game-opts { grid-template-columns:1fr }
+  /* comfortably tappable hamburger */
+  .mob-toggle { min-width:44px; min-height:44px; justify-content:center; align-items:center }
+
 
 /* ── Support note under generate btn ─────────────────────────── */
 .support-note {
