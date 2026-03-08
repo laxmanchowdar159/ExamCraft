@@ -836,18 +836,15 @@ window.toggleMobileSidebar = function() {
   if (!sb) return;
   const open = sb.classList.toggle('mob-open');
   if (ov) { ov.classList.toggle('open', open); }
-  // Prevent body scroll when sidebar open (but allow sidebar to scroll)
   document.body.style.overflow = open ? 'hidden' : '';
-  document.documentElement.style.overflow = open ? 'hidden' : '';
 };
 window.closeMobileSidebar = function() {
   document.getElementById('sidebar')?.classList.remove('mob-open');
   document.getElementById('mob-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
-  document.documentElement.style.overflow = '';
 };
 
-/* ── Swipe-left to close sidebar on mobile ─────────────────── */
+/* ── Swipe gestures for mobile sidebar ─────────────────────── */
 (function() {
   let touchStartX = 0, touchStartY = 0;
   document.addEventListener('touchstart', function(e) {
@@ -858,15 +855,28 @@ window.closeMobileSidebar = function() {
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
     const sb = document.getElementById('sidebar');
-    // swipe left > 60px, mostly horizontal, sidebar is open → close it
-    if (dx < -60 && dy < 80 && sb && sb.classList.contains('mob-open')) {
+    if (!sb) return;
+    // swipe left on open sidebar → close
+    if (dx < -60 && dy < 80 && sb.classList.contains('mob-open')) {
       closeMobileSidebar();
     }
-    // swipe right > 60px from left edge (within 30px) → open sidebar
-    if (dx > 60 && dy < 80 && touchStartX < 30 && sb && !sb.classList.contains('mob-open')) {
+    // swipe right from very left edge → open
+    if (dx > 60 && dy < 80 && touchStartX < 30 && !sb.classList.contains('mob-open')) {
       toggleMobileSidebar();
     }
   }, { passive: true });
+
+  // Also attach click listener directly on overlay as belt-and-suspenders
+  document.addEventListener('DOMContentLoaded', function() {
+    const ov = document.getElementById('mob-overlay');
+    if (ov) {
+      ov.addEventListener('click', closeMobileSidebar);
+      ov.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        closeMobileSidebar();
+      });
+    }
+  });
 })();
 
 /* ══════════════════════════════════════════════════════════════
