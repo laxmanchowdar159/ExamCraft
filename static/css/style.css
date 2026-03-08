@@ -154,7 +154,7 @@ button, a, select, label, [role="button"],
 /* ═══ SIDEBAR ════════════════════════════════════════════════════ */
 #sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
   border-right:1px solid var(--line2); background:var(--ink2); overflow:hidden; z-index:100;
-  transition:transform .4s cubic-bezier(.22,1,.36,1); contain:layout style }
+  transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s; contain:layout style }
 #sidebar::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
   background:linear-gradient(90deg,transparent,var(--ac),var(--ac2),transparent); opacity:.6 }
 .sb-inner { display:flex; flex-direction:column; height:100%; overflow-y:scroll;
@@ -354,7 +354,7 @@ button, a, select, label, [role="button"],
 .tb-btn:hover { border-color:var(--ac); color:var(--ac) }
 
 /* ═══ FORM AREA ══════════════════════════════════════════════════ */
-.form-area { flex:1; padding:0 48px 24px; max-width:860px; width:100% }
+.form-area { flex:1; padding:0 48px 100px; max-width:860px; width:100% }
 
 /* ═══ HERO ════════════════════════════════════════════════════════ */
 .hero { padding:56px 0 40px; border-bottom:1px solid var(--line); margin-bottom:48px; position:relative }
@@ -471,13 +471,13 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 .tog-info p { font-size:9px; color:var(--muted) }
 
 /* ═══ GENERATE BAR ════════════════════════════════════════════════ */
-.gen-wrap { padding:16px 32px 18px; border-top:1px solid var(--line);
+.gen-wrap { padding:28px 48px; border-top:1px solid var(--line);
   background:rgba(12,11,10,.96); position:sticky; bottom:0; z-index:10;
   }
-.gen-btn { width:100%; padding:22px 28px; background:var(--ac); border:none; color:var(--ink);
-  font-family:var(--serif); font-size:20px; font-weight:700; letter-spacing:.03em; 
-  display:flex; align-items:center; justify-content:center; gap:12px;
-  position:relative; overflow:hidden; transition:background .2s; border-radius:2px }
+.gen-btn { width:100%; padding:18px 28px; background:var(--ac); border:none; color:var(--ink);
+  font-family:var(--serif); font-size:18px; font-weight:600; letter-spacing:.02em; 
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  position:relative; overflow:hidden; transition:background .2s }
 .gen-btn::after { content:''; position:absolute; inset:0;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);
   transform:translateX(-100%); transition:transform .55s cubic-bezier(.22,1,.36,1) }
@@ -710,35 +710,6 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 .game-progress-bar { height:2px; background:rgba(255,255,255,.06); margin-top:10px; overflow:hidden }
 .game-progress-fill { height:100%; background:var(--ac); transition:width .5s cubic-bezier(.22,1,.36,1) }
 
-/* ── Word Unscramble Game ── */
-.scramble-word { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:10px 0 6px;
-  min-height:42px; align-items:center }
-.scr-tile { width:34px; height:38px; border:1.5px solid var(--line2); border-radius:3px;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--mono); font-size:16px; font-weight:700; color:var(--ac2);
-  cursor:pointer; transition:all .15s; user-select:none; background:rgba(200,169,110,.05) }
-.scr-tile:hover:not(.used) { border-color:var(--ac); background:rgba(200,169,110,.12); transform:translateY(-2px) }
-.scr-tile.used { opacity:.22; cursor:default; transform:none }
-.scr-tile.correct { border-color:var(--green)!important; background:rgba(92,152,112,.2)!important; color:var(--green)!important }
-.scr-tile.wrong-shake { animation:shk .35s ease }
-@keyframes shk { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} }
-.scramble-hint { font-size:9px; color:var(--muted); letter-spacing:.08em; text-align:center; margin-bottom:8px; min-height:14px }
-.scramble-input-row { display:flex; gap:5px; justify-content:center; flex-wrap:wrap;
-  min-height:42px; align-items:center; margin-bottom:10px }
-.scr-input-tile { width:34px; height:38px; border:1.5px solid rgba(255,255,255,.1); border-radius:3px;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--mono); font-size:16px; font-weight:700; color:var(--bright);
-  background:rgba(255,255,255,.03); cursor:pointer; transition:all .15s }
-.scr-input-tile:hover:not(:empty) { border-color:rgba(200,169,110,.4); }
-.scr-input-tile.filled { border-color:rgba(200,169,110,.4); background:rgba(200,169,110,.06) }
-.scr-input-tile.correct-tile { border-color:var(--green)!important; background:rgba(92,152,112,.2)!important; animation:popIn .3s ease }
-@keyframes popIn { 0%{transform:scale(.7)} 60%{transform:scale(1.12)} 100%{transform:scale(1)} }
-.scramble-actions { display:flex; gap:8px; justify-content:center; margin-bottom:8px }
-.scr-btn { padding:7px 14px; border:1px solid var(--line2); background:none; color:var(--muted2);
-  font-size:10px; letter-spacing:.06em; cursor:pointer; border-radius:2px;
-  font-family:var(--mono); transition:all .15s }
-.scr-btn:hover { border-color:rgba(200,169,110,.4); color:var(--ac2) }
-
 /* ─── MOBILE ─────────────────────────────────────────────────── */
 .mob-progress-wrap { display:none }
 
@@ -781,7 +752,7 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 /* ═══ RESPONSIVE ═══════════════════════════════════════════════════ */
 @media (max-width:1100px) {
   :root { --sw:300px }
-  .form-area { padding:0 36px 24px }
+  .form-area { padding:0 36px 100px }
   .gen-wrap { padding:24px 36px }
   #successPanel { margin:0 36px 28px }
 }
@@ -799,16 +770,27 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   #sidebar {
     position:fixed; top:0; left:0; bottom:0;
     transform:translateX(-100%);
-    z-index:200; width:85%; max-width:340px;
-    box-shadow:none; transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s
+    /* raised above overlay (250) and topbar (90), below modals (1000+) */
+    z-index:300; width:85%; max-width:340px;
+    /* allow sidebar itself to scroll on mobile */
+    overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    box-shadow:none;
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;
+    padding-bottom:env(safe-area-inset-bottom, 0px)
   }
   #sidebar.mob-open {
     transform:translateX(0);
-    box-shadow:8px 0 40px rgba(0,0,0,.6)
+    box-shadow:8px 0 48px rgba(0,0,0,.7)
   }
+  /* overlay sits above main content but below sidebar */
+  #mob-overlay { z-index:250 }
+  /* let sidebar handle scroll; sb-inner doesn't need double scroll layer */
+  #sidebar .sb-inner { overflow-y:visible; height:auto; min-height:100% }
   .mob-toggle { display:flex !important }
-  .form-area { padding:0 20px 16px }
-  .topbar { padding:0 16px }
+  .form-area { padding:0 20px 100px }
+  .topbar { padding:0 16px; z-index:90 }
   .gen-wrap { padding:16px 20px }
   #successPanel { margin:0 20px 20px }
   .type-grid { grid-template-columns:1fr }
@@ -822,6 +804,8 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   .succ-bar { flex-direction:column; align-items:flex-start }
   .gen-btn { font-size:15px; padding:15px 20px }
   .game-opts { grid-template-columns:1fr }
+  /* comfortably tappable hamburger */
+  .mob-toggle { min-width:44px; min-height:44px; justify-content:center; align-items:center }
 }
 
 /* ── Support note under generate btn ─────────────────────────── */

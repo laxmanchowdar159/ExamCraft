@@ -1190,8 +1190,6 @@ def create_exam_pdf(text, subject, chapter, board="",
     in_table    = False
     pending_opts = []
     in_instr    = False
-    in_match_section = False  # True while inside Section III (Match the Following)
-    _seen_banners = set()  # dedup repeated section headers
 
     def flush_table():
         nonlocal tbl_rows, in_table
@@ -1370,20 +1368,9 @@ def create_exam_pdf(text, subject, chapter, board="",
         if _is_sec_hdr(line) and not _is_general_instr(s):
             flush_opts()
             in_instr = False
-            # Track if we enter a Match the Following section
-            if re.search(r'match\s+the\s+following|section\s+III\b', s, re.I):
-                in_match_section = True
-            elif re.search(r'section\s+(IV|V|VI|VII|VIII|IX|X)\b|section\s+[456789]', s, re.I):
-                in_match_section = False
-            elif re.search(r'part\s+B\b', s, re.I):
-                in_match_section = False
-            # Deduplicate repeated section/part headers (AI sometimes echoes them)
-            _banner_key = re.sub(r'[\s\W]+', '', s).upper()[:28]
-            if _banner_key not in _seen_banners:
-                _seen_banners.add(_banner_key)
-                elems.append(Spacer(1, 4))
-                elems.append(_sec_banner(s, st, PW))
-                elems.append(Spacer(1, 3))
+            elems.append(Spacer(1, 4))
+            elems.append(_sec_banner(s, st, PW))
+            elems.append(Spacer(1, 3))
             continue
 
         if _is_instr_line(s):
@@ -1403,7 +1390,7 @@ def create_exam_pdf(text, subject, chapter, board="",
             continue
 
         opt_m = re.match(r'^\s*[\(\[]\s*([a-dA-D])\s*[\)\]\.]?\s+(.+)', s)
-        if opt_m and not re.match(r'^(Q\.?\s*)?\d+[\.)\]]\s', s) and not in_match_section:
+        if opt_m and not re.match(r'^(Q\.?\s*)?\d+[\.)\]]\s', s):
             in_instr = False
             letter = opt_m.group(1).lower()
             val    = _process(opt_m.group(2))
@@ -1415,7 +1402,7 @@ def create_exam_pdf(text, subject, chapter, board="",
         multi = re.findall(
             r'[\(\[]([a-dA-D])[\)\]\.]?\s+([^(\[]+?)(?=\s*[\(\[][a-dA-D][\)\]\.]|$)',
             s)
-        if len(multi) >= 2 and not re.match(r'^(Q\.?\s*)?\d+[\.)\]]\s', s) and not in_match_section:
+        if len(multi) >= 2 and not re.match(r'^(Q\.?\s*)?\d+[\.)\]]\s', s):
             flush_opts()
             in_instr = False
             opts = [(l.lower(), _process(v.strip())) for l, v in multi]
@@ -1456,22 +1443,6 @@ def create_exam_pdf(text, subject, chapter, board="",
             elems.append(Paragraph(
                 f'<b>({sl})</b>  {_process(sbod)}{mark2}',
                 st["QSub"]))
-            continue
-
-        # Skip structural/summary lines that should not appear in the body
-        _SKIP_STRUCTURAL = re.compile(
-            r'^PART\s+[A-Z]\s*(TOTAL|—\s*OBJECTIVE|—\s*WRITTEN)\s*[=:(]?'
-            r'|^SECTION\s+[A-Z]\s*TOTAL'
-            r'|^PART\s+[AB]\s+TOTAL'
-            r'|^(★\s*)?GRAND\s+TOTAL'
-            r'|^PART\s+[A-Z]\s*—\s*OBJECTIVE'
-            r'|^PART\s+[A-Z]\s*—\s*WRITTEN'
-            r'|^SECTION\s+[IVX]+\s*TOTAL'
-            r'|^\*{3,}'               # lines of only asterisks
-            r'|^={3,}\s*$'           # lines of only equals signs
-            r'|^-{3,}\s*$',          # lines of only dashes (non-hrule context)
-            re.IGNORECASE)
-        if _SKIP_STRUCTURAL.match(s):
             continue
 
         flush_opts()
@@ -3238,7 +3209,6 @@ def generate():
         chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
 
         pdf_b64 = pdf_key_b64 = None
-        pdf_error = None
         try:
             pdf_bytes = create_exam_pdf(
                 paper, subject, chapter_safe,
@@ -3247,9 +3217,6 @@ def generate():
                 marks=marks_safe)
             pdf_b64 = base64.b64encode(pdf_bytes).decode()
         except Exception as pdf_err:
-            import traceback as _tb_pdf
-            pdf_error = str(pdf_err)
-            print(f"[PDF ERROR] {pdf_err}\n{_tb_pdf.format_exc()}")
             pdf_b64 = None
 
         if key and key.strip():
@@ -3269,7 +3236,6 @@ def generate():
             "board": board, "subject": subject, "chapter": chapter,
             "pdf_b64": pdf_b64,
             "pdf_key_b64": pdf_key_b64,  # null if no answer key — hides the button
-            "pdf_error": pdf_error,       # non-null if PDF build failed
         })
 
     except Exception as e:

@@ -100,13 +100,6 @@
           </div>
         </div>
 
-        <!-- Cancel button -->
-        <div style="margin-top:20px;text-align:center">
-          <button onclick="cancelGeneration()" style="background:none;border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:11px;letter-spacing:.08em;padding:8px 22px;cursor:pointer;border-radius:2px;font-family:var(--mono);transition:border-color .2s,color .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.3)';this.style.color='var(--bright)'" onmouseout="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='var(--muted)'">
-            ✕ &nbsp;CANCEL GENERATION
-          </button>
-        </div>
-
         <!-- Bottom meta strip -->
         <div class="ls-meta-strip">
           <span id="recap-subject-val" class="ls-meta-val">—</span>
@@ -138,22 +131,19 @@
           <div class="o-emoji">✦</div>
         </div>
       </div>
-      <div class="loader-game-title" id="gameTitle">Word Unscramble</div>
-      <div class="loader-game-sub" id="gameSub">Unscramble academic terms while you wait</div>
+      <div class="loader-game-title" id="gameTitle">Trivia while you wait</div>
+      <div class="loader-game-sub" id="gameSub">Test your academic knowledge</div>
       <div class="game-box" id="gameBox">
         <div class="game-score-row">
           <div class="game-score">Score: <span id="gameScore">0</span></div>
-          <div class="game-streak">Best: <span id="gameStreak">0</span> 🏆</div>
+          <div class="game-streak">Streak: <span id="gameStreak">0</span>🔥</div>
         </div>
-        <!-- Scrambled letters display -->
-        <div class="scramble-word" id="scrambleWord"></div>
-        <div class="scramble-hint" id="scrambleHint"></div>
-        <!-- Player input tiles -->
-        <div class="scramble-input-row" id="scrambleInputRow"></div>
-        <!-- Action buttons -->
-        <div class="scramble-actions">
-          <button class="scr-btn scr-hint-btn" onclick="scrambleHintBtn()">💡 Hint</button>
-          <button class="scr-btn scr-skip-btn" onclick="scrambleSkip()">Skip →</button>
+        <div class="game-q" id="gameQ">Loading question...</div>
+        <div class="game-opts" id="gameOpts">
+          <button class="game-opt" id="go0" onclick="answerQ(0)"></button>
+          <button class="game-opt" id="go1" onclick="answerQ(1)"></button>
+          <button class="game-opt" id="go2" onclick="answerQ(2)"></button>
+          <button class="game-opt" id="go3" onclick="answerQ(3)"></button>
         </div>
         <div class="game-feedback" id="gameFeedback"></div>
         <div class="game-progress-bar"><div class="game-progress-fill" id="gameProgressFill" style="width:0%"></div></div>
