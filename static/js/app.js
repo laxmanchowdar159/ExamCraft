@@ -567,7 +567,7 @@ async function generatePaper() {
     showLoading(false);
 
     if (!result.success) {
-      showAiErrorPopup(result.error || 'The AI service returned an unexpected response. Please try again.');
+      showToast(result.error || 'Generation failed — please try again');
       setHint('Something went wrong. Check selections and try again.');
       return;
     }
@@ -577,33 +577,17 @@ async function generatePaper() {
     const boardText  = result.board || payload.state || payload.competitiveExam || '';
     currentMeta = { board:boardText, subject:payload.subject||result.subject||'', chapter:payload.chapter||result.chapter||'Full Syllabus', marks, difficulty, class: payload.class||'' };
 
-    window._pdfDirect = {
-      paper:   result.pdf_b64||null,
-      withKey: result.pdf_key_b64||null,
-      board:   boardText,
-      subject: currentMeta.subject,
-      chapter: currentMeta.chapter,
-      marks:   marks,   // needed by prMeta display
-    };
+    window._pdfDirect = { paper:result.pdf_b64||null, withKey:result.pdf_key_b64||null, board:boardText, subject:currentMeta.subject, chapter:currentMeta.chapter };
 
-    // Show popup FIRST — before anything that can throw
+    // Auto-download
+    if (window._pdfDirect.paper) _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+
+    addToHistory(currentMeta, currentPaper, currentAnswerKey);
     showSuccessPanel();
     launchConfetti();
     setActiveStep(6);
 
-    // Auto-download (pdf_b64 may be null if server PDF build failed)
-    if (window._pdfDirect.paper) {
-      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
-    } else {
-      showToast('Paper generated — click "Paper PDF" to download');
-    }
-
-    // History save — wrapped so a storage error cannot kill the popup
-    try { addToHistory(currentMeta, currentPaper, currentAnswerKey); } catch(he) {
-      console.warn('History save failed:', he);
-    }
-
-  } catch (err) { showLoading(false); showAiErrorPopup('Server error: ' + err.message); }
+  } catch (err) { showLoading(false); showToast('Server error: ' + err.message); }
 }
 
 /* ── PDF helpers ───────────────────────────────────────────── */
@@ -641,28 +625,16 @@ const _DL_MSGS_KEY = [
 function showDownloadDone(fname) {
   const overlay = document.getElementById('dlDonePopup');
   if (!overlay) return;
-  const isKey = (fname || '').includes('_with_key');
-  const pool = isKey ? _DL_MSGS_KEY : _DL_MSGS_PAPER;
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-
   const txt = document.getElementById('dlDoneText');
   const sub = document.getElementById('dlDoneSub');
+  const isKey = (fname || '').includes('_with_key') || (fname || '').includes('key');
+  const pool = isKey ? _DL_MSGS_KEY : _DL_MSGS_PAPER;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
   if (txt) txt.textContent = pick.main;
   if (sub) sub.textContent = pick.sub;
-
-  // Populate paper detail rows from currentMeta
-  const m = window.currentMeta || {};
-  const d = window._pdfDirect || {};
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
-  set('dlDoneSubject', m.subject || d.subject);
-  set('dlDoneBoard',   m.board   || d.board);
-  set('dlDoneMarks',   m.marks   ? m.marks + ' Marks' : (d.marks ? d.marks + ' Marks' : null));
-  const ch = m.chapter || d.chapter;
-  set('dlDoneChapter', ch && ch !== 'Full Syllabus' ? ch : 'Full Syllabus');
-
   overlay.classList.add('show');
   clearTimeout(overlay._timer);
-  overlay._timer = setTimeout(() => overlay.classList.remove('show'), 6000);
+  overlay._timer = setTimeout(() => overlay.classList.remove('show'), 4000);
 }
 async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
   showLoading(true, 'Rendering PDF…');
@@ -673,11 +645,9 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
     if (!blob.size) { showToast('PDF was empty — try regenerating'); showLoading(false); return; }
     const url = URL.createObjectURL(blob);
     const safe = [board,subject,chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
-    const fname = safe + (withKey ? '_with_key' : '') + '.pdf';
-    const a = Object.assign(document.createElement('a'), {href:url, download:fname});
-    document.body.appendChild(a); a.click(); a.remove();   // must be in DOM for Firefox/Safari
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    showLoading(false); showDownloadDone(fname);
+    Object.assign(document.createElement('a'), {href:url, download:safe+(withKey?'_with_key':'')+'.pdf'}).click();
+    URL.revokeObjectURL(url);
+    showLoading(false); showDownloadDone(safe + '.pdf');
   } catch (err) { showLoading(false); showToast('Download failed: ' + err.message); }
 }
 
@@ -692,11 +662,8 @@ window.downloadPDF = function(withKey) {
       return;
     }
   }
-  // Fallback: re-render via /download-pdf endpoint
-  if (!currentPaper?.trim()) {
-    showToast('No paper loaded — please generate a paper first');
-    return;
-  }
+  // Fallback: re-render on server
+  if (!currentPaper?.trim()) { showToast('Generate a paper first'); return; }
   triggerPDFDownload({
     paper:      currentPaper,
     answer_key: currentAnswerKey || '',
@@ -735,7 +702,6 @@ window.closePaperReadyPopup = function() {
 
 window.generateAnother = function() {
   const sp = document.getElementById('successPanel'); if (sp) sp.style.display = 'none';
-  const pr = document.getElementById('paperReadyPopup'); if (pr) pr.classList.remove('visible');
   window.scrollTo({ top:0, behavior:'smooth' });
 };
 
@@ -878,76 +844,74 @@ window.closeMobileSidebar = function() {
    DOMContentLoaded — boot sequence
 ══════════════════════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════════════════════
-   ANIMATED STAR FIELD BACKGROUND
+   STAR FIELD BACKGROUND
 ══════════════════════════════════════════════════════════════ */
 function initStarField() {
   const canvas = document.getElementById('star-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let W, H, particles = [], lines = [], animId;
+  const W = canvas.width  = window.innerWidth;
+  const H = canvas.height = window.innerHeight;
 
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    buildScene();
+  // Draw a rich constellation-style star field
+  ctx.clearRect(0, 0, W, H);
+
+  // Random stars
+  const stars = [];
+  for (let i = 0; i < 180; i++) {
+    stars.push({ x: Math.random()*W, y: Math.random()*H,
+                 r: Math.random()*1.2+0.2,
+                 a: Math.random()*0.6+0.1 });
+  }
+  // Bright accent stars (4-pointed)
+  const accents = [];
+  for (let i = 0; i < 18; i++) {
+    accents.push({ x: Math.random()*W, y: Math.random()*H,
+                   s: Math.random()*4+3, a: Math.random()*0.35+0.15 });
+  }
+  // Constellation lines (connect nearby accent stars)
+  const lines = [];
+  for (let i = 0; i < accents.length; i++) {
+    for (let j = i+1; j < accents.length; j++) {
+      const dx = accents[i].x - accents[j].x;
+      const dy = accents[i].y - accents[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < W * 0.18) lines.push([i, j, dist]);
+    }
+  }
+  // Limit to closest 14 lines
+  lines.sort((a,b) => a[2]-b[2]);
+  const drawLines = lines.slice(0, 14);
+
+  // Draw constellation lines
+  ctx.strokeStyle = 'rgba(200,169,110,0.08)';
+  ctx.lineWidth = 0.5;
+  for (const [i, j] of drawLines) {
+    ctx.beginPath();
+    ctx.moveTo(accents[i].x, accents[i].y);
+    ctx.lineTo(accents[j].x, accents[j].y);
+    ctx.stroke();
   }
 
-  function buildScene() {
-    particles = [];
-    // Regular drifting stars
-    for (let i = 0; i < 120; i++) {
-      particles.push({
-        x: Math.random() * W, y: Math.random() * H,
-        r: Math.random() * 1.1 + 0.2,
-        a: Math.random() * 0.5 + 0.08,
-        vx: (Math.random() - 0.5) * 0.12,
-        vy: (Math.random() - 0.5) * 0.12,
-        twinkle: Math.random() * Math.PI * 2,
-        twinkleSpeed: 0.012 + Math.random() * 0.018,
-        type: 'dot'
-      });
-    }
-    // Bright 4-pointed accent stars that drift + pulse
-    for (let i = 0; i < 22; i++) {
-      particles.push({
-        x: Math.random() * W, y: Math.random() * H,
-        size: Math.random() * 3.5 + 2.5,
-        a: Math.random() * 0.28 + 0.10,
-        vx: (Math.random() - 0.5) * 0.08,
-        vy: (Math.random() - 0.5) * 0.08,
-        twinkle: Math.random() * Math.PI * 2,
-        twinkleSpeed: 0.008 + Math.random() * 0.012,
-        type: 'star'
-      });
-    }
-    // Pre-build constellation lines between nearby accent stars
-    const accents = particles.filter(p => p.type === 'star');
-    lines = [];
-    for (let i = 0; i < accents.length; i++) {
-      for (let j = i + 1; j < accents.length; j++) {
-        const dx = accents[i].x - accents[j].x;
-        const dy = accents[i].y - accents[j].y;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d < W * 0.20) lines.push({ a: accents[i], b: accents[j], maxDist: W * 0.20 });
-      }
-    }
-    // Keep only 16 shortest lines
-    lines.sort((a, b) => {
-      const da = Math.hypot(a.a.x-a.b.x, a.a.y-a.b.y);
-      const db = Math.hypot(b.a.x-b.b.x, b.a.y-b.b.y);
-      return da - db;
-    });
-    lines = lines.slice(0, 16);
+  // Draw regular stars (dots)
+  for (const s of stars) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,169,110,${s.a})`;
+    ctx.fill();
   }
 
-  function draw4Star(x, y, size, alpha) {
+  // Draw 4-pointed accent stars
+  for (const s of accents) {
+    const {x, y, sz=s.s, a} = {x:s.x, y:s.y, sz:s.s, a:s.a};
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = `rgba(226,201,138,${alpha})`;
+    ctx.fillStyle = `rgba(226,201,138,${a})`;
     ctx.beginPath();
-    const arms = 4, outer = size, inner = size * 0.28;
-    for (let k = 0; k < arms * 2; k++) {
-      const angle = (k * Math.PI) / arms - Math.PI / 2;
+    // 4-pointed star path
+    const arms = 4, outer = sz, inner = sz*0.3;
+    for (let k = 0; k < arms*2; k++) {
+      const angle = (k * Math.PI) / arms - Math.PI/2;
       const r = k % 2 === 0 ? outer : inner;
       k === 0 ? ctx.moveTo(r*Math.cos(angle), r*Math.sin(angle))
               : ctx.lineTo(r*Math.cos(angle), r*Math.sin(angle));
@@ -956,59 +920,11 @@ function initStarField() {
     ctx.fill();
     ctx.restore();
   }
-
-  function frame() {
-    ctx.clearRect(0, 0, W, H);
-
-    // Draw constellation lines (very faint, follow the moving stars)
-    for (const ln of lines) {
-      const dx = ln.a.x - ln.b.x, dy = ln.a.y - ln.b.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const fade = Math.max(0, 1 - dist / ln.maxDist);
-      ctx.beginPath();
-      ctx.moveTo(ln.a.x, ln.a.y);
-      ctx.lineTo(ln.b.x, ln.b.y);
-      ctx.strokeStyle = `rgba(200,169,110,${0.07 * fade})`;
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-    }
-
-    // Update & draw particles
-    for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.twinkle += p.twinkleSpeed;
-      // Wrap around edges
-      if (p.x < -10) p.x = W + 10;
-      if (p.x > W + 10) p.x = -10;
-      if (p.y < -10) p.y = H + 10;
-      if (p.y > H + 10) p.y = -10;
-
-      const pulse = 0.5 + 0.5 * Math.sin(p.twinkle);
-      if (p.type === 'dot') {
-        const a = p.a * (0.4 + 0.6 * pulse);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,169,110,${a})`;
-        ctx.fill();
-      } else {
-        draw4Star(p.x, p.y, p.size * (0.85 + 0.15 * pulse), p.a * (0.6 + 0.4 * pulse));
-      }
-    }
-
-    animId = requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('resize', () => { cancelAnimationFrame(animId); resize(); frame(); }, { passive: true });
-  resize();
-  frame();
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
 
   initStarField();
-  initBgShapes();
 
   /* ── Hello popup ── */
   setTimeout(showHelloPopup, 600);
@@ -1210,47 +1126,6 @@ window.closeHelloPopup = function() {
   if (popup) popup.classList.remove('visible');
 };
 
-/* ══════════════════════════════════════════════════════════════
-   AI ERROR POPUP — big modal for API/generation failures
-══════════════════════════════════════════════════════════════ */
-window.showAiErrorPopup = function(errDetail) {
-  showLoading(false);
-  const popup = document.getElementById('aiErrorPopup');
-  if (!popup) { showToast(errDetail || 'Something went wrong'); return; }
-  const detailEl = document.getElementById('aiErrDetail');
-  if (detailEl) detailEl.textContent = errDetail || 'Unknown error — please try again.';
-  popup.classList.add('visible');
-};
-window.closeAiErrorPopup = function() {
-  const popup = document.getElementById('aiErrorPopup');
-  if (popup) popup.classList.remove('visible');
-};
-
-/* ══════════════════════════════════════════════════════════════
-   FLOATING BACKGROUND SHAPES
-══════════════════════════════════════════════════════════════ */
-function initBgShapes() {
-  const container = document.getElementById('bgShapes');
-  if (!container) return;
-  const shapes = [
-    { type:'circle', size:60, x:10, y:20, dur:18, delay:0  },
-    { type:'diamond',size:40, x:80, y:15, dur:22, delay:3  },
-    { type:'circle', size:30, x:60, y:70, dur:26, delay:6  },
-    { type:'diamond',size:50, x:25, y:80, dur:20, delay:9  },
-    { type:'circle', size:20, x:90, y:60, dur:16, delay:1  },
-    { type:'diamond',size:35, x:45, y:10, dur:24, delay:4  },
-    { type:'circle', size:45, x:5,  y:55, dur:30, delay:7  },
-    { type:'diamond',size:25, x:70, y:85, dur:19, delay:11 },
-  ];
-  container.innerHTML = shapes.map((s, i) => {
-    const isD = s.type === 'diamond';
-    const base = `position:absolute;left:${s.x}%;top:${s.y}%;width:${s.size}px;height:${s.size}px;opacity:0;border:1px solid rgba(200,169,110,0.12);animation:bgShapeFloat ${s.dur}s ease-in-out infinite ${s.delay}s;will-change:transform,opacity;`;
-    if (isD) return `<div style="${base}transform:rotate(45deg);animation-name:bgDiamondFloat;"></div>`;
-    return `<div style="${base}border-radius:50%;animation-name:bgCircleFloat;"></div>`;
-  }).join('');
-}
-
-
 function showDonePopup(meta) {
   const popup = document.getElementById('donePopup');
   if (popup) {
@@ -1389,7 +1264,7 @@ function _timeOut() {
   _mathAnswered = true;
   _mathStreak = 0;
   const fb = document.getElementById('gameFeedback');
-  if (fb) { fb.textContent = "Time's up!"; fb.className = 'game-feedback wrong-msg'; }
+  if (fb) { fb.textContent = 'Times up!'; fb.className = 'game-feedback wrong-msg'; }
   // Mark correct answer
   for (let i = 0; i < 4; i++) {
     const btn = document.getElementById('go' + i);
