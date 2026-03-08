@@ -1,3 +1,29 @@
+
+/* ── Font Switcher ─────────────────────────────────────────── */
+const FONT_MODES = [
+  { id:'serif', label:'Serif', font:"'Cormorant Garamond', Georgia, serif" },
+  { id:'sans',  label:'Sans',  font:"'Inter','Segoe UI',system-ui,sans-serif" },
+  { id:'mono',  label:'Mono',  font:"'Space Mono','Courier New',monospace" },
+];
+let fontIdx = 0;
+
+function applyFont(idx) {
+  const f = FONT_MODES[idx];
+  document.documentElement.setAttribute('data-font', f.id);
+  document.documentElement.style.setProperty('--serif', f.font);
+  const lbl = document.getElementById('fontLabel');
+  const icon = document.getElementById('fontIcon');
+  if (lbl) lbl.textContent = f.label;
+  if (icon) { icon.style.fontFamily = f.font; icon.textContent = 'Aa'; }
+  try { localStorage.setItem('fontIdx', idx); } catch {}
+}
+
+window.cycleFontMode = function() {
+  fontIdx = (fontIdx + 1) % FONT_MODES.length;
+  applyFont(fontIdx);
+  showToast('Font: ' + FONT_MODES[fontIdx].label);
+};
+
 /* ═══════════════════════════════════════════════════════════════
    ExamCraft — Frontend Controller v5
    All original logic preserved + UI enhancement layer
@@ -103,31 +129,42 @@ function renderHistory() {
   if (!list) return;
   const h = loadHistory();
   const cntEl = document.getElementById('histCount');
-  if (cntEl) cntEl.textContent = h.length;
+  if (cntEl) {
+    cntEl.textContent = h.length || '';
+    cntEl.classList.toggle('zero', h.length === 0);
+  }
   if (!h.length) {
-    list.innerHTML = `<div class="history-empty"><div class="history-empty-icon">✦</div><span>No papers generated yet</span></div>`;
+    list.innerHTML = `
+      <div class="history-list-inner">
+        <div class="history-empty">
+          <div class="history-empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <p>Generate your first paper — it will appear here automatically</p>
+        </div>
+      </div>`;
     return;
   }
-  list.innerHTML = h.map((e, idx) => `
+  list.innerHTML = '<div class="history-list-inner">' + h.map((e, idx) => `
     <div class="history-item">
       <div class="history-item-top">
-        <div class="history-item-name">${e.subject || ''}${e.chapter && e.chapter !== 'Full Syllabus' ? ' · ' + e.chapter : ''}</div>
-        <div class="history-item-time">${e.date}<br>${e.timestamp}</div>
+        <div class="history-item-name">${e.subject || 'Paper'}${e.chapter && e.chapter !== 'Full Syllabus' ? '<br><small style="font-family:var(--mono);font-weight:400;font-size:8px;color:var(--muted2)">' + e.chapter + '</small>' : ''}</div>
+        <div class="history-item-time">${e.date || ''}<br>${e.timestamp || ''}</div>
       </div>
       <div class="history-item-meta">
-        ${e.board ? `<span class="history-tag">${e.board.replace(' State Board','')}</span>` : ''}
-        <span class="history-tag">${e.marks || '?'}M</span>
-        <span class="history-tag">${e.difficulty || ''}</span>
+        ${e.board ? `<span class="history-tag tag-board">${e.board.replace(' State Board','')}</span>` : ''}
+        ${e.marks ? `<span class="history-tag">${e.marks}M</span>` : ''}
+        ${e.difficulty ? `<span class="history-tag">${e.difficulty}</span>` : ''}
       </div>
       <div class="history-item-btns">
-        <button class="history-dl-btn paper" onclick="downloadFromHistory(${idx}, false)">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Paper PDF
+        <button class="history-dl-btn" onclick="downloadFromHistory(${idx}, false)">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Paper
         </button>
         ${e.answerKey ? `<button class="history-dl-btn key" onclick="downloadFromHistory(${idx}, true)">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> + Key
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>+ Key
         </button>` : ''}
       </div>
-    </div>`).join('');
+    </div>`).join('') + '</div>';
 }
 
 window.clearHistory = function() {
@@ -549,13 +586,25 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
 window.downloadPDF = function(withKey) {
   const d = window._pdfDirect;
   if (d) {
-    const b64 = withKey ? (d.withKey || d.paper) : (d.paper || d.withKey);
-    if (b64 && _b64Download(b64, _safeName(d, withKey))) { showToast(withKey ? 'Key PDF downloaded ✓' : 'Paper downloaded ✓'); return; }
+    // withKey=false → paper-only (pdf_b64, no answer key appended)
+    // withKey=true  → paper + answer key (pdf_key_b64)
+    const b64 = withKey ? d.withKey : d.paper;
+    if (b64 && _b64Download(b64, _safeName(d, withKey))) {
+      showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');
+      return;
+    }
   }
-  // Fallback to server
+  // Fallback: re-render on server
   if (!currentPaper?.trim()) { showToast('Generate a paper first'); return; }
-  const includeKey = withKey === true ? true : withKey === false ? false : (document.getElementById('includeKey')?.checked || false);
-  triggerPDFDownload({ paper:currentPaper, answer_key:currentAnswerKey||'', subject:currentMeta.subject, chapter:currentMeta.chapter!=='Full Syllabus'?currentMeta.chapter:'', board:currentMeta.board, includeKey, marks:currentMeta.marks }, currentMeta.board, currentMeta.subject, currentMeta.chapter, includeKey);
+  triggerPDFDownload({
+    paper:      currentPaper,
+    answer_key: currentAnswerKey || '',
+    subject:    currentMeta.subject,
+    chapter:    currentMeta.chapter !== 'Full Syllabus' ? currentMeta.chapter : '',
+    board:      currentMeta.board,
+    includeKey: !!withKey,
+    marks:      currentMeta.marks
+  }, currentMeta.board, currentMeta.subject, currentMeta.chapter, !!withKey);
 };
 
 function copyPaper() {
@@ -570,7 +619,9 @@ function showSuccessPanel() {
   const dk = document.getElementById('dlWithKey');
   const d  = window._pdfDirect;
   if (me) me.textContent = [d?.board, d?.subject, (d?.chapter && d.chapter !== 'Full Syllabus') ? d.chapter : null].filter(Boolean).join(' · ') || 'Downloaded';
-  if (dk) dk.style.display = (d?.withKey && d.withKey !== d.paper) ? 'flex' : 'none';
+  // Show "+ Answer Key" button whenever the server returned a key PDF
+  // The key PDF (withKey) always exists as long as AI generated an answer key
+  if (dk) dk.style.display = d?.withKey ? 'flex' : 'none';
   sp.style.display = 'block';
   sp.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
@@ -718,6 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── Hello popup ── */
   setTimeout(showHelloPopup, 600);
+
+  /* ── Font restore ── */
+  try { fontIdx = Math.min(parseInt(localStorage.getItem('fontIdx') || '0', 10), FONT_MODES.length-1); } catch {}
+  applyFont(fontIdx);
 
   /* ── Restore & apply theme ── */
   try {
@@ -873,16 +928,16 @@ document.addEventListener('DOMContentLoaded', () => {
    HELLO POPUP — shown once per session on load
 ══════════════════════════════════════════════════════════════ */
 const HELLO_JOKES = [
-  "Why did the student bring a ladder to school? Because he wanted to go to high school.",
-  "A student asked: 'Will we be tested on what we don't know?' Teacher: 'That's literally what a test is.'",
-  "Teacher: 'Name a liquid that cannot be frozen.' Student: 'Hot water.' Teacher: '...' Student: 'It becomes ice. So it was never frozen, it just became ice.'",
-  "Why do teachers wear sunglasses? Because their students are so bright.",
-  "Teacher: 'If you had 10 chocolates and I asked for 3, how many would you have?' Student: '10.' Teacher: 'Why?' Student: 'Because I wouldn't give you any.'",
-  "A student told the teacher: 'I don't deserve a zero.' Teacher replied: 'I know. But it's the lowest mark I can give.'",
-  "Teacher: 'Give me a sentence with the word 'defeat'.' Student: 'De-feet of de-dog are under de-table.'",
-  "Why did the math book look so sad? Because it had too many problems.",
-  "Teacher: 'You missed school yesterday, didn't you?' Student: 'Not really.'",
-  "Teacher: 'What do you call someone who keeps talking when nobody is listening?' Student: 'A teacher.'",
+  "A student told the teacher: 'I don't deserve a zero on this test.' The teacher agreed — and gave them a minus five.",
+  "Teaching is the only profession where you say 'I'll wait' to a room full of people who are not coming.",
+  "My student asked: 'Will this be on the exam?' I said: 'Everything is on the exam.' He said: 'Even what you said just now?' I said: 'Especially that.'",
+  "Day 1 of teaching: I am going to inspire these young minds. Day 200: Please just stop clicking your pen.",
+  "A student wrote 'I don't know' as the answer to every question. That is actually the most self-aware exam I have ever marked.",
+  "I asked the class to turn in their phones. They looked at me like I had asked for a kidney.",
+  "Student: 'Can I be excused? I need to use the bathroom.' Me: 'You had 40 minutes of free time before class.' Student: 'Yes but I was on my phone.'",
+  "The loudest sound in any school is the silence when a teacher asks 'does everyone understand?' and then adds 'this will be on the test.'",
+  "I once caught a student cheating. He had written the entire periodic table on his arm. For an English exam.",
+  "My class voted me 'Most Likely to Say One More Thing' for five years running. I have thoughts about that.",
 ];
 
 const DONE_JOKES = [
@@ -905,11 +960,11 @@ function showHelloPopup() {
   // Pick a random joke
   const jokeEl = document.getElementById('helloJoke');
   if (jokeEl) jokeEl.textContent = HELLO_JOKES[Math.floor(Math.random() * HELLO_JOKES.length)];
-  popup.style.display = 'flex';
+  popup.classList.add('visible');
 }
 window.closeHelloPopup = function() {
   const popup = document.getElementById('helloPopup');
-  if (popup) popup.style.display = 'none';
+  if (popup) popup.classList.remove('visible');
 };
 
 function showDonePopup(meta) {
@@ -922,7 +977,7 @@ function showDonePopup(meta) {
     const parts = [meta.subject, meta.board, meta.marks ? meta.marks+'M' : null].filter(Boolean);
     sub.textContent = parts.join(' · ');
   }
-  popup.style.display = 'flex';
+  popup.classList.add('visible');
 }
 window.closeDonePopup = function(download) {
   const popup = document.getElementById('donePopup');

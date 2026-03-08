@@ -237,6 +237,11 @@
         <span class="tb-hint" id="hintText">Select a paper type to begin</span>
       </div>
       <div class="tb-right">
+        <button class="font-btn" onclick="cycleFontMode()" title="Change font">
+          <span class="font-icon" id="fontIcon">A</span>
+          <span id="fontLabel">Serif</span>
+        </button>
+        <div class="tb-divider"></div>
         <button class="theme-mode-btn" onclick="toggleDarkMode()" title="Toggle day/night mode">
           <span class="mode-icon mode-sun" id="modeIcon">☀</span>
           <span class="mode-icon-label" id="modeLbl"></span>
@@ -288,13 +293,13 @@
           </div>
           <div class="type-grid">
             <div class="type-card" id="tile-state" onclick="selectType('state-board')" role="button" tabindex="0">
-              <span class="tc-icon">⬡</span>
+              <span class="tc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
               <div class="tc-name">State Board</div>
               <div class="tc-desc">AP/Telangana official pattern with Sections A, B, C and blueprint</div>
               <span class="tc-tag">AP · TS · SSC</span>
             </div>
             <div class="type-card" id="tile-comp" onclick="selectType('competitive')" role="button" tabindex="0">
-              <span class="tc-icon">◈</span>
+              <span class="tc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
               <div class="tc-name">Competitive</div>
               <div class="tc-desc">NTSE, NSO, IMO, IJSO — MCQ format with official marking schemes</div>
               <span class="tc-tag">NTSE · NSO · IMO</span>
@@ -350,23 +355,23 @@
           <div id="boardScopeRow" style="display:none">
             <div class="scope-grid">
               <div class="scope-card active" id="bscope-single" onclick="selectBoardScope('single')" role="button" tabindex="0">
-                <span class="sc-ico">◻</span><div class="sc-name">One Chapter</div><div class="sc-desc">Focused single-chapter paper</div>
+                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><div class="sc-name">One Chapter</div><div class="sc-desc">Focused single-chapter paper</div>
               </div>
               <div class="scope-card" id="bscope-all" onclick="selectBoardScope('all')" role="button" tabindex="0">
-                <span class="sc-ico">▣</span><div class="sc-name">All Chapters</div><div class="sc-desc">Full syllabus paper</div>
+                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><div class="sc-name">All Chapters</div><div class="sc-desc">Full syllabus paper</div>
               </div>
             </div>
           </div>
           <div id="compScopeRow" style="display:none">
             <div class="scope-grid">
               <div class="scope-card active" id="cscope-topic" onclick="selectCompScope('topic')" role="button" tabindex="0">
-                <span class="sc-ico">◎</span><div class="sc-name">One Topic</div><div class="sc-desc">Specific focus area</div>
+                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></span><div class="sc-name">One Topic</div><div class="sc-desc">Specific focus area</div>
               </div>
               <div class="scope-card" id="cscope-subject" onclick="selectCompScope('subject')" role="button" tabindex="0">
-                <span class="sc-ico">◉</span><div class="sc-name">Full Subject</div><div class="sc-desc">Entire subject covered</div>
+                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><div class="sc-name">Full Subject</div><div class="sc-desc">Entire subject covered</div>
               </div>
               <div class="scope-card" id="cscope-all" onclick="selectCompScope('all')" role="button" tabindex="0">
-                <span class="sc-ico">⬤</span><div class="sc-name">All Subjects</div><div class="sc-desc">Complete syllabus</div>
+                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><div class="sc-name">All Subjects</div><div class="sc-desc">Complete syllabus</div>
               </div>
             </div>
           </div>
@@ -515,45 +520,22 @@
 <script src="/static/js/app.js"></script>
 
 <!-- ═══ HELLO POPUP ══════════════════════════════════════════════ -->
-<div id="helloPopup" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(8,7,6,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center">
-  <div style="max-width:420px;width:90%;padding:40px 36px;border:1px solid rgba(200,169,110,.25);background:var(--ink2);position:relative;text-align:center">
-    <div style="font-family:var(--serif);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--ac);margin-bottom:20px">Welcome</div>
-    <div style="font-family:var(--serif);font-size:32px;font-weight:300;color:var(--bright);line-height:1.15;margin-bottom:6px">
-      Hello, <em style="color:var(--ac);font-style:italic">Teacher</em>
+<div id="helloPopup" class="popup-overlay">
+  <div class="popup-card">
+    <div class="popup-header">
+      <div class="popup-kicker">Welcome to ExamCraft</div>
+      <div class="popup-title">Hello, <em>Teacher</em></div>
+      <div class="popup-subtitle" style="margin-bottom:0">AI Examination System · 2026</div>
     </div>
-    <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:28px">ExamCraft · AI Examination System</div>
-    <div style="border:1px solid rgba(200,169,110,.15);background:rgba(200,169,110,.04);border-left:2px solid var(--ac);padding:14px 18px;margin-bottom:28px;text-align:left">
-      <div style="font-size:7.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ac);margin-bottom:8px">Joke of the day 😄</div>
-      <div id="helloJoke" style="font-family:var(--serif);font-size:15px;font-style:italic;color:var(--muted2);line-height:1.6"></div>
+    <div class="popup-joke-box">
+      <div class="popup-joke-label">Joke of the Day</div>
+      <div class="popup-joke-text" id="helloJoke"></div>
     </div>
-    <button onclick="closeHelloPopup()" style="width:100%;padding:14px;background:var(--ac);border:none;font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);letter-spacing:.02em">
-      Let's Create an Exam ✦
-    </button>
-    <div style="font-size:8px;color:var(--muted);margin-top:12px;letter-spacing:.06em">
-      Laxman Nimmagadda · laxmanchowday159@gmail.com
-    </div>
-  </div>
-</div>
-
-<!-- ═══ DONE POPUP ════════════════════════════════════════════════ -->
-<div id="donePopup" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(8,7,6,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center">
-  <div style="max-width:440px;width:90%;padding:40px 36px;border:1px solid rgba(92,152,112,.3);background:var(--ink2);position:relative;text-align:center">
-    <div style="font-size:44px;margin-bottom:12px;animation:ckPop .5s cubic-bezier(.22,1,.36,1)">✦</div>
-    <div style="font-family:var(--serif);font-size:28px;font-weight:300;color:var(--bright);line-height:1.2;margin-bottom:6px">
-      Paper <em style="color:var(--ac);font-style:italic">Ready!</em>
-    </div>
-    <div id="doneSubtitle" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:26px"></div>
-    <div style="border:1px solid rgba(200,169,110,.15);background:rgba(200,169,110,.04);border-left:2px solid var(--ac);padding:14px 18px;margin-bottom:24px;text-align:left">
-      <div style="font-size:7.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ac);margin-bottom:8px">Exam Wisdom</div>
-      <div id="doneJoke" style="font-family:var(--serif);font-size:14px;font-style:italic;color:var(--muted2);line-height:1.6"></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button onclick="closeDonePopup(false)" style="flex:1;padding:12px;background:none;border:1px solid var(--line2);font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase">
-        Close
+    <div class="popup-actions">
+      <button class="popup-btn-primary" onclick="closeHelloPopup()">
+        Start Creating ✦
       </button>
-      <button onclick="closeDonePopup(true)" style="flex:2;padding:12px;background:var(--ac);border:none;font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)">
-        Download PDF ↓
-      </button>
+      <div class="popup-byline">Laxman Nimmagadda · laxmanchowday159@gmail.com</div>
     </div>
   </div>
 </div>

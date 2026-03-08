@@ -335,7 +335,7 @@ def _capture_user_choices(data: dict) -> dict:
         "all_chapters":     data.get("all_chapters", False),
         "total_marks":      data.get("marks", "—"),
         "difficulty":       data.get("difficulty", "—"),
-        "include_answer_key": data.get("includeKey", False),
+        "include_answer_key": True,  # always generate key; PDF inclusion controlled separately
         "special_instructions": (data.get("suggestions") or "")[:300] or "—",
         "used_fallback":    data.get("use_fallback", False),
     }
