@@ -3134,25 +3134,58 @@ def generate():
         chapter_safe = chapter if chapter and chapter != "Full Syllabus" else ""
 
         pdf_b64 = pdf_key_b64 = None
+        pdf_error = None
+        
         try:
+            print("[PDF] Generating question paper PDF...")
             pdf_bytes = create_exam_pdf(
                 paper, subject, chapter_safe,
                 board=board, answer_key=key,
                 include_key=False, diagrams=diagrams,
                 marks=marks_safe)
-            pdf_b64 = base64.b64encode(pdf_bytes).decode()
-        except Exception:
+            
+            if not pdf_bytes:
+                pdf_error = "PDF generation returned empty bytes"
+                print(f"[PDF] ERROR: {pdf_error}")
+            elif len(pdf_bytes) < 1000:
+                pdf_error = f"PDF too small ({len(pdf_bytes)} bytes)"
+                print(f"[PDF] ERROR: {pdf_error}")
+            elif not pdf_bytes.startswith(b'%PDF'):
+                pdf_error = "Output is not a valid PDF"
+                print(f"[PDF] ERROR: {pdf_error}")
+            else:
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                print(f"[PDF] SUCCESS: Generated {len(pdf_bytes)} bytes → {len(pdf_b64)} chars base64")
+        except Exception as e:
+            pdf_error = str(e)
+            print(f"[PDF] EXCEPTION: {pdf_error}")
+            import traceback
+            traceback.print_exc()
             pdf_b64 = None
 
         if key and key.strip():
             try:
+                print("[PDF] Generating answer key PDF...")
                 pdf_key_bytes = create_exam_pdf(
                     paper, subject, chapter_safe,
                     board=board, answer_key=key,
                     include_key=True, diagrams=diagrams,
                     marks=marks_safe)
-                pdf_key_b64 = base64.b64encode(pdf_key_bytes).decode()
-            except Exception:
+                
+                if not pdf_key_bytes:
+                    print("[PDF] Key PDF: generation returned empty")
+                    pdf_key_b64 = pdf_b64
+                elif len(pdf_key_bytes) < 1000:
+                    print(f"[PDF] Key PDF: too small ({len(pdf_key_bytes)} bytes)")
+                    pdf_key_b64 = pdf_b64
+                elif not pdf_key_bytes.startswith(b'%PDF'):
+                    print("[PDF] Key PDF: invalid format")
+                    pdf_key_b64 = pdf_b64
+                else:
+                    pdf_key_b64 = base64.b64encode(pdf_key_bytes).decode()
+                    print(f"[PDF] Key PDF SUCCESS: {len(pdf_key_bytes)} bytes → {len(pdf_key_b64)} chars base64")
+            except Exception as e:
+                print(f"[PDF] Key PDF exception: {e}")
                 pdf_key_b64 = pdf_b64
 
         return jsonify({
