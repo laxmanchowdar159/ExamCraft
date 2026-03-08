@@ -600,10 +600,13 @@ async function generatePaper() {
       console.warn('History save failed:', he);
     }
 
-    // Auto-download via b64 if available, else fallback to /download-pdf
-    if (window._pdfDirect.paper) {
-      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
-    } else {
+    // Auto-download is intentionally skipped here: this code runs after an
+    // await fetch(), which is an async (non-trusted) context.  Browsers
+    // silently block programmatic a.click() downloads in that context with
+    // no catchable error.  The paperReadyPopup (shown above) already has
+    // "Paper PDF" and "+ Answer Key" buttons that trigger from a real user
+    // click (trusted gesture) and will download correctly.
+    if (!window._pdfDirect.paper) {
       showToast('Paper generated — click "Paper PDF" to download');
     }
 
