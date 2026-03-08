@@ -1005,6 +1005,14 @@ _FIG_JUNK = re.compile(
     re.IGNORECASE
 )
 
+# Descriptions that mean "no diagram needed" — suppress box and label entirely
+_NO_DIAG = re.compile(
+    r'^(not\s+applicable|none|n\s*/?\s*a|not\s+needed|no\s+diagram'
+    r'|not\s+required|not\s+relevant|no\s+figure|no\s+image'
+    r'|not\s+available|not\s+necessary)\s*[.\s]*$',
+    re.IGNORECASE
+)
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # MAIN PDF BUILDER
@@ -1344,7 +1352,8 @@ def create_exam_pdf(text, subject, chapter, board="",
             # Remove trailing angle noise like "Angle A = 60° Angle B = 60°..."
             desc = re.sub(r'(?:\.\s*)?(?:Angle\s+[A-Z]\s*=?\s*\d+°?\s*){1,}$', '', desc).strip()
             desc = re.sub(r'(?:\s*\d+°){2,}', '', desc).strip()
-            if desc:
+            # Skip if AI said "not applicable", "none", "n/a", etc.
+            if desc and not _NO_DIAG.match(desc):
                 elems.append(Paragraph(f'<i>Figure: {desc}</i>', st["DiagLabel"]))
             continue
 
@@ -1360,6 +1369,9 @@ def create_exam_pdf(text, subject, chapter, board="",
             desc    = re.sub(r'^DIAGRAM:\s*', '', label, flags=re.I).strip()
             # Sanitise desc — drop any angle/measurement noise that crept in
             desc = re.sub(r'(?:\s*\d+°){2,}', '', desc).strip()
+            # Skip entirely if AI said "not applicable", "none", "n/a", etc.
+            if _NO_DIAG.match(desc):
+                continue
             elems.append(Paragraph(f'<i>Figure: {desc}</i>', st["DiagLabel"]))
 
             drawing = None
@@ -2185,6 +2197,7 @@ Difficulty: {diff}
    • Similarity question → [DIAGRAM: two similar triangles with corresponding sides marked, scale factor shown]
    • Trigonometry → [DIAGRAM: right-angled triangle with angle θ, opposite side, adjacent side, hypotenuse labelled]
    Include [DIAGRAM:] tags in AT LEAST 40% of Part B questions.
+   ⛔ NEVER output [DIAGRAM: Not applicable], [DIAGRAM: None], [DIAGRAM: N/A], or any similar "no diagram" tag. If a question does not need a diagram, simply omit the [DIAGRAM:] tag entirely — do NOT write a placeholder.
 9. TABLES: When a question involves data, values, or comparison — format as a pipe table (|col|col|...).
 10. ⚠ DO NOT write any GENERAL INSTRUCTIONS block. Never output numbered lines like "1. Answer all questions..." at the paper top. Only inline section instructions in parentheses.
 
@@ -2277,6 +2290,7 @@ Q95–100 : Mixed / Analytical Reasoning (6 questions)
    | 15 | 4  | ?  |
 5. CRITICAL — DIAGRAMS: Non-verbal and Pattern questions MUST include a [DIAGRAM: description] tag that describes the figure series clearly. Use it for figure sequences, geometric patterns, Venn arrangements. Example:
    [DIAGRAM: Three figures in sequence — (a) circle with triangle inside, (b) square with circle inside, (c) pentagon with square inside — find next]
+   ⛔ NEVER output [DIAGRAM: Not applicable], [DIAGRAM: None], or similar — omit the tag entirely if no diagram is needed.
 6. Venn Diagram questions: clearly describe which region each category occupies (e.g. "Circle = Doctors, Rectangle = Educated, intersection area = both").
 7. Number series gaps: write the series on ONE line with _____ for the missing term.
 8. Blood relation passages: include at least 3–4 relationship facts before posing the question.
