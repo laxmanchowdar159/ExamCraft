@@ -583,7 +583,7 @@ async function generatePaper() {
     if (window._pdfDirect.paper) _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
 
     addToHistory(currentMeta, currentPaper, currentAnswerKey);
-    showSuccessPanel();
+    showPaperReadyPopup();
     launchConfetti();
     setActiveStep(6);
 
@@ -651,19 +651,37 @@ function copyPaper() {
   navigator.clipboard.writeText(currentPaper).then(() => showToast('Copied ✓')).catch(() => showToast('Copy failed'));
 }
 
-/* ── Success panel ─────────────────────────────────────────── */
-function showSuccessPanel() {
-  const sp = document.getElementById('successPanel'); if (!sp) return;
-  const me = document.getElementById('successMeta');
-  const dk = document.getElementById('dlWithKey');
-  const d  = window._pdfDirect;
-  if (me) me.textContent = [d?.board, d?.subject, (d?.chapter && d.chapter !== 'Full Syllabus') ? d.chapter : null].filter(Boolean).join(' · ') || 'Downloaded';
-  // Show "+ Answer Key" button whenever the server returned a key PDF
-  // The key PDF (withKey) always exists as long as AI generated an answer key
-  if (dk) dk.style.display = d?.withKey ? 'flex' : 'none';
-  sp.style.display = 'block';
-  sp.scrollIntoView({ behavior:'smooth', block:'nearest' });
+/* ── Paper Ready Popup ─────────────────────────────────────────── */
+function showPaperReadyPopup() {
+  const popup = document.getElementById('paperReadyPopup'); if (!popup) return;
+  const d = window._pdfDirect;
+  const meta = document.getElementById('prMeta');
+  if (meta) {
+    const parts = [d?.board, d?.subject, (d?.chapter && d.chapter !== 'Full Syllabus') ? d.chapter : null, currentMeta.marks ? currentMeta.marks + ' Marks' : null].filter(Boolean);
+    meta.textContent = parts.join(' · ') || 'Paper Generated';
+  }
+  const keyBtn = document.getElementById('prKeyBtn');
+  if (keyBtn) keyBtn.style.display = d?.withKey ? 'flex' : 'none';
+  popup.style.display = 'flex';
+  popup.classList.add('visible');
+  // Animate in
+  const card = popup.querySelector('.paper-ready-card');
+  if (card) { card.style.transform = 'scale(0.88) translateY(24px)'; card.style.opacity = '0';
+    requestAnimationFrame(() => { card.style.transition = 'transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.35s ease'; card.style.transform = ''; card.style.opacity = '1'; }); }
 }
+window.closePaperReadyPopup = function() {
+  const popup = document.getElementById('paperReadyPopup');
+  if (!popup) return;
+  popup.classList.remove('visible');
+  setTimeout(() => { popup.style.display = 'none'; }, 300);
+};
+window.trackPRDownload = function(btn) {
+  btn.innerHTML = btn.innerHTML.replace(/Download/, 'Downloaded ✓');
+  btn.style.opacity = '0.7';
+};
+
+/* Keep legacy showSuccessPanel for any other callers */
+function showSuccessPanel() { showPaperReadyPopup(); }
 
 window.generateAnother = function() {
   const sp = document.getElementById('successPanel'); if (sp) sp.style.display = 'none';
@@ -811,6 +829,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Hello popup ── */
   setTimeout(showHelloPopup, 600);
 
+  /* ── Animated background ── */
+  initParticles();
+  initFloatingShapes();
+
   /* ── Font restore ── */
   try { fontIdx = Math.min(parseInt(localStorage.getItem('fontIdx') || '0', 10), FONT_MODES.length-1); } catch {}
   applyFont(fontIdx);
@@ -844,8 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Step init ── */
   setActiveStep(1);
 
-  /* ── Hero joke rotation ── */
-  setInterval(rotateHeroJoke, 7500);
+  /* ── Hero joke rotation disabled (joke box removed) ── */
 
   /* Loading is handled by unified showLoading defined at bottom of file */
 
@@ -982,21 +1003,99 @@ const DONE_JOKES = [
   "Paper done! Pro tip: the hardest question is always the one worth the fewest marks.",
 ];
 
-let _helloShown = false;
 function showHelloPopup() {
   if (_helloShown) return;
   _helloShown = true;
   const popup = document.getElementById('helloPopup');
   if (!popup) return;
-  // Pick a random joke
-  const jokeEl = document.getElementById('helloJoke');
-  if (jokeEl) jokeEl.textContent = HELLO_JOKES[Math.floor(Math.random() * HELLO_JOKES.length)];
   popup.classList.add('visible');
 }
 window.closeHelloPopup = function() {
   const popup = document.getElementById('helloPopup');
   if (popup) popup.classList.remove('visible');
 };
+
+/* ══════════════════════════════════════════════════════════════
+   PARTICLE SYSTEM — Animated floating background particles
+══════════════════════════════════════════════════════════════ */
+function initParticles() {
+  const canvas = document.getElementById('particle-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+
+  const SYMBOLS = ['✦', '◆', '◈', '⬡', '◇', '⬢', '✧', '⬟'];
+  const count = Math.min(55, Math.floor(window.innerWidth / 28));
+
+  function getRootColor() {
+    const s = getComputedStyle(document.documentElement);
+    return s.getPropertyValue('--ac').trim() || '#C8A96E';
+  }
+
+  const particles = Array.from({ length: count }, (_, i) => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    vx: (Math.random() - 0.5) * 0.28,
+    vy: -0.15 - Math.random() * 0.3,
+    size: 7 + Math.random() * 9,
+    opacity: 0.04 + Math.random() * 0.12,
+    symbol: SYMBOLS[i % SYMBOLS.length],
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.003 + Math.random() * 0.007,
+    drift: (Math.random() - 0.5) * 0.006,
+    wobble: Math.random() * 0.5,
+  }));
+
+  let animFrame;
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const baseColor = getRootColor();
+    particles.forEach(p => {
+      p.phase += p.speed;
+      p.x += p.vx + Math.sin(p.phase * 0.7) * p.wobble * 0.4;
+      p.y += p.vy;
+      if (p.y < -30) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+      if (p.x < -30) p.x = canvas.width + 10;
+      if (p.x > canvas.width + 30) p.x = -10;
+      const pulse = 0.6 + 0.4 * Math.sin(p.phase);
+      ctx.save();
+      ctx.globalAlpha = p.opacity * pulse;
+      ctx.font = `${p.size}px serif`;
+      ctx.fillStyle = baseColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.symbol, p.x, p.y);
+      ctx.restore();
+    });
+    animFrame = requestAnimationFrame(draw);
+  }
+  draw(0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FLOATING GEOMETRIC SHAPES — Slow drifting bg shapes
+══════════════════════════════════════════════════════════════ */
+function initFloatingShapes() {
+  const container = document.getElementById('bgFloats');
+  if (!container) return;
+  const shapes = [
+    { cls: 'bf-hex',    size: 160, x: 8,  y: 15, dur: 22, delay: 0   },
+    { cls: 'bf-circle', size: 90,  x: 85, y: 8,  dur: 18, delay: -5  },
+    { cls: 'bf-tri',    size: 120, x: 72, y: 70, dur: 26, delay: -10 },
+    { cls: 'bf-ring',   size: 200, x: 15, y: 65, dur: 30, delay: -15 },
+    { cls: 'bf-hex',    size: 70,  x: 50, y: 45, dur: 20, delay: -8  },
+    { cls: 'bf-circle', size: 130, x: 93, y: 50, dur: 24, delay: -3  },
+  ];
+  shapes.forEach(s => {
+    const el = document.createElement('div');
+    el.className = `bg-float ${s.cls}`;
+    el.style.cssText = `width:${s.size}px;height:${s.size}px;left:${s.x}%;top:${s.y}%;animation-duration:${s.dur}s;animation-delay:${s.delay}s`;
+    container.appendChild(el);
+  });
+}
 
 function showDonePopup(meta) {
   const popup = document.getElementById('donePopup');

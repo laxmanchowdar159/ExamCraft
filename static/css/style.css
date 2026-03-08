@@ -1030,3 +1030,164 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 @keyframes badgeFade {
   0%,100% { opacity:1 } 50% { opacity:.7 }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLE CANVAS + FLOATING BG SHAPES
+═══════════════════════════════════════════════════════════════ */
+#particle-canvas {
+  position:fixed; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:0;
+}
+
+.bg-floats {
+  position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0;
+}
+
+.bg-float {
+  position:absolute; border-radius:50%;
+  border:1px solid rgba(200,169,110,.07);
+  animation:floatDrift linear infinite;
+  opacity:0;
+}
+.bg-float.bf-hex  { border-radius:0; clip-path:polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%); border:none; background:rgba(200,169,110,.03); animation-name:floatDriftSpin; }
+.bg-float.bf-tri  { border-radius:0; clip-path:polygon(50% 0%,100% 100%,0% 100%); border:none; background:rgba(200,169,110,.025); animation-name:floatDriftSpin; }
+.bg-float.bf-ring { background:transparent; border:1px solid rgba(200,169,110,.06); }
+.bg-float.bf-circle { background:radial-gradient(circle, rgba(200,169,110,.04) 0%, transparent 70%); border:none; }
+
+@keyframes floatDrift {
+  0%   { opacity:0; transform:translateY(0px) scale(1); }
+  10%  { opacity:1; }
+  90%  { opacity:1; }
+  100% { opacity:0; transform:translateY(-60px) scale(1.05); }
+}
+@keyframes floatDriftSpin {
+  0%   { opacity:0; transform:translateY(0px) rotate(0deg) scale(1); }
+  10%  { opacity:1; }
+  90%  { opacity:1; }
+  100% { opacity:0; transform:translateY(-50px) rotate(120deg) scale(1.04); }
+}
+
+/* Extra orbs */
+.orb-d {
+  background:radial-gradient(circle, var(--orb4,#18080a) 0%, transparent 70%);
+  width:420px; height:420px;
+  top:40%; right:-100px;
+  animation:orbFloat 20s ease-in-out infinite reverse;
+}
+.orb-e {
+  background:radial-gradient(circle, var(--orb5,#080d18) 0%, transparent 70%);
+  width:300px; height:300px;
+  bottom:10%; left:30%;
+  animation:orbFloat 25s ease-in-out infinite 8s;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAPER READY POPUP
+═══════════════════════════════════════════════════════════════ */
+#paperReadyPopup {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.65); backdrop-filter:blur(12px);
+  z-index:9000; align-items:center; justify-content:center;
+  padding:20px;
+}
+#paperReadyPopup.visible { display:flex; }
+
+.paper-ready-card {
+  position:relative; max-width:460px; width:100%;
+  background:var(--card,#181208); border:1px solid var(--line);
+  border-radius:14px; padding:36px 32px 32px;
+  display:flex; flex-direction:column; align-items:center; gap:20px;
+  box-shadow:0 0 60px rgba(0,0,0,.6), 0 0 120px var(--acg,rgba(200,169,110,.2));
+}
+
+.pr-success-ring {
+  width:72px; height:72px; border-radius:50%;
+  border:2px solid var(--ac);
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(200,169,110,.08);
+  box-shadow:0 0 30px var(--acg,rgba(200,169,110,.3));
+  animation:prRingPulse 2s ease-in-out infinite;
+}
+@keyframes prRingPulse {
+  0%,100% { box-shadow:0 0 20px var(--acg); }
+  50%      { box-shadow:0 0 40px var(--acg), 0 0 60px var(--acg); }
+}
+.pr-check-icon {
+  font-size:28px; color:var(--ac); font-weight:300; line-height:1;
+}
+
+.pr-header { text-align:center; }
+.pr-kicker { font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.pr-title  { font-size:22px; font-family:var(--serif); font-weight:600; color:var(--text); line-height:1.2; }
+.pr-title em { color:var(--ac); font-style:italic; }
+.pr-meta   { font-size:11px; color:var(--muted); margin-top:6px; font-family:var(--mono); }
+
+.pr-history-notice {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(200,169,110,.07); border:1px solid rgba(200,169,110,.15);
+  border-radius:8px; padding:10px 14px;
+  font-size:11px; color:var(--muted2); line-height:1.5; width:100%;
+}
+.pr-history-notice svg { flex-shrink:0; color:var(--ac); }
+.pr-history-notice strong { color:var(--ac); font-weight:600; }
+
+.pr-actions {
+  display:flex; flex-direction:column; gap:10px; width:100%;
+}
+.pr-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:11px 18px; border-radius:8px; font-size:12px;
+  font-family:var(--mono); letter-spacing:.06em;
+  cursor:pointer; transition:all .25s; border:none;
+}
+.pr-btn-main {
+  background:var(--ac); color:#0a0800;
+  font-weight:700;
+  box-shadow:0 4px 20px var(--acg);
+}
+.pr-btn-main:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 6px 28px var(--acg); }
+.pr-btn-key {
+  background:transparent; color:var(--ac);
+  border:1px solid var(--ac);
+}
+.pr-btn-key:hover { background:rgba(200,169,110,.1); transform:translateY(-1px); }
+.pr-btn-new {
+  background:transparent; color:var(--muted2);
+  border:1px solid var(--line);
+}
+.pr-btn-new:hover { color:var(--text); border-color:var(--muted); }
+
+.pr-close-btn {
+  position:absolute; top:14px; right:16px;
+  background:transparent; border:none; color:var(--muted);
+  font-size:14px; cursor:pointer; padding:4px 6px;
+  line-height:1; transition:color .2s;
+}
+.pr-close-btn:hover { color:var(--text); }
+
+/* ═══════════════════════════════════════════════════════════════
+   HELLO POPUP — Cleaned up (no joke box)
+═══════════════════════════════════════════════════════════════ */
+.popup-sparkle-ring {
+  width:64px; height:64px; border-radius:50%;
+  border:1.5px solid var(--ac);
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(200,169,110,.07);
+  animation:prRingPulse 3s ease-in-out infinite;
+  margin:0 auto 4px;
+}
+.popup-logo-glyph {
+  font-size:24px; color:var(--ac); line-height:1;
+}
+.popup-features-row {
+  display:flex; gap:16px; justify-content:center; width:100%;
+  margin:4px 0;
+}
+.popup-feat {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-size:10px; color:var(--muted); letter-spacing:.06em; font-family:var(--mono);
+}
+.popup-feat-icon { font-size:20px; }
+
+/* Remove old joke box styling if present */
+.popup-joke-box { display:none !important; }

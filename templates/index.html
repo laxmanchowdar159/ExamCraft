@@ -19,9 +19,12 @@
 <body>
 
 <div id="bg-layer" aria-hidden="true">
+  <canvas id="particle-canvas"></canvas>
   <div class="bg-mesh"></div><div class="bg-grid"></div>
   <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
+  <div class="bg-orb orb-d"></div><div class="bg-orb orb-e"></div>
   <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
+  <div class="bg-floats" id="bgFloats"></div>
 </div>
 <div id="notificationToast" role="status" aria-live="polite"></div>
 
@@ -338,12 +341,6 @@
           </div>
           <h1 class="hero-h1">Generate a perfect<br><em>exam paper</em> in seconds</h1>
           <p class="hero-sub">Curriculum-aligned papers for AP/TS State Board and national competitive exams. Configure below, click Generate, receive your PDF instantly.</p>
-          <div class="joke-box">
-            <div>
-              <div class="joke-badge">Examination Wisdom</div>
-              <div id="heroJoke">Why do students write so small? To leave room for regrets.</div>
-            </div>
-          </div>
         </div>
 
         <!-- I — Paper Type -->
@@ -584,14 +581,18 @@
 <!-- ═══ HELLO POPUP ══════════════════════════════════════════════ -->
 <div id="helloPopup" class="popup-overlay">
   <div class="popup-card">
+    <div class="popup-sparkle-ring">
+      <div class="popup-logo-glyph">✦</div>
+    </div>
     <div class="popup-header">
       <div class="popup-kicker">Welcome to ExamCraft</div>
       <div class="popup-title">Hello, <em>Teacher</em></div>
-      <div class="popup-subtitle" style="margin-bottom:0">AI Examination System · 2026</div>
+      <div class="popup-subtitle">AI Examination System · 2026</div>
     </div>
-    <div class="popup-joke-box">
-      <div class="popup-joke-label">Joke of the Day</div>
-      <div class="popup-joke-text" id="helloJoke"></div>
+    <div class="popup-features-row">
+      <div class="popup-feat"><span class="popup-feat-icon">📄</span><span>Instant PDF</span></div>
+      <div class="popup-feat"><span class="popup-feat-icon">🎯</span><span>Board-Aligned</span></div>
+      <div class="popup-feat"><span class="popup-feat-icon">🔑</span><span>Answer Key</span></div>
     </div>
     <div class="popup-actions">
       <button class="popup-btn-primary" onclick="closeHelloPopup()">
@@ -599,6 +600,39 @@
       </button>
       <div class="popup-byline">Laxman Nimmagadda · laxmanchowday159@gmail.com</div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ PAPER READY POPUP ══════════════════════════════════════ -->
+<div id="paperReadyPopup" class="popup-overlay" style="display:none">
+  <div class="popup-card paper-ready-card">
+    <div class="pr-success-ring">
+      <div class="pr-check-icon">✓</div>
+    </div>
+    <div class="pr-header">
+      <div class="pr-kicker">Paper Generated Successfully</div>
+      <div class="pr-title">Your Exam is <em>Ready</em></div>
+      <div class="pr-meta" id="prMeta">—</div>
+    </div>
+    <div class="pr-history-notice">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      This paper has been saved to your <strong>History</strong> — accessible from the sidebar anytime.
+    </div>
+    <div class="pr-actions">
+      <button class="pr-btn pr-btn-main" onclick="downloadPDF(false); trackPRDownload(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Paper PDF
+      </button>
+      <button class="pr-btn pr-btn-key" id="prKeyBtn" style="display:none" onclick="downloadPDF(true); trackPRDownload(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        Download with Answer Key
+      </button>
+      <button class="pr-btn pr-btn-new" onclick="closePaperReadyPopup(); generateAnother()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+        Generate Another
+      </button>
+    </div>
+    <button class="pr-close-btn" onclick="closePaperReadyPopup()" aria-label="Close">✕</button>
   </div>
 </div>
 

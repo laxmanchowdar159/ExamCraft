@@ -718,8 +718,7 @@ class ExamCanvas:
 
         canvas.setFont(_f("Reg"), 7.5)
         canvas.setFillColor(C_GREY)
-        canvas.drawString(LM, 10, "ExamCraft")
-        canvas.drawRightString(RM, 10, f"Page  {doc.page}")
+        canvas.drawCentredString((LM + RM) / 2, 10, f"Page  {doc.page}")
 
         canvas.restoreState()
 
