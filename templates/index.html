@@ -30,60 +30,83 @@
 <div id="loadingModal" role="dialog" aria-modal="true" aria-label="Generating exam paper">
   <div class="loader-layout">
 
-    <!-- Left: Current selection recap -->
+    <!-- Left: Big status display -->
     <div class="loader-left">
       <div class="loader-left-inner">
-        <div class="loader-recap-title">Generating your<br><em>perfect paper</em></div>
-        <div class="loader-recap-sub">Gemini 2.5 Flash · LangChain · AP/TS Board</div>
 
-        <div class="recap-steps" id="recapSteps">
-          <div class="recap-step" id="recap-type">
-            <div class="recap-step-icon">I</div>
-            <div class="recap-step-info">
-              <div class="recap-step-label">Paper Type</div>
-              <div class="recap-step-val" id="recap-type-val">—</div>
+        <!-- Top label -->
+        <div class="ls-label-top">
+          <span class="ls-pulse-dot"></span>
+          <span class="ls-label-txt">Gemini AI · Generating</span>
+        </div>
+
+        <!-- Giant heading -->
+        <div class="ls-big-heading">
+          Building your<br><em>exam paper</em>
+        </div>
+
+        <!-- Live elapsed timer -->
+        <div class="ls-timer-row">
+          <div class="ls-timer" id="loaderTimer">00:00</div>
+          <div class="ls-timer-label">elapsed</div>
+        </div>
+
+        <!-- Divider -->
+        <div class="ls-divider"></div>
+
+        <!-- Big step list -->
+        <div class="ls-steps-big" id="lsStepsBig">
+          <div class="ls-step-big" id="ls1">
+            <div class="ls-step-num">01</div>
+            <div class="ls-step-body">
+              <div class="ls-step-name">Parsing your requirements</div>
+              <div class="ls-step-sub">Reading board, subject &amp; difficulty settings</div>
             </div>
+            <div class="ls-step-state" id="ls1-state"></div>
           </div>
-          <div class="recap-step" id="recap-board">
-            <div class="recap-step-icon">II</div>
-            <div class="recap-step-info">
-              <div class="recap-step-label">Board / Exam</div>
-              <div class="recap-step-val" id="recap-board-val">—</div>
+          <div class="ls-step-big" id="ls2">
+            <div class="ls-step-num">02</div>
+            <div class="ls-step-body">
+              <div class="ls-step-name">Generating questions</div>
+              <div class="ls-step-sub">Crafting curriculum-aligned questions with AI</div>
             </div>
+            <div class="ls-step-state" id="ls2-state"></div>
           </div>
-          <div class="recap-step" id="recap-scope">
-            <div class="recap-step-icon">III</div>
-            <div class="recap-step-info">
-              <div class="recap-step-label">Scope</div>
-              <div class="recap-step-val" id="recap-scope-val">—</div>
+          <div class="ls-step-big" id="ls3">
+            <div class="ls-step-num">03</div>
+            <div class="ls-step-body">
+              <div class="ls-step-name">Writing answer key</div>
+              <div class="ls-step-sub">Generating complete solutions &amp; marking scheme</div>
             </div>
+            <div class="ls-step-state" id="ls3-state"></div>
           </div>
-          <div class="recap-step" id="recap-subject">
-            <div class="recap-step-icon">IV</div>
-            <div class="recap-step-info">
-              <div class="recap-step-label">Subject / Chapter</div>
-              <div class="recap-step-val" id="recap-subject-val">—</div>
+          <div class="ls-step-big" id="ls4">
+            <div class="ls-step-num">04</div>
+            <div class="ls-step-body">
+              <div class="ls-step-name">Formatting layout</div>
+              <div class="ls-step-sub">Applying board-standard sections &amp; structure</div>
             </div>
+            <div class="ls-step-state" id="ls4-state"></div>
           </div>
-          <div class="recap-step" id="recap-marks">
-            <div class="recap-step-icon">V</div>
-            <div class="recap-step-info">
-              <div class="recap-step-label">Marks · Difficulty</div>
-              <div class="recap-step-val" id="recap-marks-val">—</div>
+          <div class="ls-step-big" id="ls5">
+            <div class="ls-step-num">05</div>
+            <div class="ls-step-body">
+              <div class="ls-step-name">Building your PDF</div>
+              <div class="ls-step-sub">Rendering print-ready examination document</div>
             </div>
+            <div class="ls-step-state" id="ls5-state"></div>
           </div>
         </div>
 
-        <div class="loader-progress">
-          <div class="sb-lbl" style="margin-bottom:10px">AI Progress</div>
-          <div class="loader-steps">
-            <div class="load-step" id="ls1"><div class="ls-dot"></div><span>Parsing your requirements</span></div>
-            <div class="load-step" id="ls2"><div class="ls-dot"></div><span>Generating questions with AI</span></div>
-            <div class="load-step" id="ls3"><div class="ls-dot"></div><span>Writing the answer key</span></div>
-            <div class="load-step" id="ls4"><div class="ls-dot"></div><span>Formatting the paper layout</span></div>
-            <div class="load-step" id="ls5"><div class="ls-dot"></div><span>Building your PDF</span></div>
-          </div>
+        <!-- Bottom meta strip -->
+        <div class="ls-meta-strip">
+          <span id="recap-subject-val" class="ls-meta-val">—</span>
+          <span class="ls-meta-sep">·</span>
+          <span id="recap-board-val" class="ls-meta-val">—</span>
+          <span class="ls-meta-sep">·</span>
+          <span id="recap-marks-val" class="ls-meta-val">—</span>
         </div>
+
       </div>
     </div>
 
@@ -147,20 +170,41 @@
           </div>
         </div>
         <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
-      </div>
-
-      <!-- ★★★ HISTORY — TOP PRIORITY, ALWAYS VISIBLE ★★★ -->
-      <div class="sb-hist">
-        <div class="hist-hdr">
-          <div class="hist-lbl">Paper History <span class="hist-count" id="histCount">0</span></div>
-          <button class="hist-clear" onclick="clearHistory()">Clear all</button>
+        <div class="sb-caps">
+          <span class="sb-cap-tag">2 State Boards</span>
+          <span class="sb-cap-dot">·</span>
+          <span class="sb-cap-tag">4 Competitive</span>
+          <span class="sb-cap-dot">·</span>
+          <span class="sb-cap-tag">Classes 6–12</span>
         </div>
-        <div id="historyList"></div>
+        <div class="sb-lifetime-row">
+          <span class="sb-lifetime-lbl">Papers Generated (All Time)</span>
+          <span class="sb-lifetime-val" id="lifetimeCount">0</span>
+        </div>
       </div>
 
-      <!-- ★ Current Selection Panel ★ -->
+      <!-- ① WORKFLOW -->
+      <div class="sb-progress">
+        <div class="sb-lbl sb-lbl-workflow">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Workflow
+        </div>
+        <div class="step active" id="step-1"><div class="step-num">1</div><span>Paper Type</span></div>
+        <div class="step-conn" id="conn-1"></div>
+        <div class="step" id="step-2"><div class="step-num">2</div><span>Board / Exam</span></div>
+        <div class="step-conn" id="conn-2"></div>
+        <div class="step" id="step-3"><div class="step-num">3</div><span>Scope</span></div>
+        <div class="step-conn" id="conn-3"></div>
+        <div class="step" id="step-4"><div class="step-num">4</div><span>Paper Details</span></div>
+        <div class="step-conn" id="conn-4"></div>
+        <div class="step" id="step-5"><div class="step-num">5</div><span>Marks &amp; Level</span></div>
+        <div class="step-conn" id="conn-5"></div>
+        <div class="step" id="step-6"><div class="step-num">6</div><span>Generate &amp; Download</span></div>
+      </div>
+
+      <!-- ② CURRENT STATUS -->
       <div class="sb-selection">
-        <div class="sel-title">Current Selection</div>
+        <div class="sel-title">Current Status</div>
         <div class="sel-steps">
           <div class="sel-step" id="ssel-1">
             <div class="sel-step-num">I</div>
@@ -190,26 +234,45 @@
         </div>
       </div>
 
-      <!-- Mark Distribution Chart -->
-      <div class="sb-chart-wrap">
-        <div class="sb-chart-lbl">Mark Distribution</div>
-        <canvas id="marksChart"></canvas>
+      <!-- Paper Stats Panel -->
+      <div class="sb-stats-wrap">
+        <div class="sb-stats-hdr">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Paper Estimate
+        </div>
+        <div class="sb-stats-grid">
+          <div class="sb-stat">
+            <div class="sb-stat-val" id="stat-qs">—</div>
+            <div class="sb-stat-lbl">Questions</div>
+          </div>
+          <div class="sb-stat">
+            <div class="sb-stat-val" id="stat-time">—</div>
+            <div class="sb-stat-lbl">Exam Time</div>
+          </div>
+          <div class="sb-stat">
+            <div class="sb-stat-val" id="stat-marks">—</div>
+            <div class="sb-stat-lbl">Total Marks</div>
+          </div>
+          <div class="sb-stat">
+            <div class="sb-stat-val" id="stat-hist">0</div>
+            <div class="sb-stat-lbl">Generated</div>
+          </div>
+        </div>
+        <div class="sb-stats-sections" id="statSections">
+          <div class="sb-stats-section-lbl">Sections</div>
+          <div class="sb-sections-row" id="statSectionsRow">
+            <span class="sb-sec-tag">Select marks to preview</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Progress Steps -->
-      <div class="sb-progress">
-        <div class="sb-lbl">Workflow Progress</div>
-        <div class="step active" id="step-1"><div class="step-num">I</div><span>Paper Type</span></div>
-        <div class="step-conn" id="conn-1"></div>
-        <div class="step" id="step-2"><div class="step-num">II</div><span>Board / Exam</span></div>
-        <div class="step-conn" id="conn-2"></div>
-        <div class="step" id="step-3"><div class="step-num">III</div><span>Scope</span></div>
-        <div class="step-conn" id="conn-3"></div>
-        <div class="step" id="step-4"><div class="step-num">IV</div><span>Paper Details</span></div>
-        <div class="step-conn" id="conn-4"></div>
-        <div class="step" id="step-5"><div class="step-num">V</div><span>Marks &amp; Level</span></div>
-        <div class="step-conn" id="conn-5"></div>
-        <div class="step" id="step-6"><div class="step-num">VI</div><span>Generate &amp; Download</span></div>
+      <!-- ③ HISTORY — last in sidebar, persists last 10 papers -->
+      <div class="sb-hist">
+        <div class="hist-hdr">
+          <div class="hist-lbl">History <span class="hist-count" id="histCount">0</span></div>
+          <button class="hist-clear" onclick="clearHistory()">Clear all</button>
+        </div>
+        <div id="historyList"></div>
       </div>
 
       <div class="sb-footer">

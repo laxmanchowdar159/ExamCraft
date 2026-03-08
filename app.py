@@ -886,7 +886,23 @@ def _is_hrule(s):
     return len(s) > 3 and all(c in '-=_' for c in s)
 
 _HDR_SKIP = re.compile(
-    r'^(School|Subject|Class|Board|Total\s*Marks|Time\s*Allowed|Date)\s*[:/]',
+    # "Subject: Mathematics" / "Total Marks: 100" key-colon form
+    r'^(School|Subject|Class|Board|Total\s*Marks|Time\s*(?:Allowed)?|Date)\s*[:/]'
+    # Bare subject name on its own line  e.g. "Mathematics" / "Social Studies"
+    r'|^(Mathematics|Science|Physics|Chemistry|Biology|Social\s+Studies?'
+    r'|English|Hindi|Telugu|Sanskrit|Computer\s*Science|EVS|General\s+Science'
+    r'|Environmental\s+Science)\s*$'
+    # Pipe-formatted header row  "Andhra Pradesh | Class 10 | Total Marks: 100 | Time: 3 hrs"
+    r'|\|\s*Class\s+\d'
+    r'|\|\s*Total\s+Marks\s*:'
+    # Standalone time/marks/board header lines the AI emits at the top
+    r'|^Time\s*:\s*\d'
+    r'|^Total\s+Marks\s*:\s*\d'
+    r'|^Marks\s*:\s*\d'
+    r'|^(Andhra\s+Pradesh|Telangana)\s+State\s+Board'
+    # "Andhra Pradesh State Board · Class 10   Total Marks: 100" combined meta line
+    r'|^Andhra\s+Pradesh.*State\s+Board'
+    r'|^Telangana.*State\s+Board',
     re.I)
 
 # ── Figure junk-line filter ───────────────────────────────────────────
@@ -940,10 +956,20 @@ def _strip_ai_noise(text: str) -> str:
         r'created by|note:|please note|disclaimer)',
         re.IGNORECASE
     )
+    # Patterns that mark the real start of content (stop skipping preamble)
     _real_start = re.compile(
         r'^(SECTION|PART|Q\.?\s*\d|^\d+[\.\)\]]\s|'
         r'MATHEMATICS|SCIENCE|PHYSICS|CHEMISTRY|BIOLOGY|SOCIAL|ENGLISH|HINDI|TELUGU|'
         r'Class\s+\d|Board:|Total\s+Marks)',
+        re.IGNORECASE
+    )
+    # Bare subject-name lines and meta lines are duplicates of our rendered header — skip them
+    _bare_subj = re.compile(
+        r'^(Mathematics|Science|Physics|Chemistry|Biology|Social\s+Studies?'
+        r'|English|Hindi|Telugu|Sanskrit|Computer\s*Science|EVS)\s*$'
+        r'|\|\s*Class\s+\d|\|\s*Total\s+Marks'
+        r'|^Time\s*:\s*\d|^Total\s+Marks\s*:\s*\d'
+        r'|^Andhra\s+Pradesh.*Board|^Telangana.*Board',
         re.IGNORECASE
     )
     _closing_pat = re.compile(
@@ -953,15 +979,22 @@ def _strip_ai_noise(text: str) -> str:
     )
     # Find where real content starts
     start_idx = 0
-    for i, ln in enumerate(lines[:20]):  # only check first 20 lines for preamble
+    for i, ln in enumerate(lines[:25]):  # check first 25 lines for preamble
         s = ln.strip()
         if not s:
             continue
         if _preamble_pat.match(s):
             start_idx = i + 1
+        elif _bare_subj.match(s):
+            # Bare subject name / meta line — skip it, it duplicates our rendered header
+            start_idx = i + 1
         elif _real_start.match(s):
-            start_idx = i
-            break
+            # If this is a bare subject name on its own, skip it too
+            if _bare_subj.match(s):
+                start_idx = i + 1
+            else:
+                start_idx = i
+                break
         elif re.match(r'^[-=]{3,}\s*$', s):
             start_idx = i + 1
     # Trim trailing closing remarks
@@ -975,6 +1008,84 @@ def _strip_ai_noise(text: str) -> str:
         else:
             break
     return '\n'.join(lines[start_idx:end_idx]).strip()
+
+
+def _strip_leading_metadata(text: str, subject: str = "", board: str = "") -> str:
+    """
+    Strip the duplicate header block that AI emits at the top of the paper:
+      e.g. bare subject name line, pipe-separated Board|Class|Marks|Time line,
+    These appear BEFORE "GENERAL INSTRUCTIONS" / "PART A" / "Section"
+    and duplicate info already in our PDF header table.
+    """
+    if not text or not text.strip():
+        return text
+
+    _META_PAT = re.compile(
+        r'^('
+        r'Total\s*Marks|Time\s*(Allowed|:)|Class\s*[:/]?\s*\d|'
+        r'Board\s*[:/]|State\s*Board|Andhra\s*Pradesh|Telangana|'
+        r'CBSE|ICSE|NTSE|NSO|IMO|IJSO|'
+        r'Examination|Exam\s*Board|Duration|Max.*Marks'
+        r')',
+        re.I
+    )
+    _REAL_CONTENT = re.compile(
+        r'^(GENERAL\s*INSTRUCTIONS?|PART\s+[A-Z]|SECTION\s+[IVXLC]+|'
+        r'Section\s+[IVXLC]+|\d+\.\s|\(i\)|\(a\)|MCQ|OBJECTIVE|WRITTEN)',
+        re.I
+    )
+
+    lines = text.split('\n')
+    new_lines = []
+    skipping_header = True
+
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if not s:
+            if skipping_header:
+                continue   # skip blank lines in the header block
+            new_lines.append(ln)
+            continue
+
+        if skipping_header:
+            # Once we see real content, stop skipping
+            if _REAL_CONTENT.match(s):
+                skipping_header = False
+                new_lines.append(ln)
+                continue
+
+            # Skip lines that are the bare subject name
+            if subject and s.strip().lower() == subject.strip().lower():
+                continue
+            # Skip lines that are just the board name
+            if board and s.strip().lower() == board.strip().lower():
+                continue
+            # Skip pipe-separated metadata rows (Board | Class | Marks | Time)
+            if '|' in s:
+                cells = [c.strip() for c in s.split('|') if c.strip()]
+                if cells and all(_META_PAT.match(c) or
+                                 re.match(r'^Class\s*\d', c, re.I) or
+                                 re.match(r'^\d+\s*(Marks?|Hours?|Min)', c, re.I) or
+                                 re.match(r'^(Andhra|Telangana|AP|TS)', c, re.I) or
+                                 re.match(r'^[A-Z][a-z]+\s+(Pradesh|Board|State)', c, re.I)
+                                 for c in cells):
+                    continue
+            # Skip bare metadata lines (Subject / Board / Class / Time alone)
+            if _META_PAT.match(s):
+                continue
+            # After 8 lines without finding real content, stop skipping
+            if i >= 8:
+                skipping_header = False
+                new_lines.append(ln)
+                continue
+            # Otherwise: not metadata, not real content, not past 8 lines — skip
+            # (catches bare subject lines like "Mathematics", "Science" etc.)
+            if re.match(r'^[A-Za-z][A-Za-z\s]{1,30}$', s) and not re.search(r'[.?!,]', s):
+                continue
+        else:
+            new_lines.append(ln)
+
+    return '\n'.join(new_lines)
 
 
 def create_exam_pdf(text, subject, chapter, board="",
@@ -1004,6 +1115,9 @@ def create_exam_pdf(text, subject, chapter, board="",
     def _pull(pat, default=""):
         m = re.search(pat, text, re.I | re.M)
         return m.group(1).strip() if m else default
+
+    # Strip AI duplicate header block (subject name + pipe metadata line)
+    text = _strip_leading_metadata(text, subject, board)
 
     # Use passed marks if provided (more reliable than parsing AI text)
     marks = str(marks).strip() if marks is not None else ""

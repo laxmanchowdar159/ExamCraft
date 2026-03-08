@@ -1,4 +1,3 @@
-
 /* ── Font Switcher ─────────────────────────────────────────── */
 const FONT_MODES = [
   { id:'serif', label:'Serif', font:"'Cormorant Garamond', Georgia, serif" },
@@ -71,7 +70,7 @@ function applyAppTheme(idx, dark) {
   if (lbl) lbl.textContent = t.name;
   try { localStorage.setItem('themeIdx', idx); localStorage.setItem('themeDark', dark ? '1' : '0'); } catch {}
   // Update chart colors if exists
-  if (window._marksChart) updateMarksChart();
+  updatePaperStats();
 }
 
 window.cycleTheme = function() {
@@ -99,12 +98,65 @@ const COMP_INFO = {
   IJSO: { papers:'Integrated Science: Physics (27Q) + Chemistry (27Q) + Biology (26Q)', marks:'80Q × +3/−1 = 240 max', time:'2 Hours', marking:'+3 correct, −1 wrong.', tip:'Select class and chapter, or Full Syllabus for a mixed paper.' },
 };
 
-/* ── History ───────────────────────────────────────────────── */
-const HISTORY_KEY = 'examcraft_history_v2';
-const HISTORY_MAX = 8;
+/* ── History — split storage so metadata always survives ────── */
+const HISTORY_KEY  = 'ec_history_v3';   // metadata only (small, always saves)
+const HISTORY_MAX  = 10;
+const _pKey = id => 'ec_p_' + id;
+const _kKey = id => 'ec_k_' + id;
 
-function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; } }
-function saveHistory(h) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch {} }
+function loadHistory() {
+  try {
+    const meta = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    return meta.map(item => ({
+      ...item,
+      paper:     _tryGet(_pKey(item.id)),
+      answerKey: _tryGet(_kKey(item.id))
+    }));
+  } catch { return []; }
+}
+function _tryGet(key) { try { return localStorage.getItem(key) || ''; } catch { return ''; } }
+
+function saveHistory(h) {
+  try {
+    // Always save metadata (tiny — never fails due to quota)
+    const meta = h.map(({ paper, answerKey, ...rest }) => rest);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(meta));
+  } catch(e) {}
+  // Save paper content per-item (large — catch individually)
+  h.forEach(item => {
+    try { localStorage.setItem(_pKey(item.id), item.paper     || ''); } catch {}
+    try { localStorage.setItem(_kKey(item.id), item.answerKey || ''); } catch {}
+  });
+  // Prune orphaned keys
+  _pruneOldPapers(h.map(i => i.id));
+  // Update lifetime counter
+  _bumpLifetime();
+}
+
+function _pruneOldPapers(liveIds) {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('ec_p_') || k.startsWith('ec_k_'))
+      .forEach(k => {
+        const id = Number(k.replace('ec_p_','').replace('ec_k_',''));
+        if (!liveIds.includes(id)) localStorage.removeItem(k);
+      });
+  } catch {}
+}
+
+/* Lifetime counter (total papers ever generated on this device) */
+const LIFETIME_KEY = 'ec_lifetime_total';
+function _bumpLifetime() {
+  try {
+    const n = parseInt(localStorage.getItem(LIFETIME_KEY) || '0', 10) + 1;
+    localStorage.setItem(LIFETIME_KEY, String(n));
+    const el = document.getElementById('lifetimeCount');
+    if (el) { el.textContent = n; el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 600); }
+  } catch {}
+}
+function _loadLifetime() {
+  try { return parseInt(localStorage.getItem(LIFETIME_KEY) || '0', 10); } catch { return 0; }
+}
 
 function addToHistory(meta, paper, key) {
   const h = loadHistory();
@@ -168,7 +220,14 @@ function renderHistory() {
 }
 
 window.clearHistory = function() {
-  try { localStorage.removeItem(HISTORY_KEY); } catch {}
+  try {
+    const h = loadHistory();
+    h.forEach(item => {
+      try { localStorage.removeItem(_pKey(item.id)); } catch {}
+      try { localStorage.removeItem(_kKey(item.id)); } catch {}
+    });
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {}
   renderHistory(); showToast('History cleared');
 };
 
@@ -214,7 +273,7 @@ function updateSidebar() {
   setSelStep(4, [subject, chapter && chapter !== 'Full Syllabus' ? chapter : null].filter(Boolean).join(' · ') || (cls ? 'Class ' + cls : ''));
   setSelStep(5, marks && examType ? marks + ' marks · ' + diff : '');
 
-  updateMarksChart();
+  updatePaperStats();
 }
 
 /* ── Marks ─────────────────────────────────────────────────── */
@@ -438,26 +497,6 @@ function updateCompInfo() {
 window.onClassChange   = async function() { await updateSubjects(); updateFormVisibility(); updateSidebar(); setActiveStep(4); };
 window.onSubjectChange = function() { updateChapters(); updateSidebar(); setActiveStep(4); };
 
-/* ── Loading Modal ─────────────────────────────────────────── */
-let _stepTimers = [];
-function showLoading(show, title) {
-  const modal = document.getElementById('loadingModal');
-  if (!modal) return;
-  modal.style.display = show ? 'flex' : 'none';
-  if (title) { const t = document.getElementById('loaderTitle'); if (t) t.textContent = title; }
-  _stepTimers.forEach(clearTimeout); _stepTimers = [];
-  const ids = ['ls1','ls2','ls3','ls4','ls5'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active','done'); });
-  if (!show) return;
-  const delays = [0, 5000, 12000, 19000, 28000];
-  ids.forEach((id, i) => {
-    _stepTimers.push(setTimeout(() => {
-      if (i > 0) { const prev = document.getElementById(ids[i-1]); if (prev) { prev.classList.remove('active'); prev.classList.add('done'); } }
-      const cur = document.getElementById(id); if (cur) cur.classList.add('active');
-    }, delays[i]));
-  });
-}
-
 /* ── Toast / Hint ──────────────────────────────────────────── */
 function showToast(msg) {
   const t = document.getElementById('notificationToast'); if (!t) return;
@@ -678,40 +717,42 @@ function launchConfetti() {
 }
 
 /* ── Chart.js marks distribution ──────────────────────────── */
-window._marksChart = null;
-function updateMarksChart() {
-  const ctx = document.getElementById('marksChart'); if (!ctx) return;
-  const total = parseInt(getTotalMarks(), 10) || 100;
-  const diff  = getDifficulty();
-  const ratios = { Easy:[.32,.30,.24,.14], Medium:[.26,.26,.28,.20], Hard:[.20,.22,.30,.28] };
-  const r    = ratios[diff] || ratios.Medium;
-  const vals = r.map(v => Math.round(v * total));
-  const acColor = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#6d5bff';
-  const makeAlpha = (hex, a) => { const c = parseInt(hex.replace('#',''),16); return `rgba(${c>>16},${(c>>8)&255},${c&255},${a})`; };
-  const colors = [makeAlpha(acColor,.88), makeAlpha(acColor,.65), makeAlpha(acColor,.44), makeAlpha(acColor,.28)];
+/* ── Paper Stats Panel (replaces useless chart) ────────────── */
+function updatePaperStats() {
+  const marks  = parseInt(getTotalMarks(), 10) || 100;
+  const diff   = getDifficulty();
+  const hist   = loadHistory();
 
-  if (window._marksChart) {
-    window._marksChart.data.datasets[0].data = vals;
-    window._marksChart.data.datasets[0].backgroundColor = colors;
-    window._marksChart.update('active');
-    return;
+  // Estimate question count based on marks + difficulty
+  const qMap = { Easy:{ 100:40, 80:32, 40:18, 20:10 }, Medium:{ 100:35, 80:28, 40:15, 20:8 }, Hard:{ 100:28, 80:22, 40:12, 20:6 } };
+  const closest = [20,40,80,100].reduce((a,b) => Math.abs(b-marks) < Math.abs(a-marks) ? b : a);
+  const qCount = (qMap[diff] || qMap.Medium)[closest] || Math.round(marks / 3);
+
+  // Estimate time in hours/mins
+  const minsPerMark = { Easy: 1.5, Medium: 1.8, Hard: 2.1 };
+  const totalMins   = Math.round(marks * (minsPerMark[diff] || 1.8));
+  const hrs         = Math.floor(totalMins / 60);
+  const mins        = totalMins % 60;
+  const timeStr     = hrs > 0 ? (mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`) : `${mins}m`;
+
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setV('stat-qs',    qCount  || '—');
+  setV('stat-time',  timeStr || '—');
+  setV('stat-marks', marks   || '—');
+  setV('stat-hist',  hist.length);
+
+  // Section tags
+  const row = document.getElementById('statSectionsRow');
+  if (row) {
+    const secs = marks >= 80
+      ? ['Part A · Obj', 'Part B · SA', 'Part B · LA', 'Application']
+      : marks >= 40
+      ? ['Objective', 'Short Ans', 'Long Ans']
+      : ['MCQ', 'Short Ans'];
+    row.innerHTML = secs.map(s => `<span class="sb-sec-tag active">${s}</span>`).join('');
   }
-  window._marksChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['MCQ','Short Ans','Long Ans','Application'],
-      datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0, hoverOffset: 5 }]
-    },
-    options: {
-      cutout: '68%',
-      plugins: {
-        legend: { position:'bottom', labels:{ color:'rgba(154,163,200,.8)', font:{ family:"'JetBrains Mono'", size:9 }, padding:10, boxWidth:8, boxHeight:8, usePointStyle:true, pointStyleWidth:8 } },
-        tooltip: { backgroundColor:'rgba(11,16,40,.95)', titleColor:'#edf0fc', bodyColor:'#9aa3c8', borderColor:'rgba(109,91,255,.25)', borderWidth:1, padding:10, callbacks:{ label: c => ` ${c.label}: ${c.raw}M` } }
-      },
-      animation: { animateScale:true, duration:600 }
-    }
-  });
 }
+
 
 /* ── Jokes ─────────────────────────────────────────────────── */
 const HERO_JOKES = [
@@ -786,6 +827,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSidebar();
   applySmartMarkDefault('all');
   renderHistory();
+  // Restore lifetime counter display
+  try {
+    const lc = document.getElementById('lifetimeCount');
+    if (lc) lc.textContent = _loadLifetime();
+  } catch {}
   initCurriculum();
 
   /* ── Medium difficulty init ── */
@@ -804,37 +850,26 @@ document.addEventListener('DOMContentLoaded', () => {
   /* Loading is handled by unified showLoading defined at bottom of file */
 
   /* ── Chart.js init ── */
-  if (typeof Chart !== 'undefined') updateMarksChart();
+  if (typeof Chart !== 'undefined') updatePaperStats();
 
-  /* ── Custom cursor — GPU transform path, always on top ── */
-  const dot  = document.getElementById('cur-dot');
+
+  /* ── Custom cursor ── */
+  /* The actual cursor dot is an OS-rendered SVG (set in CSS) — always visible.
+     The ring below is a purely decorative lagging circle, no z-index dependency. */
   const ring = document.getElementById('cur-ring');
   const bgGl = document.querySelector('.bg-glow');
 
-  // Use raw numbers — translate3d for GPU compositing
-  let mx = -200, my = -200;   // off-screen until real mouse
-  let rx = -200, ry = -200;
+  let mx = -200, my = -200, rx = -200, ry = -200;
 
-  function setCursorPos(el, x, y, half) {
-    if (!el) return;
-    // Subtract half element size so it centres on mouse
-    el.style.transform = 'translate3d(' + (x - half) + 'px,' + (y - half) + 'px,0)';
-  }
-
-  const DOT_HALF  = 4;   // half of 8px dot
-  const RING_HALF = 17;  // half of 34px ring
-
-  // RAF loop — dot is instant, ring lerps
-  (function loop() {
-    rx += (mx - rx) * 0.20;
-    ry += (my - ry) * 0.20;
-    setCursorPos(ring, rx, ry, RING_HALF);
-    requestAnimationFrame(loop);
+  (function lerpRing() {
+    rx += (mx - rx) * 0.18;
+    ry += (my - ry) * 0.18;
+    if (ring) ring.style.transform = 'translate3d(' + (rx - 17) + 'px,' + (ry - 17) + 'px,0)';
+    requestAnimationFrame(lerpRing);
   })();
 
   document.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
-    setCursorPos(dot, mx, my, DOT_HALF);   // dot: instant, no lerp
     if (bgGl) {
       bgGl.style.setProperty('--cx', mx + 'px');
       bgGl.style.setProperty('--cy', my + 'px');
@@ -843,22 +878,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('mousedown', () => ring?.classList.add('click'));
   document.addEventListener('mouseup',   () => ring?.classList.remove('click'));
+  document.addEventListener('mouseleave', () => { if (ring) ring.style.opacity = '0'; });
+  document.addEventListener('mouseenter', () => { if (ring) ring.style.opacity = ''; });
 
-  document.addEventListener('mouseleave', () => {
-    if (dot)  dot.style.opacity = '0';
-    if (ring) ring.style.opacity = '0';
-  });
-  document.addEventListener('mouseenter', () => {
-    if (dot)  dot.style.opacity = '1';
-    if (ring) ring.style.opacity = '';
-  });
-
-  // Delegation: covers dynamic elements (history items, game buttons etc.)
   document.addEventListener('mouseover', e => {
     const t = e.target.closest(
       'button,a,.type-card,.scope-card,.chip,.diff-btn,' +
-      '.history-item,.game-opt,.succ-btn,.tb-btn,.gen-btn,' +
-      '.sb-logo,.hist-clear,.history-dl-btn,select,label,[role="button"]'
+      '.history-item,.history-dl-btn,.game-opt,.succ-btn,' +
+      '.tb-btn,.gen-btn,.sb-logo,.hist-clear,select,label,[role="button"]'
     );
     ring?.classList.toggle('hov', !!t);
   }, { passive: true });
@@ -1100,11 +1127,20 @@ window.answerQ = function(btnIdx) {
 };
 
 /* Populate the loading recap panel with current selections */
-function populateRecap() {
+/* ── Big-status loader data ─────────────────────────────────── */
+const LS_STAGES = [
+  { num:'1', line1:'Parsing your',       line2:'requirements',      sub:'Analysing board · marks · difficulty…',  pct: 8  },
+  { num:'2', line1:'Generating',         line2:'questions with AI', sub:'Gemini 2.5 Flash is writing the paper…', pct: 38 },
+  { num:'3', line1:'Writing the',        line2:'answer key',        sub:'Creating model answers for every question…', pct: 62 },
+  { num:'4', line1:'Formatting',         line2:'paper layout',      sub:'Applying board-standard section structure…', pct: 82 },
+  { num:'5', line1:'Building your',      line2:'PDF',               sub:'Rendering to printable format…',          pct: 96 },
+];
+
+function populateLoader() {
   const examType = document.getElementById('examType')?.value;
-  const subject  = document.getElementById('subject')?.value;
-  const chapter  = document.getElementById('chapter')?.value;
-  const cls      = document.getElementById('class')?.value;
+  const subject  = document.getElementById('subject')?.value  || '';
+  const chapter  = document.getElementById('chapter')?.value  || '';
+  const cls      = document.getElementById('class')?.value    || '';
   const marks    = getTotalMarks();
   const diff     = getDifficulty();
 
@@ -1112,77 +1148,87 @@ function populateRecap() {
   if (examType === 'state-board')      boardText = document.getElementById('stateSelect')?.value || '';
   else if (examType === 'competitive') boardText = document.getElementById('competitiveExam')?.value || '';
 
-  let scopeText = '';
-  if (examType === 'state-board')      scopeText = boardScope === 'all' ? 'Full Syllabus' : 'One Chapter';
-  else if (examType === 'competitive') scopeText = compScope === 'all' ? 'All Subjects' : compScope === 'subject' ? 'Full Subject' : 'One Topic';
+  const subChap = subject + (chapter && chapter !== 'Full Syllabus' ? ' · ' + chapter : '') || (cls ? 'Class ' + cls : '—');
 
-  const typeText = examType === 'state-board' ? 'State Board' : examType === 'competitive' ? 'Competitive' : '';
-  const subChap  = [subject, chapter && chapter !== 'Full Syllabus' ? chapter : null].filter(Boolean).join(' › ') || (cls ? 'Class ' + cls : '');
+  // Bottom meta strip in loader-left
+  const setT = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+  setT('recap-subject-val', subChap);
+  setT('recap-board-val',   boardText || (cls ? 'Class ' + cls : '') || '—');
+  setT('recap-marks-val',   marks + ' M · ' + diff);
+}
 
-  const map = {
-    'recap-type-val':    typeText,
-    'recap-board-val':   boardText || '—',
-    'recap-scope-val':   scopeText || '—',
-    'recap-subject-val': subChap   || '—',
-    'recap-marks-val':   marks + ' marks · ' + diff,
-  };
-  for (const [id, val] of Object.entries(map)) {
+function _setLoaderStage(idx) {
+  // Drive ls1–ls5 which are .ls-step-big rows; CSS handles icons via ::after
+  const ids = ['ls1','ls2','ls3','ls4','ls5'];
+  ids.forEach((id, i) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = val;
-  }
+    if (!el) return;
+    el.classList.remove('active','done');
+    if (i < idx)  el.classList.add('done');
+    if (i === idx) el.classList.add('active');
+  });
 
-  // Animate rows in with stagger
-  const rows = document.querySelectorAll('.recap-step');
-  rows.forEach((r, i) => {
-    r.classList.remove('show','highlight');
-    setTimeout(() => {
-      r.classList.add('show');
-      setTimeout(() => r.classList.add('highlight'), 120);
-    }, i * 160);
+  // Mobile steps
+  const mobIds = ['mls1','mls2','mls3','mls4','mls5'];
+  mobIds.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('active','done');
+    if (i < idx)  el.classList.add('done');
+    if (i === idx) el.classList.add('active');
   });
 }
 
-/* ── Master showLoading — wires game, recap, and BOTH step lists (desktop + mobile) */
+
+/* ── Master showLoading — drives big status + game + mobile ── */
 window.showLoading = function(show) {
   const modal = document.getElementById('loadingModal');
   if (!modal) return;
   modal.style.display = show ? 'flex' : 'none';
 
+  if (window._loadStepTimers) window._loadStepTimers.forEach(clearTimeout);
+  window._loadStepTimers = [];
+  if (window._loadTimerInterval) clearInterval(window._loadTimerInterval);
+
   if (show) {
-    populateRecap();
+    populateLoader();
     initGame();
 
-    // Clear all step states
-    const deskIds = ['ls1','ls2','ls3','ls4','ls5'];
-    const mobIds  = ['mls1','mls2','mls3','mls4','mls5'];
-    [...deskIds, ...mobIds].forEach(id => {
+    // Reset all step states on show
+    ['ls1','ls2','ls3','ls4','ls5'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active','done');
+      const st = document.getElementById(id + '-state');
+      if (st) st.innerHTML = '';
+    });
+    ['mls1','mls2','mls3','mls4','mls5'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('active','done');
     });
 
-    // Shared step timer — drives both desktop sidebar steps AND mobile steps
-    if (window._loadStepTimers) window._loadStepTimers.forEach(clearTimeout);
-    window._loadStepTimers = [];
+    // Elapsed timer
+    const timerEl = document.getElementById('loaderTimer');
+    let elapsed = 0;
+    if (timerEl) {
+      timerEl.textContent = '00:00';
+      window._loadTimerInterval = setInterval(() => {
+        elapsed++;
+        const m = String(Math.floor(elapsed / 60)).padStart(2,'0');
+        const s = String(elapsed % 60).padStart(2,'0');
+        timerEl.textContent = m + ':' + s;
+      }, 1000);
+    }
+
+    // Stage transitions
     const delays = [0, 5000, 12000, 19000, 28000];
     delays.forEach((delay, i) => {
-      window._loadStepTimers.push(setTimeout(() => {
-        // mark previous done in both lists
-        if (i > 0) {
-          [deskIds[i-1], mobIds[i-1]].forEach(id => {
-            const p = document.getElementById(id);
-            if (p) { p.classList.remove('active'); p.classList.add('done'); }
-          });
-        }
-        // activate current in both lists
-        [deskIds[i], mobIds[i]].forEach(id => {
-          const cur = document.getElementById(id);
-          if (cur) cur.classList.add('active');
-        });
-      }, delay));
+      window._loadStepTimers.push(setTimeout(() => _setLoaderStage(i), delay));
     });
+
   } else {
     _gameActive = false;
     clearTimeout(_gameTimer);
+    clearInterval(window._loadTimerInterval);
     if (window._loadStepTimers) window._loadStepTimers.forEach(clearTimeout);
   }
 };
