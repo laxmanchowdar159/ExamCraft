@@ -233,10 +233,6 @@ window.clearHistory = function() {
 
 async function downloadFromHistory(idx, withKey) {
   const e = loadHistory()[idx]; if (!e) return;
-  if (!e.paper || !e.paper.trim()) {
-    showToast('Paper text not saved — please regenerate this paper');
-    return;
-  }
   await triggerPDFDownload({ paper:e.paper, answer_key:e.answerKey||'', subject:e.subject, chapter:e.chapter !== 'Full Syllabus' ? e.chapter : '', board:e.board, includeKey:withKey, marks:e.marks }, e.board, e.subject, e.chapter, withKey);
 }
 
@@ -587,7 +583,7 @@ async function generatePaper() {
       board:   boardText,
       subject: currentMeta.subject,
       chapter: currentMeta.chapter,
-      marks:   marks,
+      marks:   marks,   // needed by prMeta display
     };
 
     // Show popup FIRST — before anything that can throw
@@ -595,17 +591,16 @@ async function generatePaper() {
     launchConfetti();
     setActiveStep(6);
 
-    // History save before download so it always persists
-    try { addToHistory(currentMeta, currentPaper, currentAnswerKey); } catch(he) {
-      console.warn('History save failed:', he);
-    }
-
-    // Auto-download via b64 if available (blob URL from already-fetched data
-    // works fine even after await — no new async call needed).
+    // Auto-download (pdf_b64 may be null if server PDF build failed)
     if (window._pdfDirect.paper) {
       _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
     } else {
       showToast('Paper generated — click "Paper PDF" to download');
+    }
+
+    // History save — wrapped so a storage error cannot kill the popup
+    try { addToHistory(currentMeta, currentPaper, currentAnswerKey); } catch(he) {
+      console.warn('History save failed:', he);
     }
 
   } catch (err) { showLoading(false); showAiErrorPopup('Server error: ' + err.message); }
@@ -613,29 +608,16 @@ async function generatePaper() {
 
 /* ── PDF helpers ───────────────────────────────────────────── */
 function _b64Download(b64, fname) {
-  console.log('[DL] Starting _b64Download, fname=' + fname);
   try {
-    if (!b64) { console.error('[DL] No b64 data!'); showToast('No PDF data'); return false; }
-    console.log('[DL] b64 length: ' + b64.length);
     const bin = atob(b64), buf = new Uint8Array(bin.length);
-    console.log('[DL] Decoded to ' + buf.length + ' bytes');
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    if (buf.length < 500) { console.error('[DL] PDF too small!'); showToast('PDF corrupted'); return false; }
-    console.log('[DL] Creating blob...');
-    const blob = new Blob([buf], {type:'application/pdf'});
-    const url = URL.createObjectURL(blob);
-    console.log('[DL] URL created, downloading ' + fname);
+    const url = URL.createObjectURL(new Blob([buf], {type:'application/pdf'}));
     const a = Object.assign(document.createElement('a'), {href:url, download:fname});
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 12000);
-    console.log('[DL] ✓ Download triggered');
     showDownloadDone(fname);
     return true;
-  } catch (e) { 
-    console.error('[DL] ✗ Error:', e);
-    showToast('Download error: ' + e.message); 
-    return false; 
-  }
+  } catch (e) { showToast('Download error: ' + e.message); return false; }
 }
 function _safeName(d, withKey) {
   return ([d.board, d.subject, (d.chapter && d.chapter !== 'Full Syllabus') ? d.chapter : null]
@@ -693,19 +675,18 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
     const safe = [board,subject,chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
     const fname = safe + (withKey ? '_with_key' : '') + '.pdf';
     const a = Object.assign(document.createElement('a'), {href:url, download:fname});
-    document.body.appendChild(a); a.click(); a.remove();
+    document.body.appendChild(a); a.click(); a.remove();   // must be in DOM for Firefox/Safari
     setTimeout(() => URL.revokeObjectURL(url), 10000);
     showLoading(false); showDownloadDone(fname);
   } catch (err) { showLoading(false); showToast('Download failed: ' + err.message); }
 }
 
 window.downloadPDF = function(withKey) {
-  console.log('[DL] downloadPDF called, withKey=' + withKey);
   const d = window._pdfDirect;
-  console.log('[DL] _pdfDirect exists:', !!d);
   if (d) {
+    // withKey=false → paper-only (pdf_b64, no answer key appended)
+    // withKey=true  → paper + answer key (pdf_key_b64)
     const b64 = withKey ? d.withKey : d.paper;
-    console.log('[DL] Selected b64 length:', b64 ? b64.length : 'null');
     if (b64 && _b64Download(b64, _safeName(d, withKey))) {
       showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');
       return;
