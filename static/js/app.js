@@ -233,6 +233,10 @@ window.clearHistory = function() {
 
 async function downloadFromHistory(idx, withKey) {
   const e = loadHistory()[idx]; if (!e) return;
+  if (!e.paper || !e.paper.trim()) {
+    showToast('Paper text not saved — please regenerate this paper');
+    return;
+  }
   await triggerPDFDownload({ paper:e.paper, answer_key:e.answerKey||'', subject:e.subject, chapter:e.chapter !== 'Full Syllabus' ? e.chapter : '', board:e.board, includeKey:withKey, marks:e.marks }, e.board, e.subject, e.chapter, withKey);
 }
 
@@ -583,7 +587,7 @@ async function generatePaper() {
       board:   boardText,
       subject: currentMeta.subject,
       chapter: currentMeta.chapter,
-      marks:   marks,   // needed by prMeta display
+      marks:   marks,
     };
 
     // Show popup FIRST — before anything that can throw
@@ -591,16 +595,16 @@ async function generatePaper() {
     launchConfetti();
     setActiveStep(6);
 
-    // Auto-download (pdf_b64 may be null if server PDF build failed)
+    // History save before download so it always persists
+    try { addToHistory(currentMeta, currentPaper, currentAnswerKey); } catch(he) {
+      console.warn('History save failed:', he);
+    }
+
+    // Auto-download via b64 if available, else fallback to /download-pdf
     if (window._pdfDirect.paper) {
       _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
     } else {
       showToast('Paper generated — click "Paper PDF" to download');
-    }
-
-    // History save — wrapped so a storage error cannot kill the popup
-    try { addToHistory(currentMeta, currentPaper, currentAnswerKey); } catch(he) {
-      console.warn('History save failed:', he);
     }
 
   } catch (err) { showLoading(false); showAiErrorPopup('Server error: ' + err.message); }
@@ -684,8 +688,6 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
 window.downloadPDF = function(withKey) {
   const d = window._pdfDirect;
   if (d) {
-    // withKey=false → paper-only (pdf_b64, no answer key appended)
-    // withKey=true  → paper + answer key (pdf_key_b64)
     const b64 = withKey ? d.withKey : d.paper;
     if (b64 && _b64Download(b64, _safeName(d, withKey))) {
       showToast(withKey ? 'Answer Key PDF downloaded ✓' : 'Paper downloaded ✓');

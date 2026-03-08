@@ -1,3 +1,4 @@
+
 import os
 import re
 import json
@@ -3108,7 +3109,6 @@ def generate():
         paper, key = split_key(generated_text)
 
         # ── Build PDFs inline — no second API call needed ────────────
-        # Diagram generation in parallel, best-effort (won't delay response if fails)
         diagrams = {}
         try:
             if GEMINI_KEY:
@@ -3142,7 +3142,7 @@ def generate():
                 include_key=False, diagrams=diagrams,
                 marks=marks_safe)
             pdf_b64 = base64.b64encode(pdf_bytes).decode()
-        except Exception as pdf_err:
+        except Exception:
             pdf_b64 = None
 
         if key and key.strip():
