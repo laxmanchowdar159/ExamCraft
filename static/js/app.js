@@ -583,7 +583,11 @@ async function generatePaper() {
     window._pdfDirect = { paper:result.pdf_b64||null, withKey:result.pdf_key_b64||null, board:boardText, subject:currentMeta.subject, chapter:currentMeta.chapter };
 
     // Auto-download
-    if (window._pdfDirect.paper) _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+    if (window._pdfDirect.paper) {
+      _b64Download(window._pdfDirect.paper, _safeName(window._pdfDirect, false));
+    } else if (result.pdf_error) {
+      console.warn('[ExamCraft] PDF build error:', result.pdf_error);
+    }
 
     addToHistory(currentMeta, currentPaper, currentAnswerKey);
     showPaperReadyPopup();
