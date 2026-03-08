@@ -524,7 +524,8 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 .loader-left {
   border-right:1px solid var(--line2);
   display:flex; flex-direction:column; justify-content:center;
-  padding:52px 56px; position:relative; overflow:hidden
+  padding:40px 56px; position:relative; overflow-y:auto; overflow-x:hidden;
+  min-height:0
 }
 /* subtle diagonal grid texture */
 .loader-left::before {
@@ -534,7 +535,7 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
     linear-gradient(90deg, rgba(200,169,110,.035) 1px, transparent 1px);
   background-size:40px 40px
 }
-.loader-left-inner { position:relative; z-index:1 }
+.loader-left-inner { position:relative; z-index:1; min-height:0 }
 
 /* Top status chip */
 .ls-label-top {
@@ -560,7 +561,7 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
 /* Giant heading */
 .ls-big-heading {
   font-family:var(--serif);
-  font-size:clamp(36px, 4.5vw, 58px);
+  font-size:clamp(30px, 4vw, 50px);
   font-weight:300;
   color:var(--bright);
   line-height:1.1;
