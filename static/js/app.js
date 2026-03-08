@@ -735,35 +735,89 @@ function setActiveStep(n) {
   }
 }
 
-/* ── Confetti ──────────────────────────────────────────────── */
+/* ── Golden Ink Burst (on-brand celebration) ───────────────── */
 function launchConfetti() {
   const cv = document.getElementById('confetti-canvas'); if (!cv) return;
   const ctx = cv.getContext('2d');
   cv.width = window.innerWidth; cv.height = window.innerHeight;
-  const pal = ['#6d5bff','#9f8dff','#c4b8ff','#f59e0b','#22c55e','#60a5fa','#f472b6','#fff'];
-  const pieces = Array.from({length:170}, () => ({
-    x: Math.random()*cv.width, y: -10 - Math.random()*90,
-    vx: (Math.random()-.5)*5, vy: 2.2 + Math.random()*3.2,
-    angle: Math.random()*Math.PI*2, va: (Math.random()-.5)*.24,
-    w: 5+Math.random()*10, h: 3+Math.random()*6,
-    color: pal[Math.floor(Math.random()*pal.length)],
-    isCircle: Math.random() > .52, op: 1
-  }));
+
+  // Palette stays in the gold/amber/cream family of the app
+  const pal = ['#C8A96E','#E0C07E','#F4E4BE','#A07840','#8A5C28','rgba(200,169,110,0.6)','#ede7d6'];
+
+  // Origins: two burst points — center-left and center-right
+  const origins = [
+    { x: cv.width * 0.25, y: cv.height * 0.55 },
+    { x: cv.width * 0.75, y: cv.height * 0.55 },
+  ];
+
+  const pieces = Array.from({length: 140}, (_, i) => {
+    const o = origins[i % origins.length];
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2.5 + Math.random() * 6;
+    const kind = Math.random();   // 0-0.4 = dot, 0.4-0.7 = line, 0.7-1 = diamond
+    return {
+      x: o.x, y: o.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - (1.5 + Math.random() * 2.5), // bias upward
+      color: pal[Math.floor(Math.random() * pal.length)],
+      size: 2 + Math.random() * 5,
+      kind,
+      angle: Math.random() * Math.PI * 2,
+      va: (Math.random() - .5) * .18,
+      op: 0.9 + Math.random() * 0.1,
+      gravity: 0.055 + Math.random() * 0.03,
+    };
+  });
+
   let fr = 0;
   function draw() {
-    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.clearRect(0, 0, cv.width, cv.height);
     pieces.forEach(p => {
-      p.x+=p.vx; p.y+=p.vy; p.angle+=p.va; p.vy+=.046;
-      if (fr > 95) p.op = Math.max(0, p.op - .018);
-      ctx.globalAlpha = p.op; ctx.fillStyle = p.color;
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
-      if (p.isCircle) { ctx.beginPath(); ctx.arc(0,0,p.w/2,0,Math.PI*2); ctx.fill(); }
-      else { ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); }
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.gravity;
+      p.vx *= 0.992;
+      p.angle += p.va;
+      if (fr > 80) p.op = Math.max(0, p.op - 0.016);
+
+      ctx.globalAlpha = p.op;
+      ctx.fillStyle   = p.color;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth   = 1.2;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+
+      if (p.kind < 0.38) {
+        // Soft dot
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.kind < 0.68) {
+        // Thin ink stroke / line
+        ctx.beginPath();
+        ctx.moveTo(-p.size * 1.8, 0);
+        ctx.lineTo( p.size * 1.8, 0);
+        ctx.lineWidth = 1 + Math.random();
+        ctx.stroke();
+      } else {
+        // Diamond / rhombus
+        const s = p.size;
+        ctx.beginPath();
+        ctx.moveTo(0, -s);
+        ctx.lineTo(s * 0.55, 0);
+        ctx.lineTo(0, s);
+        ctx.lineTo(-s * 0.55, 0);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.restore();
     });
-    ctx.globalAlpha = 1; fr++;
-    if (fr < 230) requestAnimationFrame(draw);
-    else ctx.clearRect(0,0,cv.width,cv.height);
+
+    ctx.globalAlpha = 1;
+    fr++;
+    if (fr < 240) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, cv.width, cv.height);
   }
   draw();
 }

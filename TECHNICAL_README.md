@@ -1,30 +1,27 @@
 # ExamCraft — Technical Deep Dive
 
-> A step-by-step walkthrough of every layer of the backend: how it is written, what each piece does, and why each decision was made.
+> A complete walkthrough of every architectural decision, algorithm, and technique used in ExamCraft — from prompt engineering to PDF rendering to multi-key AI failover.
 
-**Author: Laxman Nimmagadda**
-Contact: laxmanchowday159@gmail.com
+**Author:** Laxman Nimmagadda · laxmanchowdary159@gmail.com
 
 ---
 
 ## Table of Contents
 
 1. [Project Structure](#1-project-structure)
-2. [Technology Stack](#2-technology-stack)
-3. [Application Boot Sequence](#3-application-boot-sequence)
-4. [Security Layer](#4-security-layer)
+2. [Technology Stack & Rationale](#2-technology-stack--rationale)
+3. [Boot Sequence](#3-boot-sequence)
+4. [Security Architecture](#4-security-architecture)
 5. [Error Reporting System](#5-error-reporting-system)
-6. [Font and Style System](#6-font-and-style-system)
-7. [LaTeX / Math Parser](#7-latex--math-parser)
-8. [PDF Rendering Engine](#8-pdf-rendering-engine)
-9. [AI Integration — Gemini with Dual-Key Fallback](#9-ai-integration)
-10. [Prompt Engineering System](#10-prompt-engineering-system)
-11. [Diagram Generation](#11-diagram-generation)
-12. [Flask Routes](#12-flask-routes)
-13. [Frontend Architecture](#13-frontend-architecture)
-14. [Data Files](#14-data-files)
-15. [Deployment (Vercel)](#15-deployment-vercel)
-16. [Full Request Lifecycle](#16-full-request-lifecycle)
+6. [LaTeX / Math Parser](#6-latex--math-parser)
+7. [PDF Rendering Engine](#7-pdf-rendering-engine)
+8. [AI Integration — Three-Key Round-Robin Failover](#8-ai-integration--three-key-round-robin-failover)
+9. [Prompt Engineering System](#9-prompt-engineering-system)
+10. [Diagram Generation Pipeline](#10-diagram-generation-pipeline)
+11. [Flask Routes & Request Lifecycle](#11-flask-routes--request-lifecycle)
+12. [Frontend Architecture](#12-frontend-architecture)
+13. [Data Layer](#13-data-layer)
+14. [Deployment on Vercel Serverless](#14-deployment-on-vercel-serverless)
 
 ---
 
@@ -32,497 +29,800 @@ Contact: laxmanchowday159@gmail.com
 
 ```
 ExamCraft/
-├── app.py                  ← Entire backend: Flask + AI + PDF (3100+ lines)
+├── app.py                    ← Entire backend: 3500+ lines
+│                               Flask + AI + PDF + Diagrams + Email
 ├── api/
-│   └── index.py            ← Thin Vercel adapter that imports app.py
+│   └── index.py              ← Thin Vercel WSGI adapter (2 lines)
 ├── templates/
-│   └── index.html          ← Single-page UI (plain HTML, no template language)
+│   └── index.html            ← Single-page UI (~1100 lines)
 ├── static/
-│   ├── css/style.css       ← All styles (~520 lines, no framework)
-│   ├── js/app.js           ← All frontend logic (~1380 lines, vanilla JS)
-│   └── fonts/              ← DejaVu fonts for PDF math symbols
+│   ├── css/style.css         ← All styles, no framework (~800 lines)
+│   ├── js/app.js             ← All frontend logic, vanilla JS (~1400 lines)
+│   └── fonts/                ← DejaVu TTF fonts for PDF math symbols
 ├── data/
-│   ├── boards.json         ← Board names and metadata
-│   ├── curriculum.json     ← Full subject/chapter tree per class
+│   ├── curriculum.json       ← Subject/chapter tree for classes 6–10 + competitive
+│   ├── boards.json           ← Board names and metadata
 │   └── exam_patterns/
-│       ├── ap_ts.json      ← AP/TS blueprint: question counts per section
-│       └── competitive.json← NTSE/NSO/IMO/IJSO patterns
-├── vercel.json             ← Serverless deployment config
-└── requirements.txt        ← Python dependencies
+│       ├── ap_ts.json        ← Official AP/TS SSC blueprint
+│       └── competitive.json  ← NTSE/NSO/IMO/IJSO patterns
+├── vercel.json               ← Serverless deployment config
+└── requirements.txt
 ```
 
-The entire backend lives in a single `app.py`. This is intentional — it makes deployment to Vercel serverless functions trivial (one file = one function) and eliminates import path complexity.
+**Why a single `app.py`?** Vercel's Python serverless runtime expects a single WSGI entry point. Keeping everything in one file eliminates relative import complexity, makes deployment a single `git push`, and makes the entire backend greppable without jumping between files. The cost is file length — mitigated by clear section headings and `# ═══` delimiters throughout.
 
 ---
 
-## 2. Technology Stack
+## 2. Technology Stack & Rationale
 
-| Layer | Technology | Why chosen |
+| Layer | Technology | Why |
 |---|---|---|
-| Web framework | Flask 3.x | Lightweight, no ORM needed, simple routing |
-| AI model | Google Gemini 2.5 Flash | Fast generation, long context (1M tokens), free tier available |
-| AI orchestration | LangChain (optional) | Retry logic, prompt templating, output parsing. App works without it via direct REST |
-| PDF rendering | ReportLab Platypus | Industry standard, full layout control, no browser dependency |
-| Deployment | Vercel Serverless | Free tier, automatic HTTPS, global CDN |
-| Frontend | Vanilla JS + CSS | No build step, no framework overhead, instant load |
-| Animations | GSAP 3 | Spring animations and scroll-triggered entrance effects |
-| Charts | Chart.js 4 | Lightweight doughnut/bar charts for the paper estimate panel |
+| Web framework | **Flask 3** | Minimal overhead. No ORM, no template engine needed beyond `render_template`. Simple `@app.route` decoration. |
+| AI model | **Google Gemini** (2.5 Flash, 2.0 Flash, Gemma) | Free tier with meaningful daily quota. 1M token context. Fast inference (~30–60s for a full exam paper). |
+| AI SDK | **LangChain + ChatGoogleGenerativeAI** | Retry logic, structured `ChatPromptTemplate` with system/human separation, `StrOutputParser` chaining. Falls back to direct `requests.post` if unavailable. |
+| PDF | **ReportLab Platypus** | Industry-grade layout engine used for legal, government, and financial documents. Full control over typography, tables, page templates, fonts. No browser dependency. |
+| Fonts | **DejaVu Sans** (TTF) | Excellent Unicode coverage for Greek letters (θ, α, π), math operators (√, ∑, ∫), and subscript/superscript characters needed in STEM papers. |
+| Deployment | **Vercel Serverless** | Free tier, automatic HTTPS, global CDN for static assets, 300s function timeout. |
+| Frontend | **Vanilla JS + CSS** | No build step, no bundler, no framework overhead. Sub-100ms page load. Entire UI in two files. |
+| Animations | **GSAP 3** | Professional-grade spring animations and scroll-triggered entrance effects. Loaded from CDN — not bundled. |
 
 ---
 
-## 3. Application Boot Sequence
+## 3. Boot Sequence
 
-When Python starts `app.py`, the following happens in order:
+When Python starts `app.py`, the following executes at module level in order:
 
-**Step 1 — Imports**
-All standard library, ReportLab, Flask, and LangChain imports. LangChain is wrapped in `try/except ImportError` so the app still boots if LangChain is not installed (it falls back to direct Gemini REST calls).
-
-**Step 2 — App object created**
-```python
-app = Flask(__name__, template_folder="templates",
-            static_folder="static", static_url_path="/static")
 ```
+1. Imports
+   ├── Standard library: os, re, json, time, base64, xml.etree, pathlib, io
+   ├── ReportLab: SimpleDocTemplate, Paragraph, Table, TableStyle, PageBreak...
+   ├── Flask
+   └── LangChain (wrapped in try/except ImportError → graceful degradation)
 
-**Step 3 — Security headers registered**
-`@app.after_request` registers a hook that runs after every route handler. It intercepts the response object before it leaves the server and adds all security headers. Applied globally — no route can accidentally skip it.
+2. Flask app object created
+   app = Flask(__name__, template_folder="templates", static_folder="static")
 
-**Step 4 — API keys read**
-```python
-GEMINI_KEY   = os.environ.get("GEMINI_API_KEY",   "").strip()
-GEMINI_KEY_2 = os.environ.get("GEMINI_API_KEY_2", "").strip()
+3. @after_request security header hook registered
+   (applies to ALL routes globally — no route can skip it)
+
+4. API keys read from environment
+   GEMINI_KEY   = os.environ.get("GEMINI_API_KEY",   "").strip()
+   GEMINI_KEY_2 = os.environ.get("GEMINI_API_KEY_2", "").strip()
+   GEMINI_KEY_3 = os.environ.get("GEMINI_API_KEY_3", "").strip()
+
+5. SMTP email config read from environment
+   (connection NOT opened at boot — only when an error occurs)
+
+6. Curriculum and exam pattern JSON files loaded into module-level dicts
+   _PATTERN_AP_TS, _PATTERN_COMP, _CURRICULUM
+
+7. Font registration deferred
+   _fonts_registered = False  (registered lazily on first PDF call)
+
+8. Routes registered via @app.route decorators
+
+9. if __name__ == "__main__": app.run(...)
+   (never executes on Vercel — Vercel imports the app object directly)
 ```
-Both keys are read at startup. `GEMINI_KEY_2` is the automatic fallback.
-
-**Step 5 — Email system configured**
-SMTP credentials read from environment variables. Connection is not opened at boot — only when an error actually occurs.
-
-**Step 6 — Font registration**
-`register_fonts()` is called lazily (on first PDF generation), not at boot, to keep startup fast.
-
-**Step 7 — Routes registered**
-Python decorators `@app.route(...)` bind URL paths to handler functions.
-
-**Step 8 — Server starts**
-```python
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000, debug=False)
-```
-On Vercel, this block never executes — Vercel imports the `app` object directly via `api/index.py`.
 
 ---
 
-## 4. Security Layer
+## 4. Security Architecture
 
-**Location:** `app.py` — `apply_security_headers(response)`
+**Location:** `apply_security_headers(response)` — `@app.after_request` hook
 
-Every HTTP response passes through this `@after_request` hook before leaving the server.
+Every HTTP response — regardless of route — passes through this function before leaving the server.
 
-**Permissions-Policy** is the most important header for device safety. Each entry uses the syntax `api-name=()` where `()` means "no origin is allowed to use this API, not even self." The browser enforces this at the hardware level — even if JavaScript somehow tried to call `navigator.getUserMedia()`, the browser would block it before any prompt appeared.
+### Permissions-Policy (most important)
 
-**Content-Security-Policy** uses a whitelist model. The default is `default-src 'self'` which blocks everything not explicitly permitted. Specific CDNs are then whitelisted for GSAP and Chart.js. `connect-src 'self'` ensures all XHR/fetch calls must go to the same server — prevents data exfiltration even if an attacker injected script.
+```http
+Permissions-Policy: camera=(), microphone=(), geolocation=(), gyroscope=(),
+  accelerometer=(), magnetometer=(), usb=(), midi=(), payment=(),
+  display-capture=(), bluetooth=(), serial=(), nfc=(), hid=(), ...
+```
 
-**Why `unsafe-inline` in scripts?** The app uses `onclick=` attributes in HTML for simplicity. In a higher-security environment, all inline handlers would be moved to JS event listeners and `unsafe-inline` removed. This is a documented trade-off.
+The `=()` syntax means **no origin is allowed**, including `self`. The browser enforces this at the hardware API level — JavaScript calling `navigator.getUserMedia()` is blocked before any permission prompt ever appears. This is a hardened defense-in-depth measure: even if an attacker injected script into the page, device access would be denied.
+
+### Content-Security-Policy
+
+```http
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  connect-src 'self';
+  img-src 'self' data:;
+  frame-src 'none';
+  object-src 'none';
+```
+
+`connect-src 'self'` is the critical data-exfiltration guard: all `fetch()` and `XMLHttpRequest` calls must go to the same origin. A compromised CDN script could not phone home.
+
+`'unsafe-inline'` is present for scripts because the UI uses `onclick=` attributes. This is a documented trade-off for simplicity. In a hardened production environment, all inline handlers would migrate to JS event listeners and `'unsafe-inline'` removed.
+
+### Other headers
+
+| Header | Value | Purpose |
+|---|---|---|
+| `X-Frame-Options` | `DENY` | Prevents clickjacking via iframe embedding |
+| `X-Content-Type-Options` | `nosniff` | Prevents MIME confusion attacks |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Forces HTTPS for 1 year |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage |
+| `Server` | *(removed)* | Removes server fingerprint |
 
 ---
 
 ## 5. Error Reporting System
 
-**Location:** `app.py` — `send_error_email(...)`
+**Location:** `send_error_email(error_type, error_msg, traceback_str, user_choices, extra_context)`
 
-When any route handler crashes, the error is:
-1. Caught by the `try/except` in the route handler
-2. Formatted into a structured HTML + plain-text email with full traceback, user choices, timestamp, server info
-3. Sent to `laxmanchowday159@gmail.com` via SMTP (Gmail App Password, configured via env vars)
-4. A clean JSON error response is returned to the browser — never a raw traceback
+### Design principles
 
-`_capture_user_choices(data)` snapshots exactly what the user submitted (board, subject, marks, etc.) and includes it in the error email so the developer can reproduce the exact paper that caused the crash.
+1. **Never raises.** An email failure must not cascade into a web response failure. The entire function is wrapped in `try/except Exception`.
+2. **Dual format.** Sends both `text/plain` and `text/html` parts in a `MIMEMultipart("alternative")`. Email clients choose the best rendering.
+3. **Zero information loss.** The `_capture_user_choices(data)` helper snapshots every field the user submitted — board, subject, marks, difficulty, scope — so any bug is 100% reproducible from the email alone.
+4. **Context-rich.** Extra context includes which models were tried, which key was set, LangChain availability, prompt length, and a 100-char prompt preview.
 
-The function is deliberately non-raising — an email failure must never cascade into a web response failure.
+### Triggered by
+
+- `POST /generate` — AI generation returned empty after all models and keys exhausted
+- `POST /generate` — any unhandled exception in the route handler
+- `POST /download-pdf` — PDF rendering failure
+
+### SMTP mechanism
+
+```python
+with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
+    server.ehlo()
+    server.starttls()           # Upgrade to TLS before credentials
+    server.login(email, password)
+    server.sendmail(...)
+```
+
+Uses Gmail STARTTLS on port 587. Requires a Gmail App Password (16-char), not the account password.
 
 ---
 
-## 6. Font and Style System
+## 6. LaTeX / Math Parser
 
-**Location:** `app.py` — `register_fonts()` and `_styles()`
+**Location:** `_latex_to_rl(expr)`, `_process(text)`, `_balance_xml_tags(text)`
 
-ReportLab has its own font system separate from CSS. PDF fonts must be embedded in the file to render correctly on any printer.
+ReportLab's `Paragraph` renders a subset of XML: `<b>`, `<i>`, `<super>`, `<sub>`, `<font>`. The AI generates math in LaTeX notation (`$\frac{a}{b}$`). The parser bridges these two worlds.
 
-DejaVu Sans is used because it has excellent Unicode coverage: Greek letters (θ, φ, π), mathematical operators (√, ∑, ∫), and common symbols — all needed for Class 6–10 math and science papers.
+### `_extract_braced(s, pos)` — brace extractor
 
-`_styles()` returns a dictionary of named `ParagraphStyle` objects — analogous to named CSS classes. All styles are created once per PDF generation and passed through to every rendering function. There is no global mutable style state. Key styles:
+```python
+def _extract_braced(s, pos):
+    if s[pos] != '{': return (s[pos], pos + 1)
+    depth, i = 0, pos
+    while i < len(s):
+        if s[i] == '{': depth += 1
+        elif s[i] == '}': depth -= 1
+        if depth == 0: return s[pos+1:i], i+1
+        i += 1
+```
 
-| Style name | Use |
+Correctly handles nested braces: `\frac{a+b}{c+d}` extracts `a+b` and `c+d` separately. Needed because regex cannot count nested brackets.
+
+### `_latex_to_rl(expr)` — conversion rules
+
+| LaTeX input | ReportLab XML output |
 |---|---|
-| `PTitle` | Paper title — white on navy, centered |
-| `PMeta` | Board/class/marks sub-header |
-| `Q` | Question body text — 9.5pt, justified |
-| `QSub` | Sub-question (a), (b), (c) |
-| `Opt` | MCQ option text |
-| `SecBanner` | Section header label inside the navy banner |
-| `KQ` | Answer key question number |
-| `KStep` | Answer key solution step |
+| `\frac{a}{b}` | `(a/b)` |
+| `\sqrt{x+1}` | `√(x+1)` |
+| `x^{2}` | `x<super>2</super>` |
+| `x_{n}` | `x<sub>n</sub>` |
+| `\theta` | `θ` (Unicode lookup) |
+| `\leq` | `≤` |
+| `\mathbb{R}` | `ℝ` |
+| `\in` | `∈` |
+| `\cup`, `\cap` | `∪`, `∩` |
+
+The parser is character-by-character (not regex-based) so it handles concatenated expressions like `x^{2}+y^{2}=r^{2}` without lookahead confusion.
+
+### `_process(text)` — full pipeline
+
+1. Strip escape sequences: `\_` → `_`, `\-` → `-`
+2. Guard fill-in-blank underscores inside `$...$` (prevents them becoming empty `<sub>` tags)
+3. Apply `_latex_to_rl` to all `$...$` and `$$...$$` spans
+4. Escape raw `&`, `<`, `>` outside of converted tags
+5. Re-allow already-converted entities: `&amp;(amp|lt|gt|...)` → unchanged
+6. Convert `**bold**` → `<b>bold</b>` and `*italic*` → `<i>italic</i>`
+7. Run `_balance_xml_tags` to close any unclosed tags
+
+### `_balance_xml_tags(text)` — XML repair
+
+ReportLab's `Paragraph` crashes if it receives malformed XML like `<b>text<super>`. This function walks the text character-by-character, maintaining a tag stack:
+
+- Opening tag → push to stack, emit tag
+- Closing tag found in stack → close all tags opened after it, close it, reopen them
+- Closing tag not in stack (stray) → ignore
+- End of text → close all unclosed tags in reverse stack order
+- Unknown tags (not in `{b, i, u, sub, super, font}`) → strip entirely
+
+This transforms potentially crash-inducing AI output into always-valid XML.
+
+### `_safe_para(text, style)` — last resort
+
+Even after `_balance_xml_tags`, edge cases can still fail. `_safe_para` wraps `Paragraph(text, style)` in try/except and falls back to stripping all tags and escaping as plain text. Returns `None` only if even plain text fails — preventing a single broken question from crashing the entire PDF.
 
 ---
 
-## 7. LaTeX / Math Parser
+## 7. PDF Rendering Engine
 
-**Location:** `app.py` — `_latex_to_rl(expr)` and `_process(text)`
+**Location:** `create_exam_pdf(text, subject, chapter, board, answer_key, include_key, diagrams, marks)`
 
-The AI generates math in a mix of formats. ReportLab's `Paragraph` class supports a subset of XML-like tags: `<b>`, `<i>`, `<super>`, `<sub>`. The parser bridges these two worlds.
+This function is the largest in the codebase. It takes raw AI text and produces binary PDF bytes. ReportLab's `Platypus` layout engine is used — a high-level "story" API where content is specified as a list of flowables (Paragraphs, Tables, Spacers, PageBreaks) that the engine flows across pages automatically.
 
-**`_extract_braced(s, pos)`**
-A recursive brace extractor. Given a string and position of `{`, it returns everything until the matching `}`, handling nested braces correctly. Needed to parse `\frac{a+b}{c}` where `a+b` is the numerator.
+### 7.1 — Page Setup
 
-**`_latex_to_rl(expr)`** converts LaTeX fragments:
-```
-\sqrt{x+1}    →  √(x+1)
-x^{2}         →  x<super>2</super>
-x_{n}         →  x<sub>n</sub>
-\frac{a}{b}   →  (a/b)
-\theta        →  θ   (Unicode mapping)
-\alpha, \beta →  α, β
+```python
+LM = BM = 17 * mm     # 17mm left/bottom margin — matches official exam format
+RM = 17 * mm
+TM = 13 * mm          # 13mm top margin
+PW = A4[0] - LM - RM  # usable page width
+doc = SimpleDocTemplate(buf, pagesize=A4, ...)
 ```
 
-**`_process(text)`** is the full text pipeline:
-- Strips markdown: `**bold**` → `<b>bold</b>`
-- Calls `_latex_to_rl` on detected math spans `$...$`
-- Escapes raw `&`, `<`, `>` characters outside of tags
-- Runs `_balance_xml_tags` to close any unclosed tags that would crash ReportLab's XML parser
-
----
-
-## 8. PDF Rendering Engine
-
-**Location:** `app.py` — `create_exam_pdf(...)`
-
-This is the largest function. It takes the raw AI text and produces binary PDF bytes. Here is exactly what happens:
-
-### 8.1 — Header construction
-
-The header is a full-width navy (`#0f2149`) table with three layers:
-1. **Title row** — subject name + chapter, white on navy
-2. **Accent stripe** — 2pt bright blue line
-3. **Meta row** — board name left, total marks right, pale blue-grey background
-
-### 8.2 — ExamCanvas (custom page template)
+### 7.2 — ExamCanvas (Page Template)
 
 ```python
 class ExamCanvas:
     def __call__(self, canvas, doc):
-        # Draws: navy top rule, accent hairline, footer rule, page number
-        # Called by ReportLab on every page including overflow pages
+        # Top rule: 1.2pt navy line + 0.5pt blue accent hairline
+        # Footer: 0.4pt rule + centered page number
+        # Called by ReportLab after EVERY page including overflow pages
 ```
 
-This is a ReportLab "canvas callback" — it runs after each page's content is placed, letting you draw elements on every page without including them in the main story list.
+This is a ReportLab canvas callback pattern. The canvas object gives raw drawing access to the current page after content is placed. Using it for headers/footers ensures they appear on every page including multi-page papers without being part of the story list.
 
-### 8.3 — Line-by-line text parser
+### 7.3 — Three-Layer Header
 
-The core of `create_exam_pdf` is a line-by-line parser. Each line is classified:
-
-| Detector | Matches |
-|---|---|
-| `_is_sec_hdr(s)` | "Section I", "PART A", "Section IV" |
-| `_is_table_row(s)` | Lines containing pipe characters |
-| `_is_divider(s)` | Markdown separator rows `\|---\|---\|` |
-| `_is_hrule(s)` | Decorative rules `---`, `===` |
-| `_HDR_SKIP` regex | Duplicate metadata lines the AI emits |
-| `_FIG_JUNK` regex | Stray figure description lines |
-
-When a section header is detected, `_sec_banner()` creates a full-width coloured banner. When a question line is detected, options are collected and passed to `_opts_table()`.
-
-### 8.4 — `_opts_table(opts, st, pw)`
-
-MCQ options are laid out in a 2×2 table (2 columns, 2 rows) to save vertical space:
 ```
-(a) option A    (c) option C
-(b) option B    (d) option D
+┌─────────────────────────────────────────────┐  ← Navy (#0f2149) fill
+│   MATHEMATICS  ·  SETS             ●        │  White bold text + blue dot
+├─────────────────────────────────────────────┤  ← 2pt blue accent stripe
+│  Andhra Pradesh State Board        Total Marks: 20  │  ← Light blue-grey row
+└─────────────────────────────────────────────┘
 ```
 
-### 8.5 — `_pipe_table(rows, st, pw)`
+Built as a compound `Table([[title_cell, dot_cell]])` with explicit TableStyle commands. The accent stripe is a 2pt-height Table with `C_ACCENT` background — ReportLab doesn't have a native "horizontal rule with colour" element so a zero-height coloured table achieves the same visual.
 
-For Match the Following and data tables, the AI outputs pipe-delimited rows. `_pipe_table` creates a proper ReportLab `Table` with:
-- Navy background header row with white bold text
-- Bright blue accent border under the header
-- Alternating white/light-blue row backgrounds for data rows
-- Full outer navy border and thin internal cell borders
+### 7.4 — Font and Style System
 
-### 8.6 — Diagram embedding
+`_styles()` returns a `getSampleStyleSheet()` extended with ~20 custom `ParagraphStyle` objects. All styles are created once per PDF and passed through every rendering function via the `st` parameter — no global mutable style state.
 
-When a `[DIAGRAM: description]` tag is encountered, the SVG (pre-generated in parallel before PDF build) is passed to `svg_to_best_image()` which renders it at 88% of page width. If no SVG was generated, a styled placeholder box is inserted with a labelled navy header and a dotted inner drawing area.
+Key styles and their purpose:
 
-### 8.7 — Answer key section
+| Style | Font | Size | Use |
+|---|---|---|---|
+| `PTitle` | Bold | 12pt | Paper title — white text |
+| `Q` | Regular | 9.5pt | Question text — JUSTIFY alignment, 22pt hanging indent |
+| `QSub` | Regular | 9.5pt | Sub-questions (a), (b), (c) |
+| `Opt` | Regular | 9pt | MCQ option text |
+| `SecBanner` | Bold | 9.5pt | Section heading text inside banner |
+| `KQ` | Bold | 9.5pt | Answer key question number |
+| `KStep` | Regular | 9.5pt | Answer key solution steps |
 
-If `include_key=True`, the key text is parsed after a `PageBreak`. It gets its own navy banner header styled identically to the paper header.
+### 7.5 — Section Banners
+
+`_sec_banner(text, st, pw, is_key)` builds a compound table:
+
+```
+[ 6pt blue accent bar ] [ "Section IV — Very Short Answer" text ]
+```
+
+The left column is a 6-point-wide `Table([[""]])` with `C_ACCENT` background — creates the vertical accent bar. The right column holds the section label `Paragraph`. The outer table has `C_LIGHT` background and `C_NAVY2` border lines. For answer key banners, the background flips to full navy with white text.
+
+### 7.6 — MCQ Option Layout
+
+MCQ options are laid out in a 2-column table to save vertical space:
+
+```
+(a) First option text         (c) Third option text
+(b) Second option text        (d) Fourth option text
+```
+
+`_opts_table(opts, st, pw)` takes a list of `(letter, text)` pairs, groups them in pairs `[(a,c), (b,d)]`, and builds a `Table` with `colWidths=[pw/2, pw/2]`. Options are buffered in `pending_opts` and flushed when all 4 are collected or the next question begins.
+
+### 7.7 — Pipe Table Rendering
+
+`_pipe_table(rows, st, pw)` converts markdown pipe-table rows (from Match the Following and data questions) into a proper `Table`:
+
+- Header row: navy (`#0f2149`) background, white bold text, blue accent bottom border
+- Data rows: alternating white / light blue (`#f4f6fb`) backgrounds
+- Full navy outer border, thin grey internal borders
+- Column widths distributed evenly across page width
+- `repeatRows=1` so the header repeats on overflow pages
+
+### 7.8 — Line-by-Line Parser
+
+The core parser is a while loop over `lines`. Each line is classified by a cascade of detectors:
+
+```python
+if _is_table_row(line):   → buffer into tbl_rows[]
+elif in_table:            → flush_table()
+if not s:                 → Spacer(1, 4)
+if _HDR_SKIP.match(s):    → skip (duplicate AI metadata)
+if _FIG_JUNK.match(s):    → skip (stray figure labels)
+if _is_hrule(line):       → HRFlowable
+if s.startswith('[DIAGRAM:'): → diagram embedding
+if _is_general_instr(s):  → skip (general instructions block)
+if _is_sec_hdr(line):     → _sec_banner()
+if _is_instr_line(s):     → skip (numbered instruction lines)
+if opt_m (MCQ option):    → buffer into pending_opts[]
+if q_m (question):        → Paragraph with Q style
+if sub_m (sub-question):  → Paragraph with QSub style
+else:                     → Paragraph with QCont style
+```
+
+This handles all structural variations in AI output without requiring the AI to produce perfectly structured text.
+
+### 7.9 — AI Noise Stripping
+
+Two pre-processing passes run before parsing:
+
+**`_strip_ai_noise(text)`** removes AI preamble ("Sure! Here is your paper...") and closing remarks ("I hope this helps! Let me know...") by scanning the first 25 and last 10 lines against known patterns.
+
+**`_strip_leading_metadata(text, subject, board)`** removes duplicate header lines the AI emits (bare subject name, pipe-formatted board/class/marks row). These duplicate the PDF header table already built programmatically, so they must not appear as question text in the paper body.
 
 ---
 
-## 9. AI Integration
+## 8. AI Integration — Three-Key Round-Robin Failover
 
-**Location:** `app.py` — `_call_gemini_with_key()` and `call_gemini()`
+**Location:** `_try_one()`, `call_gemini()`
 
-### Model priority list
+### 8.1 — Model List
+
+Only models with confirmed non-zero daily quota are listed:
 
 ```python
 _GEMINI_MODELS = [
-    "gemini-2.5-flash-preview-05-20",   # Best quality, tried first
-    "gemini-2.5-flash",                  # Stable alias
-    "gemini-2.5-flash-lite-preview-06-17",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
-    # ... small/legacy models last
+    "gemini-2.5-flash",                    # Best quality, 32 RPD
+    "gemini-2.5-flash-lite",               # Fast, 30 RPD
+    "gemini-2.5-flash-lite-preview-06-17", # Preview alias
+    "gemma-3-4b-it",                       # 60 RPD — solid structured output
+    "gemma-3-1b-it",                       # 92 RPD — highest throughput
 ]
 ```
 
-### `_call_gemini_with_key(prompt, api_key)` — single-key attempt
+Models with 0/0/0 quota (including all `gemini-2.0-flash`, `gemini-1.5-*` variants) were removed after observing 404 and 429 failures in production. The list is intentionally short — 5 models with real quota beats 11 models most of which error immediately.
 
-Tries the model list with one API key. Returns a 3-tuple: `(text, error_summary, rate_limited_bool)`.
+### 8.2 — `_try_one(model, api_key, prompt, all_errors)` — Atomic Attempt
 
-The `rate_limited_bool` is the key addition: if **two or more models return HTTP 429**, the function stops immediately and returns `rate_limited=True`. This tells the caller to switch keys without wasting time trying 8 more models on an exhausted quota.
+Each `(model, key)` combination is tried in this function. It:
 
-```python
-elif resp.status_code == 429:
-    rate_limit_count += 1
-    all_errors[model_name] = "quota/rate-limit (429)"
-    if rate_limit_count >= 2:
-        # Signal caller to try backup key immediately
-        return None, summary, True
-    break
+1. **LangChain attempt first** (better structured output, retry logic built in):
+   - Builds a `ChatGoogleGenerativeAI` chain via `_get_lc_chain(model, api_key)`
+   - Gemma models use a human-only message (no `system` role — not supported by Gemma via the API)
+   - Gemini models use `system` + `human` separation
+   - Returns `(text, False, False)` on success
+   - Returns `(None, True, False)` on 429
+   - Returns `(None, False, True)` on 404 — signals model is dead everywhere
+
+2. **Plain REST fallback** if LangChain fails for any non-quota reason:
+   - Direct `requests.post` to `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+   - Gemma gets `maxOutputTokens: 8192` (Gemma's practical limit); Gemini gets `16384`
+   - Same return code semantics as LangChain path
+
+### 8.3 — `call_gemini(prompt)` — Round-Robin Orchestrator
+
+The calling strategy iterates **per model across all keys**, not per key across all models:
+
+```
+For each model in [gemini-2.5-flash, gemini-2.5-flash-lite, gemma-3-4b-it, gemma-3-1b-it]:
+    Try key1  →  Try key2  →  Try key3
+    ↓ success: return immediately
+    ↓ 429: mark (model, key_idx) as rate-limited, try next key
+    ↓ 404: mark model as dead, skip all remaining keys for this model
 ```
 
-### `call_gemini(prompt)` — dual-key orchestrator
+This maximises the chance of using the best available model. `gemini-2.5-flash` on all 3 keys is exhausted before falling back to `gemini-2.5-flash-lite`. Gemma is only used if all Gemini quota is gone on all keys.
 
 ```python
-def call_gemini(prompt):
-    # 1. Try primary key
-    text, err, rate_limited = _call_gemini_with_key(prompt, GEMINI_KEY)
-    if text: return text, None
+active_keys   = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
+rate_limited  = set()    # (model_name, key_idx) tuples
+not_found     = set()    # model_names that 404'd
 
-    # 2. If rate-limited OR fully exhausted, try backup key
-    if GEMINI_KEY_2:
-        text, err, _ = _call_gemini_with_key(prompt, GEMINI_KEY_2)
+for model_name in _GEMINI_MODELS:
+    for ki, api_key in enumerate(active_keys):
+        if model_name in not_found: break
+        if (model_name, ki) in rate_limited: continue
+
+        text, is_rl, is_nf = _try_one(model_name, api_key, prompt, all_errors)
         if text: return text, None
-
-    return None, combined_error
+        if is_rl: rate_limited.add((model_name, ki))
+        if is_nf: not_found.add(model_name); break
 ```
 
-The LangChain path is tried first (top 4 capable models only — Gemma models are excluded as they don't produce structured exam output). If LangChain is unavailable or fails, direct REST calls are made to the same models.
+### 8.4 — Gemma Compatibility
+
+Gemma models (`gemma-3-*`) require special handling:
+
+```python
+is_gemma = 'gemma' in model_name.lower()
+
+# Gemma: no system role — prepend to human message
+if is_gemma:
+    prompt_tpl = ChatPromptTemplate.from_messages([
+        ("human", system_msg + "\n\n{prompt}"),
+    ])
+else:
+    prompt_tpl = ChatPromptTemplate.from_messages([
+        ("system", system_msg),
+        ("human", "{prompt}"),
+    ])
+```
+
+Also: `max_output_tokens=8192` for Gemma (vs 16384 for Gemini), and `top_p=0.9` to slightly widen the output distribution since Gemma is more conservative.
 
 ---
 
-## 10. Prompt Engineering System
+## 9. Prompt Engineering System
 
-**Location:** `app.py` — `build_prompt(...)` and helpers
+**Location:** `build_prompt()`, `_prompt_board()`, `_prompt_competitive()`, helpers
 
-Prompts are not static strings — they are programmatically assembled from multiple components.
+Prompts are assembled programmatically from reusable components — never hardcoded strings.
 
-### `_compute_structure(marks)` — exact mark allocation
+### 9.1 — `_compute_structure(marks)` — Exact Blueprint
 
-Returns precise question counts per section. For 100 marks:
-- Part A (20M): 10 MCQ + 5 Fill-in-Blank + Match the Following
-- Section IV (16M): 8 × 2M Very Short Answer
-- Section V (16M): give 6, attempt any 4 × 4M Short Answer
-- Section VI (24M): give 6, attempt any 4 × 6M Long Answer (each with OR option)
-- Section VII (20M): give 3, attempt any 2 × 10M Application
+Returns a dictionary with precise question counts per section. The mark totals always sum exactly to the requested marks.
 
-This mirrors the official AP/TS State Board blueprint. The AI is told exact counts — not asked to figure them out.
+For **full papers (≥40M)**:
+```
+partA = round(marks × 0.20)     # Objective section
+  n_mcq   = round(partA × 0.50)
+  n_fill  = round(partA × 0.25)
+  n_match = partA - n_mcq - n_fill
 
-### `_difficulty_profile(difficulty)` — question type ratios
+partB = marks - partA
+  vsq_budget = round(partB × 0.25) → n_vsq = budget ÷ 2
+  sa_budget  = round(partB × 0.20) → n_sa  = budget ÷ 4
+  la_budget  = round(partB × 0.30) → n_la  = budget ÷ 6
+  app_budget = remaining           → n_app = budget ÷ 10
+```
+
+Remainder after integer division is absorbed into VSQ (simplest question type) to guarantee the grand total is always exactly `marks`. The AI is given the final counts — it does not calculate them.
+
+### 9.2 — `_difficulty_profile(difficulty)` — Bloom's Taxonomy Ratios
 
 ```
-Easy:   25% recall · 45% single-step · 20% multi-step · 10% analysis
-Medium: 10% recall · 30% application · 35% multi-step · 15% evaluation · 10% synthesis
-Hard:    0% recall · 15% application · 40% deep analysis · 30% proof · 15% novel scenarios
+Easy:
+  25% straightforward recall
+  45% single-step application
+  20% multi-step application
+  10% analysis
+  "Avoid trivial questions. Every MCQ should have a plausible wrong option."
+
+Medium:
+  10% recall · 30% application · 35% multi-step analysis
+  15% evaluation · 10% synthesis/proof
+  "At least 40% of questions should challenge above-average students."
+
+Hard:
+  0% pure recall · 15% non-trivial application · 40% deep analysis
+  30% evaluation & proof · 15% synthesis & novel scenarios
+  "80%+ of students should find this challenging.
+   Every calculation should involve ≥3 steps. Include edge cases."
 ```
 
-### `_notation_rules(subject)` — subject-specific notation
+### 9.3 — `_notation_rules(subject)` — Subject-Specific Instructions
 
-Math subjects get: `$...$` for all expressions, `\frac{}{}` for fractions, `\sqrt{}`, `\theta`, SI units outside `$`. Science subjects additionally get diagram requirements (≥30% of written questions must have a `[DIAGRAM:]` tag).
+Detects whether the subject is math/science:
 
-### `_prompt_board(...)` — state board prompt
+**Math subjects** receive:
+```
+• ALL expressions inside $…$: $x^{2}$  $\frac{a}{b}$  $\sqrt{b^2-4ac}$
+• Chemical formulas: $H_2O$  $CO_2$
+• Powers/subscripts: $a^{3}$  $v_0$  — never write as plain a3 or v0
+• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'
+• Fill blanks: __________ (ten underscores, ALWAYS outside $…$)
+```
 
-The full prompt for state board papers is ~80 lines and includes:
-- Exact structure with question counts
-- Quality rules (MCQ distractors must reflect real misconceptions, not random values)
-- Notation rules for the subject
-- An instruction to avoid AI preamble ("Sure! Here is...") — without this Gemini frequently adds commentary that breaks the parser
-- Instruction to end with `ANSWER KEY` on its own line
+**Science subjects** additionally receive diagram requirements:
+```
+• Include [DIAGRAM: detailed description] in ≥30% of written-answer questions
+• Examples of required diagram tags: [DIAGRAM: labelled circuit diagram...]
+• ⛔ NEVER output [DIAGRAM: Not applicable] — omit the tag entirely if no diagram needed
+```
 
-### `split_key(text)` — separate paper from answer key
+### 9.4 — Prompt Structure for Board Papers
 
-Finds the `ANSWER KEY` separator line the AI was instructed to include. If the separator is absent (occasional AI non-compliance), a heuristic scans line-by-line for "ANSWER KEY" or "ANSWERS" near the end of the text.
+The final prompt passed to Gemini is ~90 lines:
+
+```
+1. Role statement: "You are a senior AP State Board Class 10 question-paper setter..."
+2. Paper metadata: Subject, Chapter, Board, Class, Total Marks, Time, Difficulty
+3. Mandatory structure: exact question counts per section
+4. Content quality rules: MCQ distractor policy, fill-blank format, OR requirement for LA
+5. Diagram rules: when to include [DIAGRAM:] tags
+6. Notation rules: math notation block
+7. Answer key rules: format of answers per section type
+8. Output format: exact header structure to start with
+```
+
+The prompt ends with the literal first two lines the AI should output — this "few-shot priming" dramatically reduces preamble generation.
+
+### 9.5 — `split_key(text)` — Paper/Key Separator
+
+Tries 8 regex patterns to find the `ANSWER KEY` separator line, handling all AI formatting variations:
+
+```python
+patterns = [
+    r'\nANSWER KEY\n',
+    r'\n---\s*ANSWER KEY\s*---\n',
+    r'(?i)\nANSWER KEY:?\s*\n',
+    r'(?i)\n\*+\s*ANSWER KEY\s*\*+\s*\n',
+    r'(?i)\n#{1,3}\s*ANSWER KEY\s*\n',
+    r'(?i)\nANSWER\s+KEY\s+(?:&|AND)\s+SOLUTIONS?\s*\n',
+    # ... plus line-by-line fallbacks
+]
+```
+
+Falls back to scanning lines for `"ANSWER KEY"` text normalized by stripping punctuation and case. The key must have >30 characters to pass the sanity check — prevents false-positive splits on short matches.
 
 ---
 
-## 11. Diagram Generation
+## 10. Diagram Generation Pipeline
 
-**Location:** `app.py` — `generate_diagram_svg()`, `svg_to_best_image()`, `svg_to_rl_drawing()`
+**Location:** `generate_diagram_svg()`, `svg_to_best_image()`, `svg_to_rl_drawing()`
 
-### Pipeline
+### 10.1 — Extraction
 
-1. **Extract** — `re.findall(r'\[DIAGRAM:\s*([^\]]+)\]', full_text)` collects all diagram descriptions from paper + key
-2. **Deduplicate** — same description appearing in both paper and key is only generated once
-3. **Generate in parallel** — `ThreadPoolExecutor(max_workers=3)` generates all diagrams concurrently with a 25-second total timeout
-4. **Embed** — each SVG is matched to its `[DIAGRAM:]` tag (exact match first, then fuzzy word-overlap match)
+```python
+diag_descs_raw = re.findall(r'\[DIAGRAM:\s*([^\]]+)\]', full_text, re.IGNORECASE)
+unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
+```
 
-### `generate_diagram_svg(description)`
+`dict.fromkeys` preserves insertion order while deduplicating — same description appearing in both paper and answer key is generated only once.
 
-Calls Gemini with a ~30-line technical prompt specifying exact SVG requirements:
-- `viewBox="0 0 500 320"` fixed canvas
-- Background rect must be white
-- Stroke colours, font families, font sizes — all specified
-- Only basic elements allowed: `line`, `circle`, `rect`, `polygon`, `path`, `text`
-- No `<image>`, no `<defs>`, no CSS, no JavaScript
-- Every label must be placed without overlapping lines
+### 10.2 — Parallel Generation
 
-### `svg_to_best_image(svg_str, width_pt)`
+```python
+with ThreadPoolExecutor(max_workers=4) as ex:
+    futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
+    try:
+        for future in as_completed(futures, timeout=90):   # 90s wall clock
+            svg = future.result(timeout=80)                # 80s per diagram
+    except TimeoutError:
+        pass  # Use whatever diagrams completed in time
+```
 
-Priority chain:
-1. High-quality PNG via `wkhtmltoimage` (if available — not available on Vercel)
-2. Pure ReportLab SVG renderer (always available)
+4 workers run concurrently. Total wall clock is 90 seconds, individual diagram timeout is 80 seconds. This is a hard-won balance: too short and diagrams silently fail; too long and the response blocks Vercel's 300s function timeout.
 
-The ReportLab SVG renderer (`svg_to_rl_drawing`) parses the SVG XML and converts each element to a ReportLab `Drawing` shape. Coordinate system is flipped (SVG Y-axis is inverted vs ReportLab). Bezier curves are approximated by sampling 8 intermediate points.
+### 10.3 — `generate_diagram_svg(description)` — Gemini SVG Prompt
 
-Diagrams are rendered at **88% of page width** — wide enough to be clearly readable, with a subtle border frame and padding.
+Calls `call_gemini()` (full round-robin failover) with a ~40-line technical prompt specifying:
+
+- Fixed `viewBox="0 0 500 320"` canvas
+- Mandatory white background rect as first element
+- Stroke colours, stroke-widths, font-family, font-size per element type
+- Only these elements allowed: `line`, `circle`, `ellipse`, `rect`, `polygon`, `polyline`, `path`, `text`, `tspan`, `g`
+- No `<image>`, `<defs>`, `<clipPath>`, `<filter>`, `<foreignObject>`, no CSS, no JavaScript
+- Right angles marked with 6×6 squares, angle arcs with labels
+- Subject-context injected via `_get_diag_context(description)`:
+  ```python
+  "triangle" → "clean geometric figure with labelled vertices A B C, altitude or median as required"
+  "circuit"  → "electric circuit schematic using standard symbols: battery, resistor, ammeter..."
+  "cell"     → "animal/plant cell with organelles: nucleus, mitochondria, chloroplast... labelled"
+  ```
+
+### 10.4 — SVG Embedding in PDF
+
+`svg_to_best_image(svg_str, width_pt)`:
+
+1. **wkhtmltoimage path** (high quality PNG, not available on Vercel)
+2. **Pure ReportLab SVG renderer** (always available) — `svg_to_rl_drawing()`
+
+`svg_to_rl_drawing()` parses the SVG XML tree and converts each element to ReportLab `Drawing` shapes:
+
+| SVG element | ReportLab shape |
+|---|---|
+| `<line>` | `Line` |
+| `<circle>` | `Circle` |
+| `<ellipse>` | Polygon (36-point approximation) |
+| `<rect>` | `Rect` |
+| `<polygon>`, `<polyline>` | `Polygon`, `PolyLine` |
+| `<path d="...">` | Parsed via `_parse_path_d()` → `PolyLine` or `Polygon` |
+| `<text>` | `String` |
+
+**Coordinate flip:** SVG Y-axis increases downward; ReportLab Y-axis increases upward. Every `y` coordinate is flipped: `ty(y) = height_pt - float(y) * scale_x`.
+
+**Bezier approximation:** Cubic Bezier curves (`C`/`c` path commands) are approximated by sampling 8 intermediate points along the curve — sufficient visual accuracy for exam diagrams without implementing a full Bezier renderer.
+
+**Arc approximation:** SVG arc commands (`A`/`a`) are converted using the SVG arc-to-center-parameterization algorithm, then sampled at `max(12, steps)` points proportional to arc length and scale.
+
+### 10.5 — Fuzzy Diagram Matching
+
+When a `[DIAGRAM: desc]` tag is encountered in the paper, the pre-generated SVG dictionary is searched:
+
+```python
+# 1. Exact key match
+if desc in diagrams: ...
+
+# 2. Fuzzy word-overlap match
+desc_words = set(re.findall(r'\w+', desc.lower()))
+best_key = max(diagrams, key=lambda k:
+    len(desc_words & set(re.findall(r'\w+', k.lower()))))
+if best_score >= 2: use best_key
+```
+
+This handles cases where the answer key repeats a diagram tag with slightly different wording than the question paper used.
 
 ---
 
-## 12. Flask Routes
+## 11. Flask Routes & Request Lifecycle
 
-**Location:** `app.py` — routes
+### `POST /generate`
 
-### `GET /` → `index()`
-Returns `render_template("index.html")`. No logic — just serves the page.
+Complete sequence:
 
-### `POST /generate` → `generate()`
+```
+1.  Parse JSON body, sanitise all string fields with .strip()
+2.  Resolve board: "Andhra Pradesh" → "Andhra Pradesh State Board"
+3.  _compute_structure(marks)      → exact question counts per section
+4.  _difficulty_profile(difficulty) → Bloom's taxonomy ratios
+5.  _notation_rules(subject)        → math/science notation block
+6.  build_prompt(...)               → ~90-line assembled prompt string
+7.  call_gemini(prompt)             → 60–90 seconds (round-robin failover)
+8.  split_key(result)               → (paper_text, key_text)
+9.  Extract [DIAGRAM:] tags         → unique_descs[]
+10. ThreadPoolExecutor × 4 workers  → diagrams{} dict (90s timeout)
+11. create_exam_pdf(paper, ...)     → question-only PDF bytes
+12. base64.b64encode(pdf_bytes)     → pdf_b64 string
+13. create_exam_pdf(..., include_key=True) → full PDF with answer key
+14. base64.b64encode(key_pdf_bytes) → pdf_key_b64 string
+15. Return JSON: {success, pdf_b64, pdf_key_b64, paper, answer_key, ...}
+```
 
-Exact sequence:
-1. Parse and sanitise JSON body (`.strip()` all string fields)
-2. Resolve board name: `"Andhra Pradesh"` → `"Andhra Pradesh State Board"`
-3. Call `build_prompt(...)` to assemble the prompt
-4. Call `call_gemini(prompt)` — ~1–1.5 minutes of API latency
-5. Call `split_key(result)` → `(paper_text, key_text)`
-6. Extract `[DIAGRAM:]` tags, generate SVGs in parallel
-7. Call `create_exam_pdf(paper_text, ...)` → PDF bytes
-8. Base64-encode: `base64.b64encode(pdf_bytes).decode()`
-9. Also build a second PDF with the answer key appended
-10. Return JSON: `{"success": true, "pdf_b64": "...", "pdf_key_b64": "...", "paper": "...", "answer_key": "..."}`
+**Why base64 in JSON response?** The alternative is a two-request pattern (first call generates, second call downloads). Single-response eliminates the need to store PDFs server-side between requests (which is impossible on stateless serverless anyway) and allows the frontend to immediately trigger a browser download with `_b64Download()`.
 
-The PDF is base64-encoded in the JSON response so the frontend triggers an immediate download without a second HTTP request. Client decodes: `atob(b64)` → `Uint8Array` → `Blob` → object URL → programmatic `<a>` click.
+### `POST /download-pdf`
 
-On any error, `send_error_email` is called and a clean `{"success": false, "error": "..."}` is returned — never a raw traceback.
+Used for re-downloading from paper history. Accepts `paper_text` + `answer_key` from browser-stored history and re-renders the PDF on demand. Returns binary PDF as `send_file(..., as_attachment=True)` — a direct file download response, not JSON.
 
-### `POST /download-pdf` → `download_pdf()`
+### `GET /health`
 
-Re-renders a PDF from paper text stored in the client (used when re-downloading from history). Accepts `paper_text` and `answer_key` in the JSON body. Returns the binary PDF as an attachment via `send_file(BytesIO(...), as_attachment=True)`.
+Returns current configuration state: which keys are set, model list, key strategy. Used for monitoring and debugging quota issues.
 
-### `GET /health` → `health()`
+### `GET /chapters`
 
-Returns:
-```json
-{
-  "status": "ok",
-  "gemini": "configured",
-  "gemini_backup_key": "set",
-  "key_switching": "on-rate-limit (≥2 models return 429)",
-  "models_available": [...]
+Returns `curriculum.json` filtered by `?class=X`. Called once on page load and cached in `curriculumData` — no server hit for subsequent subject/chapter changes in the same session.
+
+---
+
+## 12. Frontend Architecture
+
+**Location:** `static/js/app.js` (~1400 lines, vanilla JavaScript)
+
+### State Management
+
+```javascript
+var curriculumData   = {};   // Curriculum JSON (cached from /chapters)
+var currentPaper     = '';   // Last generated paper text
+var currentAnswerKey = '';   // Last generated answer key
+var currentMeta      = {};   // Board/subject/chapter/marks/difficulty
+```
+
+`var` (not `const`/`let`) is used intentionally for global state — `var` declarations are accessible from `onclick=` attributes in HTML. `let`/`const` inside functions are used where appropriate.
+
+### Progressive Form Reveal
+
+`updateFormVisibility()` shows/hides form cards by toggling CSS class `collapsed`. All HTML is in the DOM simultaneously — no dynamic injection. The pattern is:
+
+```javascript
+function updateFormVisibility() {
+    const hasClass = !!classEl.value;
+    const hasSubject = !!subjectEl.value;
+    // ...
+    card2.classList.toggle('collapsed', !hasClass);
+    card3.classList.toggle('collapsed', !hasSubject);
+    // ...
 }
 ```
 
-### `GET /chapters` → `chapters()`
+Called on every `change` event. This is simpler than a state machine and sufficient for a linear 6-step form.
 
-Returns curriculum JSON filtered by `?class=10`. The frontend calls this once on load and caches the result — no further server calls for subject/chapter changes.
+### Loading Stage System
 
----
-
-## 13. Frontend Architecture
-
-**Location:** `static/js/app.js` (~1380 lines)
-
-The frontend is entirely vanilla JavaScript — no framework, no build step.
-
-### Global state
+Five stages defined with timestamps tuned to the real generation window:
 
 ```javascript
-var curriculumData   = {};    // Cached curriculum JSON from /chapters
-var currentPaper     = '';    // Last generated paper text
-var currentAnswerKey = '';    // Last generated answer key
-var currentMeta      = {};    // Board/subject/chapter/marks for re-download
-var compScope  = 'topic';     // 'topic' | 'subject' | 'all'
-var boardScope = 'single';    // 'single' | 'all'
+const STAGES = [
+    { num:'1', line1:'Parsing',     line2:'requirements',       pct: 8  },
+    { num:'2', line1:'Generating',  line2:'questions with AI',  pct: 38 },
+    { num:'3', line1:'Writing the', line2:'answer key',         pct: 62 },
+    { num:'4', line1:'Formatting',  line2:'paper layout',       pct: 82 },
+    { num:'5', line1:'Building',    line2:'PDF',                pct: 96 },
+];
+
+const delays = [0, 6000, 22000, 50000, 78000]; // milliseconds
+delays.forEach((delay, i) => {
+    timers.push(setTimeout(() => _setLoaderStage(i), delay));
+});
 ```
 
-`var` is used (not `let`/`const`) to be accessible from inline `onclick` handlers in the HTML — a deliberate trade-off for simplicity.
+Stage 1 fires instantly (0s). Stage 5 fires at 78s — just before the typical 80–90s response arrives. All stage timers are stored in `_loadStepTimers[]` and cleared immediately when the response arrives.
 
-### Form visibility
-
-`updateFormVisibility()` is called every time a major selection changes. It shows/hides cards by toggling the `collapsed` CSS class. All HTML is present simultaneously — no dynamic injection. The form is progressive: completing step I unlocks step II, etc.
-
-### Loading stage timing
-
-Five stages are defined with delays spread across the realistic 60–90 second generation window:
-```javascript
-const delays = [0, 6000, 22000, 50000, 78000];
-```
-Stage 1 fires instantly, stage 2 at 6s (questions being written), stage 3 at 22s, stage 4 at 50s, stage 5 at 78s. This keeps the UI feeling alive and informative throughout the full wait.
-
-### PDF download mechanism
+### PDF Download Mechanism
 
 ```javascript
 function _b64Download(b64, fname) {
-    const buf = new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0)));
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     const url = URL.createObjectURL(new Blob([buf], {type:'application/pdf'}));
-    Object.assign(document.createElement('a'), {href:url, download:fname}).click();
-    setTimeout(() => URL.revokeObjectURL(url), 12000);
+    const a = Object.assign(document.createElement('a'), {href:url, download:fname});
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000); // 60s to allow slow saves
 }
 ```
 
-Standard browser-side technique: decode base64 → typed array → Blob → temporary object URL → programmatic anchor click → revoke URL after 12s to free memory.
+`atob()` decodes base64 to a binary string. `charCodeAt` converts each character to a byte value into a `Uint8Array`. The `Blob` is typed as `application/pdf` so the browser handles it as a file download rather than navigation. The object URL is revoked after 60 seconds — long enough for slow file systems to complete writing.
 
-### Theme system
+### Theme System
 
-6 themes defined as objects with 8 colour properties each. `applyAppTheme(idx, dark)` sets CSS custom properties on `:root`. All colours in CSS reference `var(--ac)`, `var(--ac2)` etc. — changing 5 variables instantly re-themes the entire UI without touching a single CSS rule. Theme preference is persisted to localStorage.
+```javascript
+const THEMES = [
+    { name:'Gold',    ac:'#C8A96E', ac2:'#E0C07E', ac3:'#F4E4BE', ... },
+    { name:'Copper',  ac:'#B87333', ... },
+    { name:'Silver',  ac:'#A8B8C8', ... },
+    // 6 themes total
+];
 
-### History system
+function applyAppTheme(idx, dark) {
+    const t = THEMES[idx];
+    document.documentElement.style.setProperty('--ac',  t.ac);
+    document.documentElement.style.setProperty('--ac2', t.ac2);
+    // ... 8 CSS variables set
+}
+```
 
-Metadata (board, subject, marks, difficulty, timestamp) stored in one localStorage key. Paper text and answer key stored separately per-item using ID-keyed keys (`ec_p_<id>`, `ec_k_<id>`). This split ensures metadata always survives even if large paper text hits quota. Last 10 papers kept; older ones pruned automatically.
+All colour usage in `style.css` references `var(--ac)`, `var(--ink)`, `var(--surf)` etc. Changing 8 CSS custom properties on `:root` instantly re-themes every element without touching a single CSS rule.
 
-### Trivia game
+### History Storage Architecture
 
-25 questions shuffled on game start. Answer options are also shuffled per question so the correct answer is never in a predictable position. Score and streak tracked. `_gameActive = false` is set when the modal closes — this flag prevents the `setTimeout(loadGameQuestion, 1800)` callbacks from firing after generation completes.
+Paper history is split across two localStorage key patterns to avoid hitting the 5MB localStorage quota:
+
+```javascript
+// Metadata array (always small)
+localStorage.setItem('ec_history', JSON.stringify([
+    { id, board, subject, marks, difficulty, ts, hasKey },
+    ...
+]));
+
+// Paper text stored separately per item
+localStorage.setItem(`ec_p_${id}`, paperText);
+localStorage.setItem(`ec_k_${id}`, keyText);
+```
+
+On history trim (max 10 items), both the metadata entry AND the individual paper/key items are pruned. This ensures localStorage doesn't grow unboundedly even for users who generate dozens of papers.
 
 ---
 
-## 14. Data Files
+## 13. Data Layer
 
-### `curriculum.json`
+### `curriculum.json` — Dual-Purpose Structure
 
 ```json
 {
-  "10": {
-    "Mathematics": ["Real Numbers", "Polynomials", ...],
-    "Science": ["Chemical Reactions", "Acids, Bases and Salts", ...],
-    "Social Science": ["Development", ...]
-  },
+  "6":  { "Mathematics": ["Knowing Our Numbers", "Whole Numbers", ...], "Science": [...] },
+  "10": { "Mathematics": ["Real Numbers", "Polynomials", ...], "Science": [...] },
   "NTSE": { "MAT": ["Number Series", ...], "SAT Science": [...] }
 }
 ```
 
-Top-level keys are class numbers as strings (`"6"` through `"10"`) plus exam names. This dual-purpose structure allows the same `updateSubjects()` JavaScript function to handle both state board and competitive exams.
+Top-level keys are class numbers as strings AND exam names. The same `updateSubjects()`/`updateChapters()` JavaScript functions work for both board and competitive exam modes — the curriculum lookup is identical: `curriculumData[selectedClass][selectedSubject]`.
 
 ### `exam_patterns/ap_ts.json`
 
-Official question pattern for AP/TS — section names, question counts, marks per question, total marks per section. Used by `_compute_structure()` to build the exact mark allocation for each prompt.
-
-### `exam_patterns/competitive.json`
-
-Per-exam structures for NTSE, NSO, IMO, IJSO — section names, question counts, marking schemes, and negative marking rules.
+Encodes the official AP/TS SSC paper blueprint: section names, question counts, marks per question, and total marks per section. Used primarily for UI display (Paper Estimate panel); actual question counts for the AI prompt are computed dynamically by `_compute_structure()` which adapts to any requested mark total.
 
 ---
 
-## 15. Deployment (Vercel)
+## 14. Deployment on Vercel Serverless
 
 ### `vercel.json`
 
@@ -534,86 +834,120 @@ Per-exam structures for NTSE, NSO, IMO, IJSO — section names, question counts,
 }
 ```
 
-All HTTP requests go to `api/index.py`:
+All HTTP traffic routes to the Python function. Static files under `/static/` are served by Vercel's CDN edge network before the request reaches the function.
+
+### `api/index.py`
+
 ```python
 from app import app
-# Vercel imports `app` as a WSGI handler
+handler = app
 ```
 
-Vercel's Python runtime runs the Flask app as a serverless function. Each request gets its own function instance. The function has a 300-second timeout — sufficient for the longest Gemini generation even with key-switching.
+Two lines. Vercel's Python runtime expects a WSGI `app` object. This thin adapter imports the Flask application from `app.py`.
 
-Static files (`/static/...`) are served by Vercel's CDN — they never hit the Python function.
+### Serverless Constraints and Mitigations
 
-**Important:** Vercel serverless functions are stateless. No in-memory cache, no file system persistence between requests. `curriculum.json` is read fresh each request if the `/chapters` route is hit. Client-side `curriculumData` caching means this only happens once per browser session.
+| Constraint | Impact | Mitigation |
+|---|---|---|
+| No persistent memory | `_fonts_registered` flag resets per cold start | `register_fonts()` is idempotent — safe to re-register |
+| No file system writes | PDFs cannot be stored between requests | PDFs base64-encoded and sent in response JSON |
+| 300s function timeout | Long Gemini calls could time out | 3-key round-robin minimises per-key latency; diagram timeout capped at 90s |
+| Cold starts | First request after inactivity takes 3–5s extra | Acceptable for a generation tool; no mitigation needed |
+| No background threads | Diagram thread pool runs synchronously within request | `ThreadPoolExecutor` is valid inside a Vercel function — threads complete before response |
+
+### Environment Variables (Vercel Dashboard)
+
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Primary Gemini key (required) |
+| `GEMINI_API_KEY_2` | Second key for round-robin (recommended) |
+| `GEMINI_API_KEY_3` | Third key for round-robin (optional) |
+| `SMTP_EMAIL` | Gmail sender address for error alerts |
+| `SMTP_PASSWORD` | Gmail App Password (not account password) |
+| `ALERT_EMAIL` | Error alert recipient |
 
 ---
 
-## 16. Full Request Lifecycle
+## Full Request Trace
 
 ```
 Browser
-  │
-  ├─ 1. onclick="generatePaper()"
-  │       Validates form fields
-  │       Shows loading modal, starts trivia game
-  │       Stage 1 fires immediately (0s)
-  │
-  ├─ 2. POST /generate  { class, subject, chapter, board, marks, difficulty, ... }
-  │
-Server (app.py:generate)
-  │
-  ├─ 3.  Parse + sanitise JSON body
-  ├─ 4.  Resolve board name
-  ├─ 5.  _compute_structure(marks)  → exact question counts
-  ├─ 6.  _difficulty_profile(diff)  → question type ratios
-  ├─ 7.  _notation_rules(subject)   → subject notation string
-  ├─ 8.  build_prompt(...)          → ~80-line prompt string
-  │
-  │      Stage 2 fires (6s) — "Writing the questions"
-  │
-  ├─ 9.  call_gemini(prompt)        → 60–90 seconds total
-  │       ├─ Try GEMINI_KEY, top models via LangChain
-  │       ├─ If 2+ models return 429 → switch to GEMINI_KEY_2 immediately
-  │       ├─ If GEMINI_KEY_2 also fails → build_local_paper() fallback
-  │       └─ Returns (paper+key text, error_or_None)
-  │
-  │      Stage 3 fires (22s) — "Writing the answer key"
-  │      Stage 4 fires (50s) — "Laying out the paper"
-  │
-  ├─ 10. split_key(result)          → (paper_text, key_text)
-  ├─ 11. Extract [DIAGRAM:...] tags
-  ├─ 12. ThreadPoolExecutor: generate_diagram_svg(desc) × N  (parallel, 25s timeout)
-  ├─ 13. register_fonts()            (no-op if already registered)
-  ├─ 14. create_exam_pdf(paper, ...) → bytes
-  │        ├─ Parse header (marks, board)
-  │        ├─ Build 3-row navy header table
-  │        ├─ Line-by-line parser: sections, questions, MCQ tables, pipe tables
-  │        ├─ Embed diagrams at 88% page width with border frames
-  │        └─ Append answer key section (if requested)
-  │
-  │      Stage 5 fires (78s) — "Creating the PDF"
-  │
-  ├─ 15. base64.b64encode(pdf_bytes)
-  ├─ 16. Build second PDF with answer key appended
-  ├─ 17. Return JSON {success, pdf_b64, pdf_key_b64, paper, answer_key}
-  │
+│
+├─ onclick="generatePaper()"
+│   Validates all 6 form fields
+│   showLoading(true) → loading modal appears, trivia game starts
+│   Stage 1 fires immediately (0ms)
+│   fetch('/generate', {method:'POST', body:JSON.stringify(payload)})
+│
+│   ←── ~60–90 seconds of network + server processing ──→
+│
+│   Stage 2 fires (6s)  — "Generating questions with AI"
+│   Stage 3 fires (22s) — "Writing the answer key"
+│   Stage 4 fires (50s) — "Formatting paper layout"
+│   Stage 5 fires (78s) — "Building PDF"
+│
+Server: POST /generate (app.py)
+│
+├─ 1.  JSON body parsed, all strings .strip()'d
+├─ 2.  Board resolved: "Andhra Pradesh" → "Andhra Pradesh State Board"
+├─ 3.  _compute_structure(20) → {n_mcq:2, n_fill:1, n_match:1, n_vsq:4 ...}
+├─ 4.  _difficulty_profile("Hard") → Bloom's ratios string
+├─ 5.  _notation_rules("Mathematics") → LaTeX notation block
+├─ 6.  _prompt_board(...) → 90-line prompt assembled
+│
+├─ 7.  call_gemini(prompt)
+│       active_keys = [key1, key2, key3]
+│       for model in [gemini-2.5-flash, gemini-2.5-flash-lite, gemma-3-4b-it, gemma-3-1b-it]:
+│           for ki, key in enumerate(active_keys):
+│               _try_one(model, key, prompt, errors)
+│               → LangChain attempt → REST fallback
+│               if text: return immediately
+│               if 429: rate_limited.add((model, ki))
+│               if 404: not_found.add(model); break key loop
+│
+├─ 8.  split_key(result) → (paper_text, key_text)
+│
+├─ 9.  re.findall(r'\[DIAGRAM:...', paper + key) → 6 unique descriptions
+│
+├─ 10. ThreadPoolExecutor(max_workers=4)
+│       → generate_diagram_svg(desc) × 6 in parallel
+│       → call_gemini(svg_prompt) per diagram
+│       → extract SVG from response
+│       → collect into diagrams{} dict
+│       90s wall clock, 80s per diagram
+│
+├─ 11. register_fonts() (no-op if already registered)
+│
+├─ 12. create_exam_pdf(paper_text, ..., diagrams=diagrams)
+│       → _strip_ai_noise() + _strip_leading_metadata()
+│       → Build 3-layer navy header table
+│       → Line-by-line parser:
+│           Section banners, MCQ option tables, pipe tables
+│           Question paragraphs with math via _process()
+│           Diagram embedding: svg_to_best_image() or placeholder box
+│       → ExamCanvas for page rules/footer on every page
+│       → BytesIO → bytes
+│
+├─ 13. base64.b64encode(pdf_bytes) → pdf_b64
+├─ 14. create_exam_pdf(..., include_key=True) → pdf with answer key appended
+├─ 15. base64.b64encode(key_pdf_bytes) → pdf_key_b64
+│
+├─ 16. return jsonify({success:True, pdf_b64, pdf_key_b64, paper, answer_key, ...})
+│
 Browser
-  │
-  ├─ 18. Hide loading modal, stop trivia game, clear stage timers
-  ├─ 19. _b64Download(pdf_b64, filename.pdf)  → immediate browser download
-  ├─ 20. addToHistory(meta, paper, key)        → localStorage
-  ├─ 21. showPaperReadyPopup()                 → "Your exam is ready" popup
-  └─ 22. launchConfetti()                      → celebration canvas animation
+│
+├─ showLoading(false) → loading modal hides, trivia game stops, stage timers cleared
+├─ _b64Download(pdf_b64, "AP_State_Board_Mathematics_Sets.pdf")
+│   atob(b64) → Uint8Array → Blob → object URL → <a>.click() → file saved
+├─ addToHistory(meta, paper, key) → localStorage
+├─ showPaperReadyPopup() → "Your exam is ready" success popup
+└─ launchConfetti() → canvas particle animation
 ```
 
-Total elapsed time: approximately 60–90 seconds, of which 95%+ is Gemini API latency.
+Total elapsed: 60–90 seconds, of which ~95% is Gemini API latency.
 
 ---
 
-## Contact
+*ExamCraft 2026 — Flask · Gemini · ReportLab · LangChain · Vercel*
 
-Bugs, questions, code review requests:
-
-**Laxman Nimmagadda** — laxmanchowday159@gmail.com
-
-*ExamCraft 2026*
+**Laxman Nimmagadda** · laxmanchowdary159@gmail.com
