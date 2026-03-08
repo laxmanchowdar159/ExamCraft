@@ -662,22 +662,46 @@ function showPaperReadyPopup() {
   }
   const keyBtn = document.getElementById('prKeyBtn');
   if (keyBtn) keyBtn.style.display = d?.withKey ? 'flex' : 'none';
+
+  // Show popup - direct style for bulletproof display (overrides any CSS/inline)
   popup.style.display = 'flex';
-  popup.classList.add('visible');
-  // Animate in
+  popup.style.opacity = '0';
+
+  // Animate card in
   const card = popup.querySelector('.paper-ready-card');
-  if (card) { card.style.transform = 'scale(0.88) translateY(24px)'; card.style.opacity = '0';
-    requestAnimationFrame(() => { card.style.transition = 'transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.35s ease'; card.style.transform = ''; card.style.opacity = '1'; }); }
+  if (card) {
+    card.style.transform = 'scale(0.88) translateY(28px)';
+    card.style.opacity = '0';
+    card.style.transition = 'none';
+  }
+  requestAnimationFrame(() => {
+    popup.style.transition = 'opacity 0.3s ease';
+    popup.style.opacity = '1';
+    if (card) {
+      card.style.transition = 'transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.35s ease';
+      card.style.transform = '';
+      card.style.opacity = '1';
+    }
+  });
 }
+
 window.closePaperReadyPopup = function() {
   const popup = document.getElementById('paperReadyPopup');
   if (!popup) return;
-  popup.classList.remove('visible');
-  setTimeout(() => { popup.style.display = 'none'; }, 300);
+  popup.style.opacity = '0';
+  popup.style.transition = 'opacity 0.25s ease';
+  setTimeout(() => {
+    popup.style.display = 'none';
+    popup.style.opacity = '';
+    popup.style.transition = '';
+  }, 260);
 };
+
 window.trackPRDownload = function(btn) {
+  if (!btn) return;
   btn.innerHTML = btn.innerHTML.replace(/Download/, 'Downloaded ✓');
   btn.style.opacity = '0.7';
+  btn.disabled = true;
 };
 
 /* Keep legacy showSuccessPanel for any other callers */
@@ -1003,16 +1027,26 @@ const DONE_JOKES = [
   "Paper done! Pro tip: the hardest question is always the one worth the fewest marks.",
 ];
 
+let _helloShown = false;
 function showHelloPopup() {
   if (_helloShown) return;
   _helloShown = true;
   const popup = document.getElementById('helloPopup');
   if (!popup) return;
-  popup.classList.add('visible');
+  popup.style.display = 'flex';
+  // Animate in
+  popup.style.opacity = '0';
+  requestAnimationFrame(() => {
+    popup.style.transition = 'opacity 0.4s ease';
+    popup.style.opacity = '1';
+  });
 }
 window.closeHelloPopup = function() {
   const popup = document.getElementById('helloPopup');
-  if (popup) popup.classList.remove('visible');
+  if (!popup) return;
+  popup.style.opacity = '0';
+  popup.style.transition = 'opacity 0.3s';
+  setTimeout(() => { popup.style.display = 'none'; popup.style.opacity = ''; popup.style.transition = ''; }, 300);
 };
 
 /* ══════════════════════════════════════════════════════════════

@@ -851,11 +851,14 @@ textarea { resize:vertical; min-height:80px; line-height:1.6 }
   align-items:center; justify-content:center; padding:20px
 }
 .popup-overlay.visible { display:flex }
+/* helloPopup and paperReadyPopup are controlled via style.display in JS directly */
+#helloPopup, #paperReadyPopup { display:none }
 .popup-card {
   width:100%; max-width:460px;
   background:var(--ink2);
   border:1px solid var(--line2);
-  position:relative; overflow:hidden
+  position:relative; overflow:hidden;
+  padding-top:32px
 }
 .popup-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:2px;
