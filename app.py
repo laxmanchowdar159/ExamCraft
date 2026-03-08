@@ -693,6 +693,10 @@ def _styles():
     S("DiagLabel", fontName=I, fontSize=9, textColor=C_GREY,
       leading=12, spaceAfter=2, spaceBefore=2)
 
+    # ── Section inline instruction note ───────────────────────────────
+    S("InstrNote", fontName=I, fontSize=8.5, textColor=C_GREY,
+      leading=12, spaceAfter=3, spaceBefore=0, leftIndent=6)
+
     return base
 class ExamCanvas:
     """Page template: thin navy top-rule, subtle footer with page number."""
@@ -1212,15 +1216,34 @@ def create_exam_pdf(text, subject, chapter, board="",
 
     # Track instruction sections to strip them completely
     _INSTR_HEADERS = re.compile(
-        r'^(GENERAL INSTRUCTIONS?|General Instructions?)\s*$', re.I)
+        r'^(GENERAL\s*INSTRUCTIONS?|General\s*Instructions?|NOTE\s*:|Note\s*:)\s*$', re.I)
     _INSTR_LINE = re.compile(
         r'^\d+\.\s+.{10,}')  # numbered instruction lines
+
+    # Boilerplate AP Board instruction phrases — always stripped regardless of position
+    _BOILERPLATE_RE = re.compile(
+        r'answer all questions under part.?a on the question paper'
+        r'|attach it to the answer booklet'
+        r'|read (?:the )?instructions carefully'
+        r'|figures? to the right indicate marks'
+        r'|draw neat.{0,20}labelled diagrams wherever necessary'
+        r'|in case of any ambiguity'
+        r'|english version shall be treated as final'
+        r'|rough work (?:can|may) be done anywhere'
+        r'|answers? (?:are )?to be given on (?:a )?separate OMR'
+        r'|there (?:is|are) no negative marking', re.I)
 
     def _is_general_instr(s):
         return bool(_INSTR_HEADERS.match(s.strip()))
 
     def _is_instr_line(s):
-        return bool(_INSTR_LINE.match(s.strip())) and in_instr
+        stripped = s.strip()
+        if in_instr and bool(_INSTR_LINE.match(stripped)):
+            return True
+        # Always strip known AP Board boilerplate lines
+        if bool(_BOILERPLATE_RE.search(stripped)):
+            return True
+        return False
 
     while i_line < len(lines):
         raw  = lines[i_line].rstrip()
@@ -1351,7 +1374,19 @@ def create_exam_pdf(text, subject, chapter, board="",
             continue
 
         if _is_instr_line(s):
-            # Skip instructions to save paper space
+            # Skip numbered general instructions to save paper space
+            continue
+
+        # ── Parenthetical inline section instruction (render as italic note) ──
+        # Matches lines like "(Answer all questions.)" or "(All compulsory. 1 mark each.)"
+        # These appear directly under a section header and are NOT MCQ options.
+        if (s.startswith('(') and
+                re.match(r'^\((?:Answer|All|Each|attempt|Note|Use|answer|all|Write|'
+                         r'Attempt|Choose|Select|compulsory|Every|Marks?\s+per|'
+                         r'Questions?\s+are|This\s+section)\b', s, re.I)):
+            flush_opts()
+            in_instr = False
+            elems.append(Paragraph(_process(s), st["InstrNote"]))
             continue
 
         opt_m = re.match(r'^\s*[\(\[]\s*([a-dA-D])\s*[\)\]\.]?\s+(.+)', s)
@@ -1709,12 +1744,6 @@ def build_local_paper(cls, subject, chapter, marks, difficulty):
 Subject: {subject or "Science"}   Class: {cls}
 Total Marks: {marks}   Time Allowed: 3 Hours 15 Minutes
 
-GENERAL INSTRUCTIONS
-1. Answer all the questions under Part-A on the question paper itself and attach it to the answer booklet at the end.
-2. Read the instructions carefully and answer only the required number of questions in each section.
-3. Figures to the right indicate marks allotted.
-4. Draw neat, labelled diagrams wherever necessary.
-
 PART A — OBJECTIVE (20 Marks)
 (Answer in the question paper itself. Submit after 30 minutes.)
 
@@ -2018,15 +2047,7 @@ def _prompt_board(subject, chap, board, cls, m, diff, notation, teacher):
     time = _time_for_marks(m)
     mw   = "pair" if s['n_match'] == 1 else "pairs"
 
-    # ── Common header instructions printed on real AP/TS papers ────────
-    instr = (
-        "GENERAL INSTRUCTIONS:\n"
-        "1. Answer all questions under Part A on the question paper itself. Attach it to the answer booklet.\n"
-        "2. Read instructions carefully. Answer only the required number of questions in each section.\n"
-        "3. Figures to the right indicate marks allotted to each question.\n"
-        "4. Draw neat, labelled diagrams wherever necessary.\n"
-        "5. In case of any ambiguity, the English version shall be treated as final.\n"
-    )
+    # ── No general instructions block — stripped in PDF renderer ─────
 
     if s.get('small'):
         # ── Small paper (< 40M) ───────────────────────────────────────
@@ -2075,44 +2096,65 @@ Difficulty: {diff}
 {struct}
 
 ━━━ CONTENT QUALITY RULES ━━━
-1. Every question MUST be strictly about "{chap}" — no questions outside this scope.
-2. MCQ options (A)(B)(C)(D): wrong options must reflect real student misconceptions, not random guesses.
-3. Fill-in-the-blank: blank marked as __________ (ten underscores). One blank per sentence.
-4. Match the Following: EVERY row MUST start with a pipe character. Use EXACTLY this format with no deviations:
+1. Every question MUST be strictly about "{chap}" — absolutely no questions from other topics.
+2. EXACT question counts — do NOT add or remove any questions:
+   Part A: EXACTLY {s['n_mcq']} MCQs, EXACTLY {s['n_fill']} fill-in-the-blank, EXACTLY {s['n_match']} match pairs.
+   Part B: EXACTLY {s['n_vsq']} very short answer questions ({s['vsq_total']} marks total).
+3. MCQ options (A)(B)(C)(D): wrong options must reflect real student misconceptions — not random.
+4. Fill-in-the-blank: blank marked as __________ (ten underscores). One blank per sentence only.
+5. Match the Following: EVERY row MUST start with a pipe character. Use EXACTLY this format:
 | Group A | Group B |
 |---|---|
 | item | match |
-(exactly {s['n_match']} data rows, NO separator rows of dashes-only lines between data rows).
-5. Every Section VI Long Answer question MUST have an alternate "OR" question on a different sub-topic.
-6. Application / problem questions: multi-step, realistic contexts, no plug-and-chug.
-7. End every question with its mark allocation in square brackets: [1 Mark], [2 Marks], [4 Marks], [6 Marks], [{s.get('marks_per_app',10)} Marks].
+(exactly {s['n_match']} data rows only — NO extra rows, NO dashes-only separator rows).
+6. Every Section VI Long Answer question MUST have an alternate "OR" question on a different sub-topic.
+7. End every question with its mark allocation: [1 Mark], [2 Marks], [4 Marks], [6 Marks].
+8. ⚠ DIAGRAMS — CRITICAL: For ANY geometry, triangle, circle, graph, circuit, or figure-based question, you MUST place a [DIAGRAM: detailed description] tag on its own line immediately after the question text. This is MANDATORY — do NOT omit.
+   Examples of REQUIRED diagram usage:
+   • Triangle question → [DIAGRAM: triangle ABC with vertices labelled, altitude from A to BC, all sides and angles marked]
+   • Similarity question → [DIAGRAM: two similar triangles with corresponding sides marked, scale factor shown]
+   • Trigonometry → [DIAGRAM: right-angled triangle with angle θ, opposite side, adjacent side, hypotenuse labelled]
+   Include [DIAGRAM:] tags in AT LEAST 40% of Part B questions.
+9. TABLES: When a question involves data, values, or comparison — format as a pipe table (|col|col|...).
+10. ⚠ DO NOT write any GENERAL INSTRUCTIONS block. Never output numbered lines like "1. Answer all questions..." at the paper top. Only inline section instructions in parentheses.
 
 ━━━ {notation.upper().split(chr(10))[0]} ━━━
 {notation}
 
 ━━━ ANSWER KEY RULES ━━━
-After writing ALL questions, print exactly this line by itself:
+After ALL questions are written, you MUST print this EXACT separator line on its own line:
 ANSWER KEY
+(This line must appear alone, with no other text on that line.)
 Then provide:
-• Section I: Q1.(A)  Q2.(C)  … (all MCQ answers on one line per question)
+• Section I: Q1.(A)  Q2.(C)  … (one answer per question)
 • Section II: numbered fill-blank answers
 • Section III: matching pairs table
-• Sections IV–VII: full worked solution for every question, showing all steps.
-  — For calculations: show every algebraic step on its own line.
-  — For explanations: use numbered sub-points.
-  — For diagrams: repeat [DIAGRAM: …] tag and describe key labels.
+• Sections IV onward: full worked solutions for EVERY question, showing all steps.
+  — Calculations: show every algebraic step on a new line.
+  — Explanations: use numbered sub-points.
+  — Diagram questions: repeat [DIAGRAM: …] with full description.
 
 ━━━ OUTPUT FORMAT ━━━
-Start the paper immediately with the header below (no preamble, no "Sure!", no AI commentary):
+Start immediately with the paper. No preamble, no "Sure!", no AI commentary.
+⚠ NEVER output a GENERAL INSTRUCTIONS block at the top. Section instructions ONLY — one short parenthetical line per section.
+Use EXACTLY this layout:
 
-{subject}
-{board}  |  Class {cls}  |  Total Marks: {m}  |  Time: {time}
-
-{instr}
 PART A — OBJECTIVE  ({s['partA']} Marks)
-(Answer on this sheet. Submit this sheet after completing Part A.)
 
 Section I — Multiple Choice Questions  [1 Mark each]
+(Answer all. Each carries 1 mark. Choose the best option.)
+
+Section II — Fill in the Blank  [1 Mark each]
+(Fill in each blank with the most appropriate word/value.)
+
+Section III — Match the Following  [1 Mark each]
+(Match each item in Group A with the correct item in Group B.)
+
+PART B — WRITTEN  ({s['partB']} Marks)
+
+Section IV — Very Short Answer  [2 Marks each]
+(Answer all. Each carries 2 marks. Write in 3–5 lines.)
+
 """
 
 
@@ -2141,45 +2183,49 @@ Difficulty: {diff}
 ━━━ MANDATORY STRUCTURE (100 questions, 1 mark each) ━━━
 Q1–12   : Verbal Analogy (12 questions)
 Q13–22  : Number & Letter Series (10 questions)
-Q23–32  : Non-Verbal Analogy — describe the visual pattern in words (10 questions)
+Q23–32  : Non-Verbal Analogy with embedded figures/tables (10 questions)
 Q33–40  : Coding-Decoding (8 questions)
 Q41–46  : Blood Relations (6 questions)
 Q47–52  : Direction & Distance (6 questions)
 Q53–58  : Ranking & Arrangement (6 questions)
 Q59–64  : Clock & Calendar (6 questions)
 Q65–70  : Venn Diagrams (6 questions)
-Q71–76  : Mirror/Water Image — describe image in words (6 questions)
+Q71–76  : Mirror/Water Image — describe image pattern in words (6 questions)
 Q77–82  : Odd One Out / Classification (6 questions)
-Q83–88  : Pattern Completion — describe pattern in words (6 questions)
+Q83–88  : Pattern Completion with embedded figures (6 questions)
 Q89–94  : Mathematical Operations (6 questions)
 Q95–100 : Mixed / Analytical Reasoning (6 questions)
 
 ━━━ CONTENT QUALITY RULES ━━━
 {diff}
 1. Every question must test pure reasoning, NOT subject knowledge.
-2. Non-verbal questions: describe figures using letters, numbers, shapes — no actual images needed.
-3. Wrong options must be answers you'd get with a specific common error in reasoning.
-4. Questions should be solvable in ≤90 seconds each.
+2. Wrong options must be answers you'd get with a specific common error in reasoning.
+3. Questions should be solvable in ≤90 seconds each.
+4. CRITICAL — TABLES: Any question involving a number matrix, grid, or arrangement MUST be formatted as a pipe table. Example:
+   | 11 | 7  | 49 |
+   | 12 | 8  | 54 |
+   | 15 | 4  | ?  |
+5. CRITICAL — DIAGRAMS: Non-verbal and Pattern questions MUST include a [DIAGRAM: description] tag that describes the figure series clearly. Use it for figure sequences, geometric patterns, Venn arrangements. Example:
+   [DIAGRAM: Three figures in sequence — (a) circle with triangle inside, (b) square with circle inside, (c) pentagon with square inside — find next]
+6. Venn Diagram questions: clearly describe which region each category occupies (e.g. "Circle = Doctors, Rectangle = Educated, intersection area = both").
+7. Number series gaps: write the series on ONE line with _____ for the missing term.
+8. Blood relation passages: include at least 3–4 relationship facts before posing the question.
 
 ━━━ ANSWER KEY ━━━
-After ALL 100 questions, print:
+After ALL 100 questions, print exactly:
 ANSWER KEY
-List: Q1.(B)  Q2.(D)  Q3.(A)  … (10 per line)
-Then explain the reasoning for Q1–Q20 fully (one paragraph each).
+List: Q1.(B)  Q2.(D)  Q3.(A)  … (10 per line, all 100)
+Then give full reasoning for Q1–Q20 (one paragraph each).
 
 ━━━ OUTPUT ━━━
-Start immediately — no preamble:
+Start immediately — no preamble, no instruction block:
 
 NTSE — Mental Ability Test (MAT) Practice Paper
 Class: {cls}   Total Marks: 100   Time: 2 Hours   Marking: Stage 1 (+1/0)
 
-General Instructions:
-1. All questions are compulsory.
-2. Each question carries 1 mark. No negative marking at Stage 1.
-3. Choose the most appropriate option from (A), (B), (C), (D).
-4. Time allowed: 2 Hours.
-
 Q1–Q12  —  Verbal Analogy  [1 Mark each]
+(All questions are compulsory. Each carries 1 mark. Choose the correct option from (A)(B)(C)(D).)
+
 """
         # SAT
         return f"""You are a NTSE SAT exam paper setter. Generate a complete NTSE SAT (Scholastic Aptitude Test) practice paper for Class {cls}.
@@ -2389,11 +2435,40 @@ Physics  (Q1–Q27)  [+3/−1 each]
 # SPLIT PAPER / KEY
 # ═══════════════════════════════════════════════════════════════════════
 def split_key(text):
-    for pat in [r'\nANSWER KEY\n', r'\n---\s*ANSWER KEY\s*---\n',
-                r'(?i)\nANSWER KEY:?\s*\n']:
+    """Split AI output into (paper, answer_key). Handles all AI formatting variations."""
+    patterns = [
+        r'\nANSWER KEY\n',
+        r'\n---\s*ANSWER KEY\s*---\n',
+        r'(?i)\nANSWER KEY:?\s*\n',
+        r'(?i)\n\*+\s*ANSWER KEY\s*\*+\s*\n',
+        r'(?i)\n#{1,3}\s*ANSWER KEY\s*\n',
+        r'(?i)\nANSWER\s+KEY\s+(?:&|AND)\s+SOLUTIONS?\s*\n',
+        r'(?i)\nSOLUTIONS?\s*(?:&\s*ANSWER\s*KEY)?\s*\n',
+        r'(?i)(?:^|\n)ANSWER KEY\s*\n',
+    ]
+    for pat in patterns:
         parts = re.split(pat, text, maxsplit=1)
-        if len(parts) == 2:
+        if len(parts) == 2 and parts[1].strip():
             return parts[0].strip(), parts[1].strip()
+    # Last resort: scan line by line
+    lines = text.split('\n')
+    for i, ln in enumerate(lines):
+        s = ln.strip().upper().rstrip(':').rstrip('*').strip()
+        if s in ('ANSWER KEY', 'ANSWER KEY & SOLUTIONS', 'ANSWERS', 'SOLUTIONS',
+                 '--- ANSWER KEY ---', '=== ANSWER KEY ===',
+                 'ANSWER KEY AND SOLUTIONS', 'SOLUTIONS & ANSWER KEY'):
+            paper = '\n'.join(lines[:i]).strip()
+            key   = '\n'.join(lines[i+1:]).strip()
+            if key:
+                return paper, key
+    # Final fallback: look for a line that is ONLY "ANSWER KEY" with optional punctuation/decoration
+    for i, ln in enumerate(lines):
+        cleaned = re.sub(r'[^A-Z\s]', '', ln.strip().upper()).strip()
+        if cleaned in ('ANSWER KEY', 'ANSWERS', 'ANSWER KEY AND SOLUTIONS'):
+            paper = '\n'.join(lines[:i]).strip()
+            key   = '\n'.join(lines[i+1:]).strip()
+            if key and len(key) > 30:  # sanity check — key must have real content
+                return paper, key
     return text.strip(), ""
 
 
@@ -3153,14 +3228,14 @@ def generate():
                     marks=marks_safe)
                 pdf_key_b64 = base64.b64encode(pdf_key_bytes).decode()
             except Exception:
-                pdf_key_b64 = pdf_b64
+                pdf_key_b64 = None  # hide key button rather than download wrong file
 
         return jsonify({
             "success": True, "paper": paper, "answer_key": key,
             "api_error": api_error, "used_fallback": use_fallback,
             "board": board, "subject": subject, "chapter": chapter,
             "pdf_b64": pdf_b64,
-            "pdf_key_b64": pdf_key_b64 or pdf_b64,
+            "pdf_key_b64": pdf_key_b64,  # null if no answer key — hides the button
         })
 
     except Exception as e:
