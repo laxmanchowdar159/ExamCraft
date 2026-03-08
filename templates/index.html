@@ -19,7 +19,6 @@
 <body>
 
 <div id="bg-layer" aria-hidden="true">
-  <canvas id="star-canvas"></canvas>
   <div class="bg-mesh"></div><div class="bg-grid"></div>
   <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
   <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
@@ -45,13 +44,8 @@
           Building your<br><em>exam paper</em>
         </div>
 
-        <!-- Live elapsed timer + wave animation -->
+        <!-- Live elapsed timer -->
         <div class="ls-timer-row">
-          <div class="ls-wave-anim" id="lsWave" aria-hidden="true">
-            <span class="lsw-bar"></span><span class="lsw-bar"></span><span class="lsw-bar"></span>
-            <span class="lsw-bar"></span><span class="lsw-bar"></span><span class="lsw-bar"></span>
-            <span class="lsw-bar"></span>
-          </div>
           <div class="ls-timer" id="loaderTimer">00:00</div>
           <div class="ls-timer-label">elapsed</div>
         </div>
@@ -134,35 +128,22 @@
           <div class="o-emoji">✦</div>
         </div>
       </div>
-      <div class="loader-game-title" id="gameTitle">Quick Maths</div>
-      <div class="loader-game-sub" id="gameSub">Solve it before your paper is ready</div>
+      <div class="loader-game-title" id="gameTitle">Trivia while you wait</div>
+      <div class="loader-game-sub" id="gameSub">Test your academic knowledge</div>
       <div class="game-box" id="gameBox">
-        <div class="math-game-header">
-          <div class="math-lvl-badge" id="mathLvl">Easy</div>
-          <div class="math-score-area">
-            <span class="math-score-lbl">Score</span>
-            <span class="math-score-val" id="mathScore">0</span>
-          </div>
-          <div class="math-streak-area">
-            <span class="math-score-lbl">Best</span>
-            <span class="math-score-val" id="mathBest">0</span>
-          </div>
+        <div class="game-score-row">
+          <div class="game-score">Score: <span id="gameScore">0</span></div>
+          <div class="game-streak">Streak: <span id="gameStreak">0</span>🔥</div>
         </div>
-        <div class="math-countdown-ring">
-          <svg viewBox="0 0 48 48" class="math-ring-svg">
-            <circle cx="24" cy="24" r="20" class="math-ring-bg"/>
-            <circle cx="24" cy="24" r="20" class="math-ring-fill" id="mathRingFill"/>
-          </svg>
-          <div class="math-ring-label" id="mathCountdown">8</div>
-        </div>
-        <div class="game-q math-question" id="gameQ">—</div>
-        <div class="game-opts math-opts" id="gameOpts">
+        <div class="game-q" id="gameQ">Loading question...</div>
+        <div class="game-opts" id="gameOpts">
           <button class="game-opt" id="go0" onclick="answerQ(0)"></button>
           <button class="game-opt" id="go1" onclick="answerQ(1)"></button>
           <button class="game-opt" id="go2" onclick="answerQ(2)"></button>
           <button class="game-opt" id="go3" onclick="answerQ(3)"></button>
         </div>
         <div class="game-feedback" id="gameFeedback"></div>
+        <div class="game-progress-bar"><div class="game-progress-fill" id="gameProgressFill" style="width:0%"></div></div>
       </div>
     </div>
 
@@ -565,7 +546,35 @@
       </div>
     </form>
 
-    <div id="successPanel" style="display:none"></div>
+    <div id="successPanel">
+      <div class="succ-bar">
+        <div class="succ-l">
+          <span class="succ-check">✦</span>
+          <div>
+            <div class="succ-title">Examination Paper Ready</div>
+            <div class="succ-meta" id="successMeta">Downloading automatically…</div>
+          </div>
+        </div>
+        <div class="succ-btns">
+          <button class="succ-btn dl" onclick="downloadPDF(false)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>Paper PDF
+          </button>
+          <button class="succ-btn key" id="dlWithKey" style="display:none" onclick="downloadPDF(true)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>+ Answer Key
+          </button>
+          <button class="succ-btn new" onclick="generateAnother()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
+            </svg>New Paper
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div><!-- /main-area -->
 </div><!-- /app -->
@@ -576,36 +585,13 @@
 <div id="helloPopup" class="popup-overlay">
   <div class="popup-card">
     <div class="popup-header">
-      <div class="popup-kicker">✦ &nbsp; ExamCraft AI &nbsp; ✦</div>
-      <div class="popup-title">Ready to make<br><em>great papers?</em></div>
-      <div class="popup-subtitle" style="margin-bottom:0">AI-Powered · Board-Accurate · Print-Ready</div>
+      <div class="popup-kicker">Welcome to ExamCraft</div>
+      <div class="popup-title">Hello, <em>Teacher</em></div>
+      <div class="popup-subtitle" style="margin-bottom:0">AI Examination System · 2026</div>
     </div>
-    <div class="popup-joke-box" style="margin:20px 28px 0">
-      <div class="popup-joke-label">Today's Classroom Wisdom</div>
+    <div class="popup-joke-box">
+      <div class="popup-joke-label">Joke of the Day</div>
       <div class="popup-joke-text" id="helloJoke"></div>
-    </div>
-    <div class="hello-features">
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">✦</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">Board-Aligned Papers</div>
-          <div class="hello-feat-desc">AP · TS · CBSE · NTSE · NSO · IMO — every format, every class</div>
-        </div>
-      </div>
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">◈</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">Auto Answer Keys</div>
-          <div class="hello-feat-desc">Full step-by-step solutions generated alongside every paper</div>
-        </div>
-      </div>
-      <div class="hello-feat-card">
-        <div class="hello-feat-icon">◉</div>
-        <div class="hello-feat-body">
-          <div class="hello-feat-title">History &amp; Re-download</div>
-          <div class="hello-feat-desc">Every paper is saved locally — revisit, re-download anytime</div>
-        </div>
-      </div>
     </div>
     <div class="popup-actions">
       <button class="popup-btn-primary" onclick="closeHelloPopup()">
@@ -613,53 +599,6 @@
       </button>
       <div class="popup-byline">Laxman Nimmagadda · laxmanchowday159@gmail.com</div>
     </div>
-  </div>
-</div>
-
-<!-- PAPER READY POPUP -->
-<div id="paperReadyPopup" class="popup-overlay">
-  <div class="popup-card pr-popup-card">
-    <div class="popup-card__top-bar"></div>
-    <div class="pr-check-area">
-      <div class="pr-check-icon">✦</div>
-    </div>
-    <div class="pr-popup-header">
-      <div class="popup-kicker">✦ &nbsp; Mission Accomplished &nbsp; ✦</div>
-      <div class="popup-title">Your Paper is<br><em>Ready to Print</em></div>
-      <div class="pr-meta-line" id="prMeta">—</div>
-    </div>
-    <div class="pr-history-notice">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      ◉ &nbsp; Auto-saved to History — revisit or re-download anytime
-    </div>
-    <div class="pr-feature-strip">
-      <div class="pr-feat"><span class="pr-feat-dot">◈</span>Board-formatted layout</div>
-      <div class="pr-feat"><span class="pr-feat-dot">◈</span>Full answer key included</div>
-      <div class="pr-feat"><span class="pr-feat-dot">◈</span>Print-ready PDF</div>
-    </div>
-    <div class="pr-btn-row">
-      <button class="pr-btn pr-btn-primary" onclick="downloadPDF(false); closePaperReadyPopup()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Paper PDF
-      </button>
-      <button class="pr-btn pr-btn-key" id="prBtnKey" onclick="downloadPDF(true); closePaperReadyPopup()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/></svg>
-        + Answer Key
-      </button>
-      <button class="pr-btn pr-btn-new" onclick="closePaperReadyPopup(); generateAnother()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-        New Paper
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- DOWNLOAD DONE POPUP -->
-<div id="dlDonePopup" class="dl-done-overlay">
-  <div class="dl-done-card">
-    <div class="dl-done-icon">↓</div>
-    <div class="dl-done-text" id="dlDoneText">PDF Downloaded</div>
-    <div class="dl-done-sub" id="dlDoneSub">Saved to your Downloads folder</div>
   </div>
 </div>
 
