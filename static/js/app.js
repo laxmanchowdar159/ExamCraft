@@ -599,6 +599,7 @@ function _b64Download(b64, fname) {
     const a = Object.assign(document.createElement('a'), {href:url, download:fname});
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 12000);
+    showDownloadDone(fname);
     return true;
   } catch (e) { showToast('Download error: ' + e.message); return false; }
 }
@@ -607,6 +608,34 @@ function _safeName(d, withKey) {
     .filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-') || 'ExamPaper') + (withKey ? '_with_key' : '') + '.pdf';
 }
 
+
+const _DL_MSGS_PAPER = [
+  { main: "Paper downloaded!", sub: "Print it, sign it, terrorise them." },
+  { main: "PDF in your downloads!", sub: "The students won't know what hit them." },
+  { main: "Paper secured.", sub: "Guard it like exam day depends on it." },
+  { main: "Downloaded ✓", sub: "Now hide it from the students." },
+  { main: "Got it!", sub: "Your printer is ready. Your students are not." },
+];
+const _DL_MSGS_KEY = [
+  { main: "Answer key downloaded!", sub: "Keep this away from students at all costs." },
+  { main: "Answers secured!", sub: "The most classified document in your school." },
+  { main: "Key PDF ready.", sub: "With great answers comes great responsibility." },
+  { main: "Downloaded ✓", sub: "Mark fairly. Or mercifully. Your call." },
+];
+function showDownloadDone(fname) {
+  const overlay = document.getElementById('dlDonePopup');
+  if (!overlay) return;
+  const txt = document.getElementById('dlDoneText');
+  const sub = document.getElementById('dlDoneSub');
+  const isKey = (fname || '').includes('_with_key') || (fname || '').includes('key');
+  const pool = isKey ? _DL_MSGS_KEY : _DL_MSGS_PAPER;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  if (txt) txt.textContent = pick.main;
+  if (sub) sub.textContent = pick.sub;
+  overlay.classList.add('show');
+  clearTimeout(overlay._timer);
+  overlay._timer = setTimeout(() => overlay.classList.remove('show'), 4000);
+}
 async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
   showLoading(true, 'Rendering PDF…');
   try {
@@ -618,7 +647,7 @@ async function triggerPDFDownload(payload, board, subject, chapter, withKey) {
     const safe = [board,subject,chapter||'Paper'].filter(Boolean).join('_').replace(/\s+/g,'_').replace(/[\/\\:*?"<>|]/g,'-');
     Object.assign(document.createElement('a'), {href:url, download:safe+(withKey?'_with_key':'')+'.pdf'}).click();
     URL.revokeObjectURL(url);
-    showLoading(false); showToast('PDF downloaded ✓');
+    showLoading(false); showDownloadDone(safe + '.pdf');
   } catch (err) { showLoading(false); showToast('Download failed: ' + err.message); }
 }
 
@@ -653,17 +682,23 @@ function copyPaper() {
 
 /* ── Success panel ─────────────────────────────────────────── */
 function showSuccessPanel() {
-  const sp = document.getElementById('successPanel'); if (!sp) return;
-  const me = document.getElementById('successMeta');
-  const dk = document.getElementById('dlWithKey');
+  // Show as centered popup instead of bottom bar
+  const popup = document.getElementById('paperReadyPopup');
+  if (!popup) return;
   const d  = window._pdfDirect;
-  if (me) me.textContent = [d?.board, d?.subject, (d?.chapter && d.chapter !== 'Full Syllabus') ? d.chapter : null].filter(Boolean).join(' · ') || 'Downloaded';
-  // Show "+ Answer Key" button whenever the server returned a key PDF
-  // The key PDF (withKey) always exists as long as AI generated an answer key
+  const me = document.getElementById('prMeta');
+  const dk = document.getElementById('prBtnKey');
+  if (me && d) {
+    const parts = [d.subject, d.board, d.marks ? d.marks + ' Marks' : null].filter(Boolean);
+    me.textContent = parts.join(' · ');
+  }
   if (dk) dk.style.display = d?.withKey ? 'flex' : 'none';
-  sp.style.display = 'block';
-  sp.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  popup.classList.add('visible');
 }
+window.closePaperReadyPopup = function() {
+  const p = document.getElementById('paperReadyPopup');
+  if (p) p.classList.remove('visible');
+};
 
 window.generateAnother = function() {
   const sp = document.getElementById('successPanel'); if (sp) sp.style.display = 'none';
@@ -756,28 +791,30 @@ function updatePaperStats() {
 
 /* ── Jokes ─────────────────────────────────────────────────── */
 const HERO_JOKES = [
-  "Why do students write so small? To leave room for regrets.",
-  "Exam tip: write large — the examiner gets tired. Sympathy marks exist.",
-  "The speed of forgetting during an exam exceeds 3×10⁸ m/s.",
-  "A+ students become professors. C students become CEOs. B students watch.",
-  "I told my teacher I'd study all night. We both knew that was a lie.",
-  "The correct answer is always the one you erased first.",
-  "Studying: 20% reading, 80% convincing yourself you'll remember it.",
-  "An exam asks: did you read? The universe already knows the answer.",
-  "My exam strategy: read, panic, write something, pray, repeat.",
-  "Chemistry: turning caffeine into passing grades since forever.",
-  '"Show all work." Sir, my work consists entirely of vibes and hope.',
-  "The only thing worse than not studying is studying the wrong chapter.",
+  "Teacher: 'Consistency is important.' Student: 'Finally someone appreciates me failing every test.'",
+  "Teacher: 'Your handwriting is terrible.' Student: 'Sir, it's encrypted for security.'",
+  "Teacher: 'Why is your homework incomplete?' Student: 'Ma'am, I didn't want to ruin your expectations.'",
+  "Teacher: 'Explain photosynthesis.' Student: 'Sir, plants eat sunlight and become smarter than me.'",
+  "Teacher: 'Why do you come late every day?' Student: 'Sir, dramatic entry.'",
+  "Teacher: 'If laziness were a subject, you'd top the class.' Student: 'Finally, something I can excel at.'",
+  "Teacher: 'This answer makes no sense.' Student: 'Sir, neither does the question.'",
+  "Teacher: 'Do you think this is funny?' Student: 'Sir, not yet. Wait until the results.'",
+  "Teacher: 'Why are you staring at the ceiling?' Student: 'Sir, downloading answers from the cloud.'",
+  "Teacher: 'Your marks are very low.' Student: 'Sir, I'm keeping them humble.'",
+  "Teacher: 'Did you copy this answer?' Student: 'Sir, I prefer the term collaborative learning.'",
+  "Teacher: 'Your brain seems absent today.' Student: 'Sir, it took a leave without approval.'",
 ];
 const LOADING_JOKES = [
-  "Consulting the NCERT syllabus so you don't have to… 📖",
-  "Making wrong options convincingly wrong… 🎭",
-  "Calibrating difficulty: enough to hurt, not enough to destroy ⚖️",
-  "Triple-checking every answer is actually correct this time… 🔍",
-  "Ensuring diagrams look like diagrams, not modern art… 🎨",
-  "Counting marks so they add up. Unlike most student papers. 🧮",
-  "Crafting options so close students will question their sanity… 😈",
-  "Consulting the blueprint with great academic gravity… 📜",
+  "Teaching the AI what a mark scheme actually looks like…",
+  "Preventing wrong options from being accidentally correct…",
+  "Arguing with the model about whether ½ is the same as 0.5…",
+  "Ensuring no question accidentally has two right answers…",
+  "Making the hard questions look deceptively easy…",
+  "Convincing the AI that 'explain with a diagram' means a real diagram…",
+  "Checking that 100 marks actually adds up to 100…",
+  "Removing every question the AI clearly made up…",
+  "Applying 20 years of exam-paper experience in 30 seconds…",
+  "Polishing the answer key so it's cleaner than the textbook…",
 ];
 
 let _jokeIdx = 0;
@@ -806,7 +843,88 @@ window.closeMobileSidebar = function() {
 /* ══════════════════════════════════════════════════════════════
    DOMContentLoaded — boot sequence
 ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   STAR FIELD BACKGROUND
+══════════════════════════════════════════════════════════════ */
+function initStarField() {
+  const canvas = document.getElementById('star-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width  = window.innerWidth;
+  const H = canvas.height = window.innerHeight;
+
+  // Draw a rich constellation-style star field
+  ctx.clearRect(0, 0, W, H);
+
+  // Random stars
+  const stars = [];
+  for (let i = 0; i < 180; i++) {
+    stars.push({ x: Math.random()*W, y: Math.random()*H,
+                 r: Math.random()*1.2+0.2,
+                 a: Math.random()*0.6+0.1 });
+  }
+  // Bright accent stars (4-pointed)
+  const accents = [];
+  for (let i = 0; i < 18; i++) {
+    accents.push({ x: Math.random()*W, y: Math.random()*H,
+                   s: Math.random()*4+3, a: Math.random()*0.35+0.15 });
+  }
+  // Constellation lines (connect nearby accent stars)
+  const lines = [];
+  for (let i = 0; i < accents.length; i++) {
+    for (let j = i+1; j < accents.length; j++) {
+      const dx = accents[i].x - accents[j].x;
+      const dy = accents[i].y - accents[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < W * 0.18) lines.push([i, j, dist]);
+    }
+  }
+  // Limit to closest 14 lines
+  lines.sort((a,b) => a[2]-b[2]);
+  const drawLines = lines.slice(0, 14);
+
+  // Draw constellation lines
+  ctx.strokeStyle = 'rgba(200,169,110,0.08)';
+  ctx.lineWidth = 0.5;
+  for (const [i, j] of drawLines) {
+    ctx.beginPath();
+    ctx.moveTo(accents[i].x, accents[i].y);
+    ctx.lineTo(accents[j].x, accents[j].y);
+    ctx.stroke();
+  }
+
+  // Draw regular stars (dots)
+  for (const s of stars) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,169,110,${s.a})`;
+    ctx.fill();
+  }
+
+  // Draw 4-pointed accent stars
+  for (const s of accents) {
+    const {x, y, sz=s.s, a} = {x:s.x, y:s.y, sz:s.s, a:s.a};
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = `rgba(226,201,138,${a})`;
+    ctx.beginPath();
+    // 4-pointed star path
+    const arms = 4, outer = sz, inner = sz*0.3;
+    for (let k = 0; k < arms*2; k++) {
+      const angle = (k * Math.PI) / arms - Math.PI/2;
+      const r = k % 2 === 0 ? outer : inner;
+      k === 0 ? ctx.moveTo(r*Math.cos(angle), r*Math.sin(angle))
+              : ctx.lineTo(r*Math.cos(angle), r*Math.sin(angle));
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+
+  initStarField();
 
   /* ── Hello popup ── */
   setTimeout(showHelloPopup, 600);
@@ -959,27 +1077,37 @@ document.addEventListener('DOMContentLoaded', () => {
    HELLO POPUP — shown once per session on load
 ══════════════════════════════════════════════════════════════ */
 const HELLO_JOKES = [
-  "A student told the teacher: 'I don't deserve a zero on this test.' The teacher agreed — and gave them a minus five.",
-  "Teaching is the only profession where you say 'I'll wait' to a room full of people who are not coming.",
-  "My student asked: 'Will this be on the exam?' I said: 'Everything is on the exam.' He said: 'Even what you said just now?' I said: 'Especially that.'",
-  "Day 1 of teaching: I am going to inspire these young minds. Day 200: Please just stop clicking your pen.",
-  "A student wrote 'I don't know' as the answer to every question. That is actually the most self-aware exam I have ever marked.",
-  "I asked the class to turn in their phones. They looked at me like I had asked for a kidney.",
-  "Student: 'Can I be excused? I need to use the bathroom.' Me: 'You had 40 minutes of free time before class.' Student: 'Yes but I was on my phone.'",
-  "The loudest sound in any school is the silence when a teacher asks 'does everyone understand?' and then adds 'this will be on the test.'",
-  "I once caught a student cheating. He had written the entire periodic table on his arm. For an English exam.",
-  "My class voted me 'Most Likely to Say One More Thing' for five years running. I have thoughts about that.",
+  "Teacher: 'You failed the test again.' Student: 'Consistency is important, ma'am.'",
+  "Teacher: 'Your handwriting is terrible.' Student: 'Sir, it's encrypted for security.'",
+  "Teacher: 'Why is your homework incomplete?' Student: 'Ma'am, I didn't want to ruin your expectations.'",
+  "Teacher: 'Explain photosynthesis.' Student: 'Sir, plants eat sunlight and become smarter than me.'",
+  "Teacher: 'Why do you come late every day?' Student: 'Sir, dramatic entry.'",
+  "Teacher: 'If laziness were a subject, you'd top the class.' Student: 'Finally, something I can excel at.'",
+  "Teacher: 'Why didn't you study?' Student: 'Sir, I believe in surprise endings.'",
+  "Teacher: 'This answer makes no sense.' Student: 'Sir, neither does the question.'",
+  "Teacher: 'Do you think this is funny?' Student: 'Sir, not yet. Wait until the results.'",
+  "Teacher: 'Why are you staring at the ceiling?' Student: 'Sir, downloading answers from the cloud.'",
+  "Teacher: 'Your marks are very low.' Student: 'Sir, I'm keeping them humble.'",
+  "Teacher: 'Did you copy this answer?' Student: 'Sir, I prefer the term collaborative learning.'",
+  "Teacher: 'Why didn't you attend yesterday's class?' Student: 'Sir, I was giving the attendance system a break.'",
+  "Teacher: 'Your brain seems absent today.' Student: 'Sir, it took a leave without approval.'",
+  "Teacher: 'What were you doing during the test?' Student: 'Sir, deep thinking… mostly about lunch.'",
+  "Teacher: 'Why do you always sit in the last bench?' Student: 'Sir, safe distance from difficult questions.'",
+  "Teacher: 'Your answer is completely wrong.' Student: 'Sir, alternative perspective.'",
+  "Teacher: 'Why are you smiling after seeing your marks?' Student: 'Sir, at least they are consistent.'",
+  "Teacher: 'Why didn't you bring your notebook?' Student: 'Sir, I didn't want it to witness this lecture.'",
+  "Teacher: 'Do you even listen in class?' Student: 'Sir, I hear everything… understanding is optional.'",
 ];
 
 const DONE_JOKES = [
-  "Your exam is ready — now the only question is: who has to grade it?",
-  "Paper generated. Students will later question every comma. You have been warned.",
-  "Done! Remember: a good exam separates the students who studied from the ones who prayed.",
-  "Paper complete. The AI worked hard. The students will have to work harder.",
-  "Congratulations! You just created 45 minutes of panic for 30 students.",
-  "Your paper is ready. May the passing rate be ever in your favour.",
-  "Generated successfully. Einstein failed exams too — but your students are not Einstein.",
-  "Paper done! Pro tip: the hardest question is always the one worth the fewest marks.",
+  "Your paper is ready. The students are not. That's the idea.",
+  "Done! Somewhere, 30 students just felt a disturbance in the force.",
+  "Paper complete. May the passing rate be ever in your favour.",
+  "Generated. The AI worked hard. Your students will work harder.",
+  "Ready to print. Ink wisely — every question is a trap.",
+  "Paper done! The answer key knows things the students don't.",
+  "Complete. If it looks too easy, you're reading the answer key.",
+  "All done. Now begins the student's journey of regret and revision.",
 ];
 
 let _helloShown = false;
@@ -1000,9 +1128,10 @@ window.closeHelloPopup = function() {
 
 function showDonePopup(meta) {
   const popup = document.getElementById('donePopup');
-  if (!popup) return;
-  const jokeEl = document.getElementById('doneJoke');
-  if (jokeEl) jokeEl.textContent = DONE_JOKES[Math.floor(Math.random() * DONE_JOKES.length)];
+  if (popup) {
+    // donePopup is legacy — paperReadyPopup handles this now
+    // but keep it in case showDonePopup is called directly
+  }
   const sub = document.getElementById('doneSubtitle');
   if (sub && meta) {
     const parts = [meta.subject, meta.board, meta.marks ? meta.marks+'M' : null].filter(Boolean);
@@ -1017,59 +1146,71 @@ window.closeDonePopup = function(download) {
 };
 
 /* ══════════════════════════════════════════════════════════════
-   TRIVIA GAME — Loading Screen Mini Game
+   MENTAL MATH SPRINT — Loading Screen Mini Game
 ══════════════════════════════════════════════════════════════ */
-const TRIVIA_QS = [
-  { q:"Which instrument measures atmospheric pressure?", opts:["Barometer","Thermometer","Hygrometer","Anemometer"], a:0 },
-  { q:"The powerhouse of the cell is the…", opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"], a:2 },
-  { q:"Which planet is known as the Red Planet?", opts:["Venus","Jupiter","Saturn","Mars"], a:3 },
-  { q:"HCF of 12 and 18 is?", opts:["3","4","6","9"], a:2 },
-  { q:"Light travels at approximately… m/s", opts:["3×10⁸","3×10⁶","3×10⁷","3×10⁹"], a:0 },
-  { q:"Water boils at °C at standard pressure?", opts:["90","95","100","110"], a:2 },
-  { q:"The smallest prime number is?", opts:["0","1","2","3"], a:2 },
-  { q:"Chemical formula of water?", opts:["H₂O₂","HO","H₂O","H₃O"], a:2 },
-  { q:"Newton's 2nd law: F = ?", opts:["mv","ma","m/a","m+a"], a:1 },
-  { q:"The pH of pure water is?", opts:["5","6","7","8"], a:2 },
-  { q:"Number of bones in adult human body?", opts:["196","206","216","226"], a:1 },
-  { q:"Which gas do plants absorb for photosynthesis?", opts:["O₂","N₂","CO₂","H₂"], a:2 },
-  { q:"Sum of angles in a triangle?", opts:["90°","180°","270°","360°"], a:1 },
-  { q:"Speed = Distance ÷ ?", opts:["Force","Time","Mass","Area"], a:1 },
-  { q:"Ohm's Law: V = ?", opts:["I+R","I×R","I/R","I²R"], a:1 },
-  { q:"The unit of electric current is?", opts:["Volt","Ohm","Ampere","Watt"], a:2 },
-  { q:"Which organelle is site of protein synthesis?", opts:["Mitochondria","Ribosome","Vacuole","Nucleus"], a:1 },
-  { q:"Area of circle with radius r?", opts:["2πr","πr²","2πr²","πr"], a:1 },
-  { q:"An atom of carbon has how many protons?", opts:["4","6","8","12"], a:1 },
-  { q:"Refraction of light is caused by change in…?", opts:["Speed","Colour","Frequency","Amplitude"], a:0 },
-  { q:"Which blood group is universal donor?", opts:["A","B","AB","O"], a:3 },
-  { q:"Who proposed the theory of evolution?", opts:["Newton","Einstein","Darwin","Mendel"], a:2 },
-  { q:"LCM of 4 and 6 is?", opts:["8","10","12","24"], a:2 },
-  { q:"The human body has how many chromosomes?", opts:["23","44","46","48"], a:2 },
-  { q:"Current through 5Ω if voltage is 10V?", opts:["0.5A","1A","2A","5A"], a:2 },
-];
+let _mathScore = 0, _mathBest = 0, _mathActive = false;
+let _mathAnswered = false, _mathTimer = null, _mathCountdownTimer = null;
+let _mathCountdown = 8, _mathDifficulty = 0; // 0=easy 1=med 2=hard
+let _mathStreak = 0;
 
-let _gameScore = 0, _gameStreak = 0, _gameCurrent = 0, _gameActive = false;
-let _gameShuffled = [], _gameAnswered = false, _gameTimer = null;
+function _randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-function _shuffleArr(arr) {
-  const a = [...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;
+function _genMathQ() {
+  const d = _mathDifficulty;
+  let a, b, op, ans;
+  const roll = Math.random();
+  if (d === 0) {
+    // Easy: small multiply or add
+    if (roll < 0.5) { a = _randInt(2,9); b = _randInt(2,9); op = '×'; ans = a*b; }
+    else            { a = _randInt(10,50); b = _randInt(10,50); op = '+'; ans = a+b; }
+  } else if (d === 1) {
+    // Medium: 2-digit ops
+    if (roll < 0.4)      { a = _randInt(12,25); b = _randInt(2,9); op = '×'; ans = a*b; }
+    else if (roll < 0.7) { a = _randInt(20,99); b = _randInt(20,99); op = '+'; ans = a+b; }
+    else                 { a = _randInt(30,99); b = _randInt(10,a-1); op = '−'; ans = a-b; }
+  } else {
+    // Hard: harder multiply or division
+    if (roll < 0.5) { a = _randInt(12,30); b = _randInt(12,30); op = '×'; ans = a*b; }
+    else            { b = _randInt(3,12); ans = _randInt(10,20); a = b*ans; op = '÷'; }
+  }
+  // Generate 3 wrong answers close to correct
+  const wrongs = new Set();
+  while (wrongs.size < 3) {
+    const delta = [-2,-1,1,2,3,-3,5,-5,10,-10][_randInt(0,9)];
+    const w = ans + delta;
+    if (w !== ans && w > 0) wrongs.add(w);
+  }
+  const opts = [...wrongs, ans].sort(() => Math.random() - 0.5);
+  return { q: `${a} ${op} ${b} = ?`, opts, ans };
 }
 
 function initGame() {
-  _gameScore = 0; _gameStreak = 0; _gameCurrent = 0;
-  _gameShuffled = _shuffleArr(TRIVIA_QS);
-  _gameActive = true;
-  document.getElementById('gameScore').textContent = '0';
-  document.getElementById('gameStreak').textContent = '0';
+  _mathScore = 0; _mathBest = 0; _mathActive = true;
+  _mathStreak = 0; _mathDifficulty = 0;
+  const sEl = document.getElementById('mathScore');
+  const bEl = document.getElementById('mathBest');
+  if (sEl) sEl.textContent = '0';
+  if (bEl) bEl.textContent = '0';
+  updateMathLevel();
   loadGameQuestion();
 }
 
-function loadGameQuestion() {
-  if (!_gameActive) return;
-  _gameAnswered = false;
-  clearTimeout(_gameTimer);
-  const idx = _gameCurrent % _gameShuffled.length;
-  const q = _gameShuffled[idx];
+function updateMathLevel() {
+  const lvl = document.getElementById('mathLvl');
+  if (!lvl) return;
+  const labels = ['Easy', 'Medium', 'Hard'];
+  lvl.textContent = labels[_mathDifficulty] || 'Easy';
+  lvl.style.borderColor = ['var(--ac)', 'var(--ac2)', '#ef4444'][_mathDifficulty];
+  lvl.style.color        = ['var(--ac)', 'var(--ac2)', '#ef4444'][_mathDifficulty];
+}
 
+function loadGameQuestion() {
+  if (!_mathActive) return;
+  _mathAnswered = false;
+  clearInterval(_mathCountdownTimer);
+  clearTimeout(_mathTimer);
+
+  const q = _genMathQ();
   const qEl = document.getElementById('gameQ');
   const fb  = document.getElementById('gameFeedback');
   if (!qEl) return;
@@ -1078,56 +1219,102 @@ function loadGameQuestion() {
   setTimeout(() => {
     qEl.textContent = q.q;
     qEl.classList.remove('fade');
-    fb.textContent = '';
-    fb.className = 'game-feedback';
+    if (fb) { fb.textContent = ''; fb.className = 'game-feedback'; }
 
-    // Shuffle options for display
-    const optIdxs = _shuffleArr([0,1,2,3]);
     for (let i = 0; i < 4; i++) {
       const btn = document.getElementById('go' + i);
       if (!btn) continue;
-      btn.textContent = q.opts[optIdxs[i]];
-      btn.dataset.realIdx = optIdxs[i];
+      btn.textContent = q.opts[i];
+      btn.dataset.val = q.opts[i];
+      btn.dataset.ans = q.ans;
       btn.className = 'game-opt';
       btn.disabled = false;
     }
-    // Progress
-    const fill = document.getElementById('gameProgressFill');
-    if (fill) fill.style.width = ((_gameCurrent % TRIVIA_QS.length) / TRIVIA_QS.length * 100) + '%';
-  }, 200);
+
+    // Countdown ring
+    _mathCountdown = _mathDifficulty === 2 ? 6 : _mathDifficulty === 1 ? 7 : 8;
+    _updateCountdownRing(_mathCountdown);
+    _mathCountdownTimer = setInterval(() => {
+      _mathCountdown--;
+      _updateCountdownRing(_mathCountdown);
+      if (_mathCountdown <= 0) {
+        clearInterval(_mathCountdownTimer);
+        if (!_mathAnswered) _timeOut();
+      }
+    }, 1000);
+  }, 180);
+}
+
+function _updateCountdownRing(secs) {
+  const fill = document.getElementById('mathRingFill');
+  const lbl  = document.getElementById('mathCountdown');
+  const maxT = _mathDifficulty === 2 ? 6 : _mathDifficulty === 1 ? 7 : 8;
+  if (fill) {
+    const pct = secs / maxT;
+    const circ = 125.66;
+    fill.style.strokeDashoffset = circ * (1 - pct);
+    if (secs <= 2) fill.classList.add('urgent');
+    else fill.classList.remove('urgent');
+  }
+  if (lbl) lbl.textContent = Math.max(0, secs);
+}
+
+function _timeOut() {
+  if (_mathAnswered) return;
+  _mathAnswered = true;
+  _mathStreak = 0;
+  const fb = document.getElementById('gameFeedback');
+  if (fb) { fb.textContent = 'Times up!'; fb.className = 'game-feedback wrong-msg'; }
+  // Mark correct answer
+  for (let i = 0; i < 4; i++) {
+    const btn = document.getElementById('go' + i);
+    if (btn && parseInt(btn.dataset.val) === parseInt(btn.dataset.ans)) btn.classList.add('correct');
+    if (btn) btn.disabled = true;
+  }
+  _mathTimer = setTimeout(loadGameQuestion, 1600);
 }
 
 window.answerQ = function(btnIdx) {
-  if (_gameAnswered || !_gameActive) return;
-  _gameAnswered = true;
-  const idx = _gameCurrent % _gameShuffled.length;
-  const q = _gameShuffled[idx];
+  if (_mathAnswered || !_mathActive) return;
+  _mathAnswered = true;
+  clearInterval(_mathCountdownTimer);
   const btn = document.getElementById('go' + btnIdx);
-  const chosen = parseInt(btn.dataset.realIdx);
+  if (!btn) return;
+  const chosen = parseInt(btn.dataset.val);
+  const correct = parseInt(btn.dataset.ans);
   const fb = document.getElementById('gameFeedback');
 
-  // Lock all buttons
   for (let i = 0; i < 4; i++) {
     const b = document.getElementById('go' + i);
+    if (!b) continue;
     b.disabled = true;
-    if (parseInt(b.dataset.realIdx) === q.a) b.classList.add('correct');
+    if (parseInt(b.dataset.val) === correct) b.classList.add('correct');
   }
 
-  if (chosen === q.a) {
-    _gameScore++; _gameStreak++;
-    document.getElementById('gameScore').textContent = _gameScore;
-    document.getElementById('gameStreak').textContent = _gameStreak;
-    fb.textContent = ['Excellent! ✦', 'Correct! ★', 'Well done! ◈', 'Brilliant! ⬡'][Math.floor(Math.random()*4)];
-    fb.className = 'game-feedback correct-msg';
+  if (chosen === correct) {
+    _mathScore++; _mathStreak++;
+    if (_mathScore > _mathBest) _mathBest = _mathScore;
+    const sEl = document.getElementById('mathScore');
+    const bEl = document.getElementById('mathBest');
+    if (sEl) sEl.textContent = _mathScore;
+    if (bEl) bEl.textContent = _mathBest;
+    if (fb) {
+      fb.textContent = _mathStreak >= 3
+        ? `🔥 ${_mathStreak} in a row!`
+        : ['Correct! ✦', 'Excellent!', 'Well done!'][Math.floor(Math.random()*3)];
+      fb.className = 'game-feedback correct-msg';
+    }
+    // Level up every 5 correct
+    if (_mathScore % 5 === 0 && _mathDifficulty < 2) {
+      _mathDifficulty++;
+      updateMathLevel();
+    }
   } else {
     btn.classList.add('wrong');
-    _gameStreak = 0;
-    document.getElementById('gameStreak').textContent = '0';
-    fb.textContent = 'Not quite — the correct answer is highlighted above.';
-    fb.className = 'game-feedback wrong-msg';
+    _mathStreak = 0;
+    if (fb) { fb.textContent = `Not quite — correct was ${correct}`; fb.className = 'game-feedback wrong-msg'; }
   }
-  _gameCurrent++;
-  _gameTimer = setTimeout(loadGameQuestion, 1800);
+  _mathTimer = setTimeout(loadGameQuestion, 1500);
 };
 
 /* Populate the loading recap panel with current selections */
