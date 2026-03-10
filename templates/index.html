@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExamCraft — AI Exam Generator</title>
+<title>ExamCraft — AI Exam Paper Generator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f2149'/%3E%3Cpolygon points='16,4 28,28 16,22 4,28' fill='%23C8A96E' opacity='0.9'/%3E%3Cline x1='16' y1='6' x2='16' y2='21' stroke='%230f2149' stroke-width='1.5'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f2149">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -278,7 +280,7 @@
       </div>
 
       <div class="sb-footer">
-  <div style="margin-bottom:6px">by Laxman Nimmagadda &middot; © 2026</div>
+  <div style="margin-bottom:6px">by <span class="author-name">Laxman Nimmagadda</span> &middot; © 2026</div>
   <div style="font-size:7px;opacity:.6;letter-spacing:.06em;line-height:1.6">
     Issues? Contact:<br>
     <a href="mailto:laxmanchowday159@gmail.com" style="color:var(--ac2);text-decoration:none;letter-spacing:.03em">laxmanchowday159@gmail.com</a>
@@ -514,14 +516,7 @@
             <label class="fl" for="suggestions">Additional directives for the AI</label>
             <textarea id="suggestions" placeholder="e.g. Include more application-based questions, focus on diagrams for geometry, add case-study format…"></textarea>
           </div>
-          <label class="toggle-row" for="includeKey">
-            <input type="checkbox" id="includeKey" onchange="updateSidebar()">
-            <span class="tog-sw"></span>
-            <div class="tog-info">
-              <h4>Include Answer Key in PDF</h4>
-              <p>Appends a complete answer key as a new page</p>
-            </div>
-          </label>
+
         </div>
 
       </div><!-- /form-area -->
@@ -538,7 +533,7 @@
         </div>
         <div class="support-note">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
-          Issues or feedback? &nbsp;<a href="mailto:laxmanchowday159@gmail.com">laxmanchowday159@gmail.com</a> &nbsp;—&nbsp; Laxman Nimmagadda
+          Issues or feedback? &nbsp;<a href="mailto:laxmanchowday159@gmail.com">laxmanchowday159@gmail.com</a> &nbsp;—&nbsp; <span class="author-name">Laxman Nimmagadda</span>
         </div>
       </div>
     </form>
@@ -598,7 +593,7 @@
       <button class="popup-btn-primary" onclick="closeHelloPopup()">
         Start Creating ✦
       </button>
-      <div class="popup-byline">Laxman Nimmagadda · laxmanchowday159@gmail.com</div>
+      <div class="popup-byline"><span class="author-name">Laxman Nimmagadda</span> · laxmanchowday159@gmail.com</div>
     </div>
   </div>
 </div>
