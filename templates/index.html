@@ -330,7 +330,7 @@
     <form id="paperForm" autocomplete="off" onsubmit="return false">
       <input type="hidden" id="examType" name="examType">
       <input type="hidden" id="scopeSelect" name="scope" value="single">
-      <input type="hidden" id="totalMarks" name="totalMarks" value="100">
+      <input type="hidden" id="totalMarks" name="totalMarks" value="40">
 
       <div class="form-area">
 
@@ -482,9 +482,9 @@
           <label class="fl" style="margin-bottom:10px;display:block">Total Marks</label>
           <div class="chips" id="marksChips">
             <div class="chip" data-val="20"  onclick="selectMark(this)">20</div>
-            <div class="chip" data-val="40"  onclick="selectMark(this)">40</div>
+            <div class="chip active" data-val="40"  onclick="selectMark(this)">40</div>
             <div class="chip" data-val="80"  onclick="selectMark(this)">80</div>
-            <div class="chip active" data-val="100" onclick="selectMark(this)">100</div>
+            <div class="chip" data-val="100" onclick="selectMark(this)">100</div>
             <div class="chip" id="chipCustom" onclick="toggleCustomMark(this)">Custom</div>
           </div>
           <div class="cust-wrap" id="customMarkWrap" style="display:none">
