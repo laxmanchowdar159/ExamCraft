@@ -1237,23 +1237,23 @@ def create_exam_pdf(text, subject, chapter, board="",
             alignment=align, textColor=C_BODY
         )
 
-    sTitle   = PS('Title',   R, 14, bold=True,  align=TA_CENTER, after=4)
-    sMeta    = PS('Meta',    R,  9, align=TA_CENTER, after=2, before=0)
-    sSecHdr  = PS('SecHdr',  R, 12, bold=True,  before=10, after=4)
-    sPartHdr = PS('PartHdr', R, 10, bold=True,  before=6,  after=2)
-    sInstr   = PS('Instr',   R,  9, italic=True, after=3, left=4)
-    sQ       = PS('Q',       R, 10, align=TA_JUSTIFY, before=4, after=1, left=20, first=-20)
-    sQCont   = PS('QCont',   R, 10, align=TA_JUSTIFY, before=1, after=1, left=20)
-    sOpt     = PS('Opt',     R, 10, before=0, after=0, left=28)
-    sKeyHdr  = PS('KeyHdr',  R, 13, bold=True,  align=TA_CENTER, before=6, after=4)
-    sKeyQ    = PS('KeyQ',    R, 10, bold=True,  before=4, after=1, left=20, first=-20)
-    sKeyStep = PS('KeyStep', R, 10, before=1,   after=1, left=20)
-    sDiag    = PS('Diag',    R,  9, italic=True, before=1, after=2, left=4)
-    sFooter  = PS('Footer',  R,  9, italic=True, align=TA_CENTER, before=8)
-    sTableH  = ParagraphStyle('TH', fontName=B, fontSize=9,  leading=13,
+    sTitle   = PS('Title',   R, 11, bold=True,  align=TA_CENTER, after=2)
+    sMeta    = PS('Meta',    R,  8, align=TA_CENTER, after=1, before=0)
+    sSecHdr  = PS('SecHdr',  R, 10, bold=True,  before=7, after=3)
+    sPartHdr = PS('PartHdr', R,  9, bold=True,  before=4,  after=2)
+    sInstr   = PS('Instr',   R,  8, italic=True, after=2, left=4)
+    sQ       = PS('Q',       R,  9, align=TA_JUSTIFY, before=3, after=1, left=18, first=-18)
+    sQCont   = PS('QCont',   R,  9, align=TA_JUSTIFY, before=1, after=1, left=18)
+    sOpt     = PS('Opt',     R,  9, before=0, after=0, left=26)
+    sKeyHdr  = PS('KeyHdr',  R, 11, bold=True,  align=TA_CENTER, before=4, after=3)
+    sKeyQ    = PS('KeyQ',    R,  9, bold=True,  before=3, after=1, left=18, first=-18)
+    sKeyStep = PS('KeyStep', R,  9, before=1,   after=1, left=18)
+    sDiag    = PS('Diag',    R,  8, italic=True, before=1, after=2, left=4)
+    sFooter  = PS('Footer',  R,  8, italic=True, align=TA_CENTER, before=6)
+    sTableH  = ParagraphStyle('TH', fontName=B, fontSize=8,  leading=11,
                                textColor=white, alignment=TA_CENTER,
                                spaceBefore=0, spaceAfter=0, leftIndent=0)
-    sTableC  = ParagraphStyle('TC', fontName=R, fontSize=9,  leading=13,
+    sTableC  = ParagraphStyle('TC', fontName=R, fontSize=8,  leading=11,
                                textColor=C_BODY, alignment=TA_CENTER,
                                spaceBefore=0, spaceAfter=0, leftIndent=0)
 
@@ -1540,7 +1540,7 @@ def create_exam_pdf(text, subject, chapter, board="",
             sub_m = re.match(r'^\s*[\(\[]\s*([a-z])\s*[\)]\s+(.+)', s)
             if sub_m:
                 flush_opts()
-                subS = PS('Sub', R, 10, before=2, after=1, left=32, first=-12)
+                subS = PS('Sub', R,  9, before=2, after=1, left=30, first=-12)
                 p = _safe_para(f'<b>({sub_m.group(1)})</b>  {_process(sub_m.group(2))}', subS)
                 if p:
                     elems.append(p)
@@ -2377,10 +2377,58 @@ def _get_diag_context(desc: str) -> str:
 
 
 # ── Master SVG generation prompt ──────────────────────────────────────
+def _call_gemini_for_svg(prompt: str) -> str | None:
+    """
+    Lightweight, fast Gemini REST call for SVG diagram generation.
+    Bypasses LangChain and the full call_gemini chain — uses a single
+    direct REST call with small token budget and short timeout.
+    Tries each active API key once before giving up.
+    """
+    active_keys = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
+    if not active_keys:
+        return None
+
+    # Use flash model for fast SVG output; fall back to lite
+    models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemma-3-4b-it"]
+    payload_base = {
+        "generationConfig": {
+            "temperature":     0.1,
+            "maxOutputTokens": 4096,   # SVG rarely needs more than 2k tokens
+            "topP":            0.9,
+            "topK":            40,
+        },
+    }
+
+    for model_name in models_to_try:
+        for api_key in active_keys:
+            payload = dict(payload_base)
+            payload["contents"] = [{"parts": [{"text": prompt}]}]
+            url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={api_key}"
+            try:
+                resp = _requests.post(url, json=payload, timeout=30)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    text = (data.get("candidates", [{}])[0]
+                                .get("content", {})
+                                .get("parts", [{}])[0]
+                                .get("text", "")).strip()
+                    if text and "<svg" in text.lower():
+                        return text
+                elif resp.status_code in (429, 503):
+                    continue   # rate-limited — try next key/model
+                elif resp.status_code in (404, 400):
+                    break      # model not available — skip all keys for this model
+            except Exception as e:
+                print(f"[Diagram REST] {model_name}/{api_key[:8]}…: {e}")
+                continue
+    return None
+
+
 def generate_diagram_svg(description: str) -> str | None:
     """
     Ask Gemini to produce a clean, accurate SVG for the given description.
     Returns the SVG string or None on failure.
+    Uses a dedicated fast REST call (not the full call_gemini chain).
     """
     ctx = _get_diag_context(description)
 
@@ -2412,47 +2460,43 @@ LABELLING — critical for educational quality:
 13. Place every label clearly AWAY from lines — never overlapping a line or another label
 14. Use text-anchor="middle" for centred labels, "start" for left-aligned, "end" for right-aligned
 15. Every important point, line, angle, and measurement MUST be labelled — this is an exam diagram
-16. For angles: draw a small arc near the vertex, label it clearly (θ, α, ∠A, 60°, etc.)
-17. Right angles: mark with a 6×6 square at the corner vertex
+16. Right angles: mark with a 6x6 square at the corner vertex
 
 ARROWS:
-18. Draw arrowheads as filled triangles: <polygon points="x1,y1 x2,y2 x3,y3" fill="#111111"/>
-19. Use arrows on dimension lines (both ends) and direction-of-flow indicators
+17. Draw arrowheads as filled triangles: <polygon points="x1,y1 x2,y2 x3,y3" fill="#111111"/>
 
 GEOMETRY ACCURACY:
-20. All measurements must be geometrically consistent — if you label a length or angle, draw it accurately to scale
-21. For circles: use <circle> elements. For arcs: use <path d="M... A..."/>
-22. For curves and bezier paths: use smooth <path> with C or Q commands
-23. Leave at least 25px padding on all four sides of the viewBox
+18. All measurements must be geometrically consistent
+19. For circles: use <circle> elements. For arcs: use <path d="M... A..."/>
+20. Leave at least 25px padding on all four sides of the viewBox
 
 ALLOWED ELEMENTS ONLY:
-24. You may ONLY use: <svg>, <g>, <line>, <circle>, <ellipse>, <rect>, <polygon>, <polyline>, <path>, <text>, <tspan>
-25. Do NOT use: <image>, <use>, <defs>, <symbol>, <clipPath>, <filter>, <foreignObject>, <marker>, <pattern>, <mask>, CSS styles, JavaScript
-
-COMPLETENESS:
-26. The diagram must be COMPLETE and SELF-CONTAINED — a student can understand it without reading anything else
-27. Include all parts mentioned in the description. Do not omit any component.
-28. If the description mentions specific measurements (e.g. radius 5 cm), label those measurements on the diagram
+21. You may ONLY use: <svg>, <g>, <line>, <circle>, <ellipse>, <rect>, <polygon>, <polyline>, <path>, <text>, <tspan>
+22. Do NOT use: <image>, <use>, <defs>, <symbol>, <clipPath>, <filter>, <foreignObject>, <marker>, <pattern>, <mask>, CSS styles, JavaScript
 
 Generate the SVG now:"""
 
-    text, _ = call_gemini(prompt)
+    text = _call_gemini_for_svg(prompt)
     if not text:
+        print(f"[Diagram] No response for: {description[:60]}")
         return None
 
     # Extract the SVG block — strip markdown fences if they crept in
     text = re.sub(r'```(?:svg|xml|html)?', '', text).strip()
     m = re.search(r'(<svg[\s\S]*?</svg>)', text, re.IGNORECASE)
     if not m:
+        print(f"[Diagram] No <svg> block in response for: {description[:60]}")
         return None
 
     svg = m.group(1).strip()
     # Ensure background rect is present
-    if '<rect x="0" y="0"' not in svg and "white" not in svg[:200]:
+    if '<rect x="0" y="0"' not in svg and 'fill="white"' not in svg[:300]:
         svg = svg.replace(
             '>', '><rect x="0" y="0" width="500" height="320" fill="white"/>', 1
         )
+    print(f"[Diagram] Generated OK ({len(svg)} chars): {description[:60]}")
     return svg
+
 
 
 # ── High-quality SVG → PNG via wkhtmltoimage ──────────────────────────
