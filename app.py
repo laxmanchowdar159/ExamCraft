@@ -1937,39 +1937,71 @@ def _difficulty_profile(difficulty):
 def _notation_rules(subject):
     """Returns notation and formatting rules relevant to the subject."""
     subj_l = (subject or "").lower()
-    is_math = any(k in subj_l for k in ["math", "algebra", "geometry", "trigonometry", "statistics", "arithmetic"])
-    is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"])
-    is_stem = is_math or is_science
+    is_math    = any(k in subj_l for k in ["math", "algebra", "geometry", "trigonometry", "statistics", "arithmetic"])
+    is_physics = any(k in subj_l for k in ["physics", "physical"])
+    is_chem    = any(k in subj_l for k in ["chemistry", "chemical"])
+    is_bio     = any(k in subj_l for k in ["biology", "biological", "life science", "botany", "zoology"])
+    is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"]) or is_physics or is_chem or is_bio
+    is_social  = any(k in subj_l for k in ["social", "history", "geography", "civics", "economics", "political", "environment"])
+    is_stem    = is_math or is_science
 
-    if not is_stem:
-        return (
-            "FORMATTING:\n"
-            "• [DIAGRAM: brief description] on its own line where a diagram/map/chart helps\n"
-            "• Use plain text; no LaTeX needed for humanities subjects\n"
+    math_block = ""
+    if is_stem:
+        math_block = (
+            "MATH & SCIENCE NOTATION — strictly required:\n"
+            "• ALL expressions inside $…$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
+            "• Chemical formulas: $H_2O$  $CO_2$  $H_2SO_4$  $Ca(OH)_2$\n"
+            "• Powers / subscripts: $a^{3}$  $v_0$  $10^{-3}$  never write as plain a3 or v0\n"
+            "• Greek letters: $\\theta$  $\\alpha$  $\\beta$  $\\pi$  $\\lambda$  $\\mu$  $\\Omega$\n"
+            "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
+            "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
+            "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
+            "• Fill blanks: __________ (ten underscores, ALWAYS outside $…$, never inside math mode)\n"
+            "• Equations on own line: $PV = nRT$\n"
+            "\n"
         )
 
-    math_block = (
-        "MATH & SCIENCE NOTATION — strictly required:\n"
-        "• ALL expressions inside $…$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
-        "• Chemical formulas: $H_2O$  $CO_2$  $H_2SO_4$  $Ca(OH)_2$\n"
-        "• Powers / subscripts: $a^{3}$  $v_0$  $10^{-3}$  never write as plain a3 or v0\n"
-        "• Greek letters: $\\theta$  $\\alpha$  $\\beta$  $\\pi$  $\\lambda$  $\\mu$  $\\Omega$\n"
-        "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
-        "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
-        "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
-        "• Fill blanks: __________ (ten underscores, ALWAYS outside $…$, never inside math mode)\n"
-        "• Equations on own line: $PV = nRT$\n"
-    )
-
-    if is_science:
+    if is_physics or (is_science and not is_bio and not is_chem):
         diag_block = (
-            "DIAGRAMS — include wherever they add clarity:\n"
-            "• [DIAGRAM: labelled diagram of a plant cell showing cell wall, membrane, nucleus, vacuole, chloroplast]\n"
-            "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery]\n"
-            "• [DIAGRAM: ray diagram showing refraction through a convex lens, showing F and 2F points]\n"
-            "• [DIAGRAM: human digestive system with labels: mouth, oesophagus, stomach, small intestine, large intestine]\n"
+            "DIAGRAMS — MANDATORY for Physics — include in every relevant question:\n"
+            "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery, ammeter, voltmeter]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens with principal axis, F and 2F, object and image]\n"
+            "• [DIAGRAM: velocity-time graph showing uniform acceleration from rest, axes labelled]\n"
+            "• [DIAGRAM: free body diagram with weight, normal force, friction, applied force arrows labelled]\n"
+            "• [DIAGRAM: bar magnet with magnetic field lines from N to S pole, arrowheads]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include diagrams in ≥30% of written-answer questions.\n"
+            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+        )
+    elif is_bio:
+        diag_block = (
+            "DIAGRAMS — MANDATORY for Biology — include in every relevant question:\n"
+            "• [DIAGRAM: labelled plant cell showing cell wall, cell membrane, nucleus, vacuole, chloroplast, mitochondria]\n"
+            "• [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, ribosomes, small vacuoles]\n"
+            "• [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver, pancreas labelled]\n"
+            "• [DIAGRAM: neuron showing dendrites, cell body, axon, myelin sheath, synaptic knob, impulse direction]\n"
+            "• [DIAGRAM: longitudinal section of a flower showing sepals, petals, stamen, carpel, ovules labelled]\n"
+            "• [DIAGRAM: human heart cross-section with 4 chambers, valves, aorta, pulmonary vessels labelled]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+        )
+    elif is_chem:
+        diag_block = (
+            "DIAGRAMS — include wherever they add clarity in Chemistry:\n"
+            "• [DIAGRAM: Bohr model of carbon atom showing nucleus with 6 protons and 6 neutrons, 2 electrons in shell 1, 4 in shell 2]\n"
+            "• [DIAGRAM: laboratory apparatus — conical flask, delivery tube, gas collection over water trough, all labelled]\n"
+            "• [DIAGRAM: structural formula of methane CH4 showing C at centre with 4 H atoms bonded]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥30% of Section B, C, D questions.\n"
+        )
+    elif is_science:
+        diag_block = (
+            "DIAGRAMS — include wherever they add clarity (Physics/Chemistry/Biology):\n"
+            "• [DIAGRAM: labelled plant cell showing cell wall, membrane, nucleus, vacuole, chloroplast]\n"
+            "• [DIAGRAM: circuit diagram with resistors, battery, ammeter, voltmeter]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens, F and 2F points]\n"
+            "• [DIAGRAM: human digestive system with labels]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥35% of Section B, C, D questions.\n"
         )
     elif is_math:
         diag_block = (
@@ -1978,12 +2010,23 @@ def _notation_rules(subject):
             "• [DIAGRAM: number line showing solution set of inequality -3 < x ≤ 5]\n"
             "• [DIAGRAM: coordinate axes with parabola y=x²-4x+3, showing vertex and x-intercepts]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include diagrams in ≥20% of geometry/coordinate questions.\n"
+            "Include [DIAGRAM:] in ≥30% of geometry/coordinate questions.\n"
+        )
+    elif is_social:
+        diag_block = (
+            "DIAGRAMS — include maps and charts wherever relevant:\n"
+            "• [DIAGRAM: outline map of India showing major rivers, mountain ranges, state boundaries]\n"
+            "• [DIAGRAM: bar chart comparing GDP of 5 countries with labelled axes]\n"
+            "• [DIAGRAM: flowchart showing the legislative process in Parliament]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥20% of written-answer questions where a visual helps.\n"
         )
     else:
-        diag_block = "• [DIAGRAM: description] on its own line where a visual would help\n"
+        diag_block = (
+            "DIAGRAMS — include [DIAGRAM: description] on its own line wherever a visual aids understanding.\n"
+        )
 
-    return math_block + "\n" + diag_block
+    return math_block + diag_block
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -2123,6 +2166,14 @@ def build_prompt(class_name, subject, chapter, board, exam_type,
 
 
 # ─────────────────────────────────────────────────────────────────────
+# COMPETITIVE EXAM PROMPT  —  NTSE / NSO / IMO / IJSO / etc.
+# ─────────────────────────────────────────────────────────────────────
+def _prompt_competitive(exam, subject, chap, cls, m, diff, notation, teacher):
+    """Alias to _prompt_board with exam name substituted as board."""
+    return _prompt_board(subject, chap, exam or "Competitive Exam", cls, m, diff, notation, teacher)
+
+
+# ─────────────────────────────────────────────────────────────────────
 # BOARD EXAM PROMPT  —  Section A / B / C / D  (clean, scalable)
 # Keeps all LaTeX, notation, diagram and answer-key rules intact.
 # ─────────────────────────────────────────────────────────────────────
@@ -2219,13 +2270,19 @@ SECTION B:
 4. End every question with its mark allocation in square brackets: [1 Mark], [2 Marks], [4 Marks].
 5. Follow {board} syllabus strictly.
 6. Output ONLY the questions and section headings. No hints in the question paper itself.
-7. ⚠ DIAGRAMS — MANDATORY: For ANY geometry, circuit, graph, or figure-based question,
-   place a [DIAGRAM: detailed description] tag on its own line immediately after the question.
+7. ⚠ DIAGRAMS — MANDATORY: For ANY question involving a diagram, figure, structure, body system,
+   circuit, graph, map, cell, organism, apparatus, geometric shape, or physical setup — place a
+   [DIAGRAM: detailed description] tag on its own line immediately after the question stem.
    Examples:
-     • Triangle question → [DIAGRAM: triangle ABC, altitude from A to BC, all sides and angles labelled]
-     • Circuit question  → [DIAGRAM: circuit with 3Ω and 6Ω resistors in parallel, 12V battery]
+     • Cell biology  → [DIAGRAM: labelled plant cell showing cell wall, nucleus, chloroplast, vacuole, mitochondria]
+     • Animal cell   → [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, small vacuoles]
+     • Human body    → [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver]
+     • Triangle      → [DIAGRAM: triangle ABC with altitude from A to BC, all sides and angles labelled]
+     • Circuit       → [DIAGRAM: circuit with 3Ω and 6Ω resistors in parallel, 12V battery, ammeter A, voltmeter V]
+     • Ray diagram   → [DIAGRAM: convex lens showing principal axis, F and 2F, incident rays, image formation]
+     • Map question  → [DIAGRAM: outline map of India with major rivers and state boundaries labelled]
    ⛔ NEVER write [DIAGRAM: Not applicable] or [DIAGRAM: None] — just omit the tag if no diagram needed.
-   Include [DIAGRAM:] tags in at least 40% of Section B, C, D questions.
+   Include [DIAGRAM:] tags in at least 50% of Section B, C, D questions.
 8. TABLES: Any question with data or comparisons — format as a pipe table (|col|col|...).
 9. ⚠ DO NOT write any general instructions block at the top of the paper.
 
