@@ -2379,48 +2379,64 @@ def _get_diag_context(desc: str) -> str:
 # ── Master SVG generation prompt ──────────────────────────────────────
 def _call_gemini_for_svg(prompt: str) -> str | None:
     """
-    Lightweight, fast Gemini REST call for SVG diagram generation.
-    Bypasses LangChain and the full call_gemini chain — uses a single
-    direct REST call with small token budget and short timeout.
-    Tries each active API key once before giving up.
+    SVG diagram generator: for each model (best→worst), try every API key.
+    Queue: flash/key1 → flash/key2 → flash/key3 → flash-lite/key1 → flash-lite/key2 → ...
+    Stops as soon as any combo returns a valid SVG.
+    Dead models (404) are skipped for all remaining keys.
     """
     active_keys = [k for k in [GEMINI_KEY, GEMINI_KEY_2, GEMINI_KEY_3] if k]
     if not active_keys:
         return None
 
-    # Use flash model for fast SVG output; fall back to lite
-    models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemma-3-4b-it"]
+    models = [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash-lite-preview-06-17",
+        "gemma-3-4b-it",
+        "gemma-3-1b-it",
+    ]
+
     payload_base = {
         "generationConfig": {
-            "temperature":     0.1,
-            "maxOutputTokens": 4096,   # SVG rarely needs more than 2k tokens
+            "temperature":     0.15,
+            "maxOutputTokens": 4096,
             "topP":            0.9,
             "topK":            40,
         },
     }
 
-    for model_name in models_to_try:
+    attempt = 0
+    for model in models:
+        model_dead = False
         for api_key in active_keys:
-            payload = dict(payload_base)
-            payload["contents"] = [{"parts": [{"text": prompt}]}]
-            url = f"{_GEMINI_BASE}/{model_name}:generateContent?key={api_key}"
+            attempt += 1
+            payload = {**payload_base, "contents": [{"parts": [{"text": prompt}]}]}
+            url = f"{_GEMINI_BASE}/{model}:generateContent?key={api_key}"
             try:
-                resp = _requests.post(url, json=payload, timeout=30)
+                resp = _requests.post(url, json=payload, timeout=35)
                 if resp.status_code == 200:
-                    data = resp.json()
-                    text = (data.get("candidates", [{}])[0]
-                                .get("content", {})
-                                .get("parts", [{}])[0]
-                                .get("text", "")).strip()
+                    text = (resp.json().get("candidates", [{}])[0]
+                                      .get("content", {})
+                                      .get("parts", [{}])[0]
+                                      .get("text", "")).strip()
                     if text and "<svg" in text.lower():
+                        print(f"[Diagram] SVG ok — attempt {attempt} ({model}/key{active_keys.index(api_key)+1})")
                         return text
+                    print(f"[Diagram] attempt {attempt} ({model}): no <svg>, trying next key")
                 elif resp.status_code in (429, 503):
-                    continue   # rate-limited — try next key/model
-                elif resp.status_code in (404, 400):
-                    break      # model not available — skip all keys for this model
+                    print(f"[Diagram] attempt {attempt} ({model}/key{active_keys.index(api_key)+1}): rate-limited")
+                elif resp.status_code in (400, 404):
+                    print(f"[Diagram] attempt {attempt} ({model}): model unavailable — skipping model")
+                    model_dead = True
+                    break
+                else:
+                    print(f"[Diagram] attempt {attempt} ({model}): HTTP {resp.status_code}")
             except Exception as e:
-                print(f"[Diagram REST] {model_name}/{api_key[:8]}…: {e}")
-                continue
+                print(f"[Diagram] attempt {attempt} ({model}): {e}")
+        if model_dead:
+            continue   # all keys already skipped for this model
+
+    print(f"[Diagram] all {attempt} attempts exhausted — no SVG")
     return None
 
 
