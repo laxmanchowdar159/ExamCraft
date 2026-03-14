@@ -1935,192 +1935,95 @@ def _difficulty_profile(difficulty):
 
 
 def _notation_rules(subject):
-    """Returns notation and diagram rules for the subject.
-
-    KEY DIAGRAM PHILOSOPHY:
-    - ONLY add [DIAGRAM:] to questions that INHERENTLY require a visual.
-    - NEVER force diagrams onto algebraic, arithmetic, or proof-by-equation questions.
-    - A wrong diagram is worse than no diagram.
-    """
-    subj_l     = (subject or "").lower()
-    is_math    = any(k in subj_l for k in ["math","algebra","geometry","trigonometry","statistics","arithmetic"])
-    is_physics = any(k in subj_l for k in ["physics","physical"])
-    is_chem    = any(k in subj_l for k in ["chemistry","chemical"])
-    is_bio     = any(k in subj_l for k in ["biology","biological","life science","botany","zoology"])
-    is_science = any(k in subj_l for k in ["science","physics","chemistry","biology"]) or is_physics or is_chem or is_bio
-    is_social  = any(k in subj_l for k in ["social","history","geography","civics","economics","political","environment"])
-    is_cs      = any(k in subj_l for k in ["computer","computing","information technology","programming"])
+    """Returns notation and formatting rules relevant to the subject."""
+    subj_l = (subject or "").lower()
+    is_math    = any(k in subj_l for k in ["math", "algebra", "geometry", "trigonometry", "statistics", "arithmetic"])
+    is_physics = any(k in subj_l for k in ["physics", "physical"])
+    is_chem    = any(k in subj_l for k in ["chemistry", "chemical"])
+    is_bio     = any(k in subj_l for k in ["biology", "biological", "life science", "botany", "zoology"])
+    is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"]) or is_physics or is_chem or is_bio
+    is_social  = any(k in subj_l for k in ["social", "history", "geography", "civics", "economics", "political", "environment"])
     is_stem    = is_math or is_science
 
-    # ── Math/Science notation ─────────────────────────────────────
     math_block = ""
     if is_stem:
         math_block = (
             "MATH & SCIENCE NOTATION — strictly required:\n"
-            "• ALL expressions inside $...$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
+            "• ALL expressions inside $…$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
             "• Chemical formulas: $H_2O$  $CO_2$  $H_2SO_4$  $Ca(OH)_2$\n"
             "• Powers / subscripts: $a^{3}$  $v_0$  $10^{-3}$  never write as plain a3 or v0\n"
             "• Greek letters: $\\theta$  $\\alpha$  $\\beta$  $\\pi$  $\\lambda$  $\\mu$  $\\Omega$\n"
             "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
             "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
             "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
-            "• Fill blanks: __________ (ten underscores, ALWAYS outside $...$)\n"
+            "• Fill blanks: __________ (ten underscores, ALWAYS outside $…$, never inside math mode)\n"
             "• Equations on own line: $PV = nRT$\n"
             "\n"
         )
 
-    # ════════════════════════════════════════════════════════════════
-    # DIAGRAM RULES — STRICT ACCURACY OVER QUANTITY
-    # ════════════════════════════════════════════════════════════════
-    #
-    # GOLDEN RULE: Only add [DIAGRAM:] when the question REQUIRES a
-    # visual to be understood or answered. If you are not certain a
-    # diagram helps, DO NOT add one.
-    #
-    # NEVER add a diagram to:
-    #   - Pure algebraic questions (solve for x, find the value of k, etc.)
-    #   - Number theory questions (HCF, LCM, prime factorisation)
-    #   - Pure probability questions (coin tosses, ball-in-bag problems)
-    #   - Trigonometric identity proofs (prove that sin²θ + cos²θ = 1)
-    #   - Arithmetic/AP/GP problems (find the nth term, sum of series)
-    #   - Set theory questions (find A∩B, draw only if Venn is required)
-    #   - Questions that say "find the value", "prove that", "simplify"
-    #     unless they explicitly mention a geometric or physical setup
-    #
-    # ALWAYS add a diagram to:
-    #   - Geometry questions (triangles, circles, constructions, BPT proof)
-    #   - Coordinate geometry (plot points, find area of triangle on grid)
-    #   - Heights & distances / angles of elevation/depression
-    #   - Circuit diagrams, ray diagrams, optics
-    #   - Biology labelling questions (cell, heart, flower, digestive system)
-    #   - Chemistry apparatus questions (lab setup, electrolysis)
-    #   - Any question that says "draw", "sketch", "label", "figure",
-    #     "construct", or describes a physical/spatial arrangement
-    #
-    # FORMAT: [DIAGRAM: <specific description>] on its own line,
-    #         immediately after the question stem, before sub-parts.
-    #         The description must be detailed enough to draw accurately.
-    # ════════════════════════════════════════════════════════════════
-
-    if is_physics:
+    if is_physics or (is_science and not is_bio and not is_chem):
         diag_block = (
-            "DIAGRAMS FOR PHYSICS — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Circuit problems: [DIAGRAM: circuit with specified resistors, battery voltage, ammeter A, voltmeter V, all labelled]\n"
-            "• Ray/optics problems: [DIAGRAM: ray diagram with convex/concave lens or mirror, principal axis, F, 2F, object arrow, image arrow, three rays]\n"
-            "• Motion graphs: [DIAGRAM: velocity-time graph with labelled axes, time in seconds on x-axis, velocity in m/s on y-axis, plotted line]\n"
-            "• Force/mechanics: [DIAGRAM: free body diagram of the described object with all force arrows (W, N, f, F) labelled]\n"
-            "• Magnetic field: [DIAGRAM: bar magnet with field lines from N to S, arrowheads labelled]\n"
-            "• Heights/towers with angles of depression: [DIAGRAM: vertical tower, observer at top, car at ground, angle of depression 30 degrees labelled]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Pure formula derivation or algebraic manipulation\n"
-            "• Questions about laws stated in words (e.g. state Ohm's law)\n"
-            "• Numerical calculations with no geometric component\n"
+            "DIAGRAMS — MANDATORY for Physics — include in every relevant question:\n"
+            "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery, ammeter, voltmeter]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens with principal axis, F and 2F, object and image]\n"
+            "• [DIAGRAM: velocity-time graph showing uniform acceleration from rest, axes labelled]\n"
+            "• [DIAGRAM: free body diagram with weight, normal force, friction, applied force arrows labelled]\n"
+            "• [DIAGRAM: bar magnet with magnetic field lines from N to S pole, arrowheads]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
         )
     elif is_bio:
         diag_block = (
-            "DIAGRAMS FOR BIOLOGY — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Cell questions: [DIAGRAM: labelled plant cell / animal cell with all organelles and leader lines]\n"
-            "• Organ system questions: [DIAGRAM: human digestive/circulatory/nervous system with organs labelled]\n"
-            "• Heart questions: [DIAGRAM: human heart cross-section with 4 chambers, valves, major vessels labelled]\n"
-            "• Neuron questions: [DIAGRAM: neuron with dendrites, cell body, axon, myelin sheath, synaptic knob, impulse direction]\n"
-            "• Flower questions: [DIAGRAM: longitudinal section of flower with sepals, petals, stamen, carpel, ovules labelled]\n"
-            "• Photosynthesis process: [DIAGRAM: leaf cross-section with chloroplast, CO2 in, O2 out, light arrows, glucose produced]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Questions asking to define, explain, or list features in words\n"
-            "• Difference-between questions (e.g. mitosis vs meiosis)\n"
-            "• Questions about functions of organelles stated verbally\n"
+            "DIAGRAMS — MANDATORY for Biology — include in every relevant question:\n"
+            "• [DIAGRAM: labelled plant cell showing cell wall, cell membrane, nucleus, vacuole, chloroplast, mitochondria]\n"
+            "• [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, ribosomes, small vacuoles]\n"
+            "• [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver, pancreas labelled]\n"
+            "• [DIAGRAM: neuron showing dendrites, cell body, axon, myelin sheath, synaptic knob, impulse direction]\n"
+            "• [DIAGRAM: longitudinal section of a flower showing sepals, petals, stamen, carpel, ovules labelled]\n"
+            "• [DIAGRAM: human heart cross-section with 4 chambers, valves, aorta, pulmonary vessels labelled]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
         )
     elif is_chem:
         diag_block = (
-            "DIAGRAMS FOR CHEMISTRY — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Atomic structure: [DIAGRAM: Bohr model of the specified atom with nucleus, electron shells, electrons as dots, all labelled]\n"
-            "• Lab apparatus: [DIAGRAM: the described experimental setup with all apparatus (flask, delivery tube, gas collection, burner) labelled]\n"
-            "• Structural formulas: [DIAGRAM: structural formula of the specified molecule showing all bonds, atoms, bond angles]\n"
-            "• Electrolysis: [DIAGRAM: electrolytic cell with electrodes, battery, electrolyte, products at each electrode labelled]\n"
-            "• pH scale questions: [DIAGRAM: pH scale 0-14 with acid/neutral/base regions, indicator colours, example substances]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Balancing chemical equations\n"
-            "• Questions about periodic table properties stated verbally\n"
-            "• Numerical problems (mole calculations, concentration, titration)\n"
+            "DIAGRAMS — include wherever they add clarity in Chemistry:\n"
+            "• [DIAGRAM: Bohr model of carbon atom showing nucleus with 6 protons and 6 neutrons, 2 electrons in shell 1, 4 in shell 2]\n"
+            "• [DIAGRAM: laboratory apparatus — conical flask, delivery tube, gas collection over water trough, all labelled]\n"
+            "• [DIAGRAM: structural formula of methane CH4 showing C at centre with 4 H atoms bonded]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥30% of Section B, C, D questions.\n"
         )
     elif is_science:
         diag_block = (
-            "DIAGRAMS FOR SCIENCE — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Cell structure, organ systems, ecological diagrams\n"
-            "• Electric circuits, ray diagrams, force diagrams\n"
-            "• Experimental apparatus setups\n"
-            "• Water cycle, carbon cycle, food chain/web\n"
-            "Use: [DIAGRAM: detailed description of exactly what to draw, with all labels]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Pure calculation or formula questions\n"
-            "• Definitions, comparisons, or short verbal answers\n"
+            "DIAGRAMS — include wherever they add clarity (Physics/Chemistry/Biology):\n"
+            "• [DIAGRAM: labelled plant cell showing cell wall, membrane, nucleus, vacuole, chloroplast]\n"
+            "• [DIAGRAM: circuit diagram with resistors, battery, ammeter, voltmeter]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens, F and 2F points]\n"
+            "• [DIAGRAM: human digestive system with labels]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥35% of Section B, C, D questions.\n"
         )
     elif is_math:
         diag_block = (
-            "DIAGRAMS FOR MATHEMATICS — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Geometry theorems/proofs: [DIAGRAM: the exact geometric figure described — e.g. triangle ABC with DE parallel to BC, D on AB, E on AC, segments labelled AD, DB, AE, EC]\n"
-            "• Coordinate geometry: [DIAGRAM: coordinate axes, plotted points A, B, C with their coordinates, line or curve, relevant measurements]\n"
-            "• Trigonometry heights/distances: [DIAGRAM: right-angled triangle or tower setup with all angles and distances from the question labelled]\n"
-            "• Circle theorems: [DIAGRAM: circle with centre O, the specific chords/tangents/angles from the question labelled]\n"
-            "• Statistics graphs: [DIAGRAM: bar graph / histogram / ogive with labelled axes, class intervals, frequencies from the given data]\n"
-            "• 3D mensuration: [DIAGRAM: the 3D solid (cylinder, cone, sphere, frustum) with radius r and height h from the question labelled]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Solving equations (quadratic, linear, simultaneous) — pure algebra\n"
-            "• Number theory (HCF, LCM, prime factorisation, Euclid's algorithm)\n"
-            "• Arithmetic progressions (nth term, sum) — unless plotting a graph\n"
-            "• Probability questions (coins, dice, cards, balls in bag)\n"
-            "• Set theory questions (A union B, A intersection B) — unless Venn diagram is explicitly asked\n"
-            "• Trigonometric identity proofs (prove that sinA/cosA = tanA, etc.)\n"
-            "• Questions that just say 'find', 'evaluate', 'simplify', 'prove' with no geometric figure\n"
+            "DIAGRAMS — include wherever geometric/graphical clarity is needed:\n"
+            "• [DIAGRAM: triangle ABC with angle A=60°, B=80°, side BC=7cm, altitude from A to BC]\n"
+            "• [DIAGRAM: number line showing solution set of inequality -3 < x ≤ 5]\n"
+            "• [DIAGRAM: coordinate axes with parabola y=x²-4x+3, showing vertex and x-intercepts]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥30% of geometry/coordinate questions.\n"
         )
     elif is_social:
         diag_block = (
-            "DIAGRAMS FOR SOCIAL SCIENCE — add ONLY where a visual genuinely helps:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Geography questions: [DIAGRAM: outline map of India with the specific rivers, mountains, or states mentioned in the question]\n"
-            "• Data interpretation: [DIAGRAM: bar chart or pie chart using the exact data values given in the question, labelled axes]\n"
-            "• Political/government process: [DIAGRAM: flowchart showing the specific process (e.g. how a bill becomes law) with labelled boxes and arrows]\n"
-            "• Historical timelines: [DIAGRAM: horizontal timeline with the specific events and dates from the question]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Questions asking to explain, describe, or list points verbally\n"
-            "• Questions about causes, effects, or significance of events\n"
-            "• Short answer questions (2 marks) unless a map/chart is central\n"
-        )
-    elif is_cs:
-        diag_block = (
-            "DIAGRAMS FOR COMPUTER SCIENCE — add ONLY where a visual is essential:\n"
-            "\n"
-            "ADD a diagram for:\n"
-            "• Algorithm questions: [DIAGRAM: flowchart with start/end ovals, process rectangles, decision diamonds, arrows]\n"
-            "• Data structure questions: [DIAGRAM: the specific data structure (tree, linked list, stack, queue) with values from the question]\n"
-            "• Network questions: [DIAGRAM: the network topology with labelled nodes, connections, IP addresses]\n"
-            "\n"
-            "DO NOT add a diagram for:\n"
-            "• Questions about definitions, features, or differences stated verbally\n"
-            "• Questions about programming syntax or logic with no structural component\n"
+            "DIAGRAMS — include maps and charts wherever relevant:\n"
+            "• [DIAGRAM: outline map of India showing major rivers, mountain ranges, state boundaries]\n"
+            "• [DIAGRAM: bar chart comparing GDP of 5 countries with labelled axes]\n"
+            "• [DIAGRAM: flowchart showing the legislative process in Parliament]\n"
+            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in ≥20% of written-answer questions where a visual helps.\n"
         )
     else:
         diag_block = (
-            "DIAGRAMS — add [DIAGRAM: description] ONLY when the question describes a physical arrangement, "
-            "spatial relationship, process flow, or geometric figure that cannot be understood without a visual. "
-            "DO NOT add diagrams to questions that are purely verbal, algebraic, or numerical.\n"
+            "DIAGRAMS — include [DIAGRAM: description] on its own line wherever a visual aids understanding.\n"
         )
 
     return math_block + diag_block
@@ -2479,467 +2382,55 @@ import tempfile
 _WKHTML_AVAILABLE = False
 
 
-# ── Subject → detailed diagram drawing instructions ──────────────────
-# Each entry maps a keyword to a rich drawing spec that goes directly
-# into the SVG generation prompt as "DIAGRAM TYPE INSTRUCTIONS".
+# ── Subject → diagram type hints ─────────────────────────────────────
 _DIAG_CONTEXT = {
-
-    # ── GEOMETRY ──────────────────────────────────────────────────────
-    "triangle": (
-        "DRAW A TRIANGLE DIAGRAM:\n"
-        "• Place the triangle centrally with vertices A (top, ~x=250,y=60), B (bottom-left, ~x=80,y=260), C (bottom-right, ~x=420,y=260)\n"
-        "• Draw all three sides as solid lines stroke='#111' stroke-width='2'\n"
-        "• Label vertices A, B, C clearly outside the corners (offset 15px away from vertex)\n"
-        "• Mark all given angles with a small arc (radius 20) near the vertex using <path>\n"
-        "• Label angle values (e.g. 60°) next to each arc\n"
-        "• Mark right angles with a small square (7x7 rect) at the corner\n"
-        "• Draw altitude/median/angle bisector as a dashed line stroke-dasharray='5,3' from vertex to opposite side\n"
-        "• Label all sides (a, b, c or given lengths) at the midpoint of each side, offset 12px perpendicular outward\n"
-        "• Label intersection points (D, E, F, M etc.) clearly\n"
-        "• Use tick marks (short perpendicular strokes) on equal sides"
-    ),
-
-    "circle": (
-        "DRAW A CIRCLE DIAGRAM:\n"
-        "• Draw the main circle centred at ~(250,160) radius ~100\n"
-        "• Mark centre O with a filled dot (circle r=3 fill='#111') and label 'O' offset 10px\n"
-        "• Draw radius/chord/tangent lines as required, each labelled at midpoint\n"
-        "• For tangent: draw a line touching circle at exactly one point, mark point of tangency\n"
-        "• For external point P: draw point, two tangent lines PA and PB, radii OA and OB (dashed), line OP\n"
-        "• Mark all angles with arcs; label angle values\n"
-        "• Mark right angles (radius ⊥ tangent) with a small square\n"
-        "• Label all points (A, B, O, P etc.) clearly outside the circle"
-    ),
-
-    "tangent": (
-        "DRAW TANGENTS FROM EXTERNAL POINT:\n"
-        "• Circle centre O at (250,170), radius 90\n"
-        "• External point P at (460,170)\n"
-        "• Calculate tangent points A and B geometrically\n"
-        "• Draw lines PA and PB as tangent lines stroke='#111' stroke-width='2'\n"
-        "• Draw radii OA and OB as dashed lines stroke-dasharray='5,3' stroke='#555'\n"
-        "• Mark right angles at A and B (radius ⊥ tangent) with 7x7 squares\n"
-        "• Draw line OP as a dashed construction line\n"
-        "• Label O, A, B, P clearly; add dimension PA=PB to show equality"
-    ),
-
-    "similar": (
-        "DRAW TWO SIMILAR TRIANGLES:\n"
-        "• Triangle 1 (larger): vertices at ~(60,220), (260,220), (160,60)\n"
-        "• Triangle 2 (smaller, proportional): vertices at ~(300,220), (450,220), (375,120)\n"
-        "• Mark equal angles with matching arc symbols (single arc, double arc, triple arc)\n"
-        "• Mark corresponding equal sides with tick marks (single tick, double tick)\n"
-        "• Label all vertices of both triangles\n"
-        "• Write the similarity ratio as a fraction near the diagrams"
-    ),
-
-    "pythagoras": (
-        "DRAW A RIGHT-ANGLED TRIANGLE:\n"
-        "• Right angle at bottom-left vertex C (x=80,y=260)\n"
-        "• Other vertices: A at (80,80), B at (320,260)\n"
-        "• Mark right angle at C with a 7x7 square\n"
-        "• Label side AC = 'a' (vertical leg), side CB = 'b' (horizontal leg), hypotenuse AB = 'c'\n"
-        "• Add Pythagorean theorem: c² = a² + b² as text below\n"
-        "• Mark angle θ at B with an arc"
-    ),
-
-    "coordinate": (
-        "DRAW A COORDINATE PLANE:\n"
-        "• X-axis: horizontal line from (30,180) to (480,180) with arrowhead at right end\n"
-        "• Y-axis: vertical line from (250,290) to (250,20) with arrowhead at top\n"
-        "• Label 'X' at right of x-axis, 'Y' at top of y-axis, 'O' at origin (250,180)\n"
-        "• Draw tick marks every 40px on both axes and label values (-3,-2,-1,0,1,2,3 etc.)\n"
-        "• Plot all specified points as filled circles r=4 fill='#111'\n"
-        "• Label each point with its coordinates in brackets, offset 10px diagonally\n"
-        "• Draw lines/curves through points as specified\n"
-        "• Use a fine grid (stroke='#eee' stroke-width='0.5') for readability"
-    ),
-
-    "bpt": (
-        "DRAW BASIC PROPORTIONALITY THEOREM (THALES) FIGURE:\n"
-        "• Triangle ABC: A at (250,40), B at (80,280), C at (420,280)\n"
-        "• Point D on AB: at (175,160) — one-third from B\n"
-        "• Point E on AC: at (325,160) — one-third from C\n"
-        "• Draw DE as a solid line parallel to BC\n"
-        "• Label all vertices A, B, C, D, E\n"
-        "• Label segments: AD, DB on AB; AE, EC on AC with their given expressions\n"
-        "• Add small arrows showing DE ∥ BC"
-    ),
-
-    "construction": (
-        "DRAW A GEOMETRIC CONSTRUCTION:\n"
-        "• Show compass arcs as dashed curves stroke-dasharray='4,3'\n"
-        "• Show straight lines as solid\n"
-        "• Label all points and arcs clearly\n"
-        "• Number each construction step with a small circled number\n"
-        "• Keep construction lines lighter (stroke='#777') than the final figure"
-    ),
-
-    "mensuration": (
-        "DRAW A 3D SOLID IN PERSPECTIVE:\n"
-        "• For cylinder: draw two ellipses (top and bottom), connect with vertical lines, dashed bottom-back edge\n"
-        "• For cone: draw base ellipse, two slant lines to apex, dashed half of base ellipse\n"
-        "• For sphere: draw circle with three elliptic cross-sections\n"
-        "• For frustum: draw top and bottom ellipses of different sizes, connect with slant lines\n"
-        "• Label ALL dimensions: radius r (with arrow), height h (with arrow), slant height l if applicable\n"
-        "• Use dashed lines for hidden edges"
-    ),
-
-    # ── PHYSICS ────────────────────────────────────────────────────────
-    "circuit": (
-        "DRAW AN ELECTRIC CIRCUIT DIAGRAM using standard symbols:\n"
-        "• Battery: two pairs of alternating long-short vertical lines, label +/- and voltage\n"
-        "• Resistor: a rectangle (28x12px) on the wire, label resistance value (e.g. 3Ω) above\n"
-        "• Bulb: circle with an X inside\n"
-        "• Ammeter: circle containing letter 'A', placed in series\n"
-        "• Voltmeter: circle containing letter 'V', connected in parallel with the component\n"
-        "• Switch: a small gap in the wire with a diagonal line showing the switch lever\n"
-        "• Connecting wires: horizontal and vertical lines, corners at 90°\n"
-        "• Label all component values; add + and - terminals on battery\n"
-        "• Arrange in a clear rectangular layout with components on each side"
-    ),
-
-    "lens": (
-        "DRAW A CONVEX/CONCAVE LENS RAY DIAGRAM:\n"
-        "• Principal axis: horizontal dashed line across full width at y=160\n"
-        "• Lens: vertical double-convex (or concave) shape centred at x=250, height=120\n"
-        "• Mark focal points F and F' at ±80px from lens on the axis; label them\n"
-        "• Mark points 2F and 2F' at ±160px from lens; label them\n"
-        "• Object: upright arrow at x=90, tip at y=100, base on axis at y=160\n"
-        "• Draw THREE standard rays:\n"
-        "  Ray 1: horizontal from object tip → refracted through far focal point F'\n"
-        "  Ray 2: through optical centre, continues straight\n"
-        "  Ray 3: through near F, emerges parallel to axis\n"
-        "• Image: inverted arrow where rays converge; label it\n"
-        "• Use different colors (or line styles) for each ray: solid, dashed, dotted"
-    ),
-
-    "mirror": (
-        "DRAW A CONCAVE/CONVEX MIRROR RAY DIAGRAM:\n"
-        "• Principal axis: horizontal dashed line at y=160\n"
-        "• Mirror: curved arc on right side of diagram (concave opens left)\n"
-        "• Mark pole P, centre of curvature C, focal point F on the axis; label all\n"
-        "• Object: upright arrow left of F\n"
-        "• Draw two standard reflected rays and find image intersection\n"
-        "• Mark image with inverted arrow; label 'Image'\n"
-        "• Use dotted lines for virtual extensions"
-    ),
-
-    "ray": (
-        "DRAW AN OPTICS RAY DIAGRAM:\n"
-        "• Draw the optical surface (glass slab, prism, or lens) clearly\n"
-        "• Draw normal lines (dashed, perpendicular to surface) at point of incidence\n"
-        "• Draw incident ray with arrowhead, label angle of incidence i\n"
-        "• Draw refracted/reflected ray with arrowhead, label angle of refraction r\n"
-        "• Mark angles i and r with small arcs from the normal\n"
-        "• Show wavefronts bending at the surface if applicable\n"
-        "• Label all relevant points and surfaces"
-    ),
-
-    "motion": (
-        "DRAW A VELOCITY-TIME OR DISTANCE-TIME GRAPH:\n"
-        "• X-axis: time (s) from 0 to ~60s with labelled tick marks every 10s\n"
-        "• Y-axis: velocity (m/s) or distance (m) from 0 to ~50 with labelled ticks\n"
-        "• Both axes with arrowheads; labels 'Time (s)' and 'Velocity (m/s)'\n"
-        "• Plot the described motion: uniform = straight line; uniform acceleration = straight line from origin\n"
-        "• Shade the area under the graph (fill='#e0e8ff' opacity='0.5') to show displacement\n"
-        "• Mark key points (initial, final, maximum) with dots and coordinate labels\n"
-        "• Add a title above the graph"
-    ),
-
-    "force": (
-        "DRAW A FREE BODY DIAGRAM:\n"
-        "• Object: rectangle (60x40px) or dot at centre (~250,160)\n"
-        "• Weight W: thick downward arrow from object centre, label 'W = mg'\n"
-        "• Normal N: thick upward arrow from top of object, label 'N'\n"
-        "• Friction f: horizontal arrow (left or right as appropriate), label 'f'\n"
-        "• Applied Force F: arrow in direction of motion, label 'F'\n"
-        "• All arrows proportional to relative magnitudes\n"
-        "• If on inclined plane: rotate axes, show incline as angled surface, mark angle θ\n"
-        "• No background clutter — just the object and clearly labelled force arrows"
-    ),
-
-    "magnet": (
-        "DRAW A BAR MAGNET WITH FIELD LINES:\n"
-        "• Bar magnet: rectangle (180x40px) centred at (250,160)\n"
-        "• Left half labelled 'S' (south), right half labelled 'N' (north), different fills\n"
-        "• Field lines: 6-8 smooth curves looping from N pole around to S pole\n"
-        "• Each field line has arrowheads showing direction (N → around → S)\n"
-        "• Lines closer together near poles (stronger field), wider apart at sides\n"
-        "• Use path elements with smooth bezier curves for each field line"
-    ),
-
-    "heights": (
-        "DRAW A HEIGHTS AND DISTANCES DIAGRAM:\n"
-        "• Ground: horizontal line at bottom\n"
-        "• Vertical tower/building: rectangle on ground, height labelled 'h'\n"
-        "• Observer: positioned on top of tower or on ground\n"
-        "• Object (car/boat/plane): at specified position\n"
-        "• Horizontal line from observer (line of sight reference): dashed\n"
-        "• Angle of elevation: arc from horizontal upward, label α or given degrees\n"
-        "• Angle of depression: arc from horizontal downward, label β or given degrees\n"
-        "• All distances labelled: d₁, d₂ or given values\n"
-        "• Right angle marked at base of tower"
-    ),
-
-    # ── BIOLOGY ────────────────────────────────────────────────────────
-    "cell": (
-        "DRAW A LABELLED BIOLOGICAL CELL:\n"
-        "• FOR PLANT CELL: outer rectangle (cell wall), inner rounded rectangle (cell membrane)\n"
-        "  Inside: large central vacuole, nucleus (oval with nucleolus dot), 3-4 chloroplasts (small ovals with lines inside),\n"
-        "  2-3 mitochondria (oval with internal folds), dots for ribosomes\n"
-        "• FOR ANIMAL CELL: large oval outline (cell membrane)\n"
-        "  Inside: nucleus (oval with nucleolus), mitochondria, ribosomes, small vacuoles, centrioles (pair of cylinders)\n"
-        "• Draw leader lines from each organelle to a label outside the cell\n"
-        "• Labels: Cell Wall, Cell Membrane, Nucleus, Nucleolus, Vacuole, Chloroplast, Mitochondria, Ribosomes\n"
-        "• Keep the cell large (filling 60% of viewBox) for clarity"
-    ),
-
-    "heart": (
-        "DRAW A HUMAN HEART CROSS-SECTION:\n"
-        "• Draw the overall heart shape (inverted triangle with curved top)\n"
-        "• Divide into 4 chambers: RA (top-right), LA (top-left), RV (bottom-right), LV (bottom-left)\n"
-        "• Septum: vertical dividing line between left and right sides\n"
-        "• Valves: tricuspid (between RA/RV), bicuspid/mitral (between LA/LV), show as flap shapes\n"
-        "• Major vessels: Aorta (top-left, large arch), Pulmonary Artery (top-right), \n"
-        "  Superior/Inferior Vena Cava (right side), Pulmonary Veins (left side)\n"
-        "• Label all 4 chambers, all valves, all major vessels with leader lines\n"
-        "• Use different fills for oxygenated (light pink) and deoxygenated (light blue) chambers"
-    ),
-
-    "neuron": (
-        "DRAW A NEURON DIAGRAM:\n"
-        "• Cell body: circle (~50px radius) at (180,160), containing a small nucleus\n"
-        "• Dendrites: 4-5 branching lines radiating left from cell body\n"
-        "• Axon: long horizontal line extending right from cell body to (450,160)\n"
-        "• Myelin sheath: 5-6 oval segments along the axon (spacing=40px), fill='#fffde0'\n"
-        "• Nodes of Ranvier: small gaps between each myelin segment\n"
-        "• Axon terminal/synaptic knob: branched end with small knob shapes at tips\n"
-        "• Direction arrow: long arrow above the axon pointing right labelled 'Impulse'\n"
-        "• Label: Dendrites, Cell Body, Nucleus, Axon, Myelin Sheath, Node of Ranvier, Synaptic Knob"
-    ),
-
-    "digestion": (
-        "DRAW THE HUMAN DIGESTIVE SYSTEM:\n"
-        "• Arrange organs in correct anatomical order, top to bottom\n"
-        "• Mouth/Buccal cavity: at top (simple oval)\n"
-        "• Oesophagus: narrow tube going down\n"
-        "• Stomach: J-shaped organ on left side\n"
-        "• Small intestine: coiled tube in centre (show 2-3 coils)\n"
-        "• Large intestine: wider frame around small intestine (ascending, transverse, descending)\n"
-        "• Rectum and Anus: at bottom\n"
-        "• Liver: large oval upper-right\n"
-        "• Pancreas: behind stomach, elongated\n"
-        "• Leader lines and labels for every organ\n"
-        "• Arrows showing direction of food movement"
-    ),
-
-    "flower": (
-        "DRAW A LONGITUDINAL SECTION OF A FLOWER:\n"
-        "• Draw the vertical cross-section showing all whorls from outside to inside\n"
-        "• Sepals: outermost, small leaf-like structures at base\n"
-        "• Petals: large coloured (fill='#ffccdd') oval-shaped structures inside sepals\n"
-        "• Stamens (male): filaments (thin lines) with anthers (oval shapes) at tips\n"
-        "• Carpel/Pistil (female): central stigma (flat top) → style (tube) → ovary (oval base)\n"
-        "• Ovules: small oval shapes inside the ovary\n"
-        "• Receptacle: horizontal base line\n"
-        "• Label all parts with leader lines"
-    ),
-
-    "photosynthesis": (
-        "DRAW A PHOTOSYNTHESIS PROCESS DIAGRAM:\n"
-        "• Central: chloroplast (oval with internal thylakoid membranes shown as stacked lines)\n"
-        "• Input arrows: CO₂ entering (from left), H₂O entering (from bottom)\n"
-        "• Light energy: sunlight rays from top (zigzag lines)\n"
-        "• Output arrows: O₂ exiting (right arrow), Glucose produced (label inside/below)\n"
-        "• Chemical equation below: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂\n"
-        "• Label Sunlight, CO₂, H₂O, O₂, Glucose, Chloroplast"
-    ),
-
-    # ── CHEMISTRY ──────────────────────────────────────────────────────
-    "atom": (
-        "DRAW A BOHR MODEL OF THE ATOM:\n"
-        "• Nucleus: filled circle at centre (r=20), labelled with number of protons (P) and neutrons (N)\n"
-        "• Electron shells: concentric circles at radii 60, 100, 140 (as needed for the element)\n"
-        "• Electrons: small filled circles (r=4) placed on each shell, correct count per shell\n"
-        "• Label: 'Nucleus', shell numbers (K=2, L=8, M=8 max), element symbol\n"
-        "• For Carbon: 2 electrons in shell 1, 4 in shell 2\n"
-        "• For Sodium: 2 in shell 1, 8 in shell 2, 1 in shell 3\n"
-        "• Ensure electron counts match the described element"
-    ),
-
-    "apparatus": (
-        "DRAW A CHEMISTRY LABORATORY APPARATUS:\n"
-        "• Retort stand: vertical rod with horizontal clamp\n"
-        "• Flask/test tube: clear glass outline shape\n"
-        "• Delivery tube: narrow tube from flask to collection vessel\n"
-        "• Gas collection: inverted test tube over trough of water (show water level)\n"
-        "• Bunsen burner: at bottom if heating required, show flame as orange teardrop\n"
-        "• Thermometer: if needed, long thin tube with bulb at bottom\n"
-        "• Label every piece of apparatus clearly with leader lines\n"
-        "• Show gas bubbles in the collection tube"
-    ),
-
-    "molecule": (
-        "DRAW A STRUCTURAL/MOLECULAR FORMULA:\n"
-        "• Use expanded structural formula (show every bond)\n"
-        "• Carbon atoms: 'C' in circles or just the letter at bond intersections\n"
-        "• Hydrogen atoms: 'H' at line ends\n"
-        "• Bonds: single line (−), double line (=), triple line (≡)\n"
-        "• Use correct bond angles (tetrahedral ~109.5° for sp3, 120° for sp2)\n"
-        "• Label the molecule name and molecular formula below"
-    ),
-
-    "electrolysis": (
-        "DRAW AN ELECTROLYSIS APPARATUS:\n"
-        "• U-tube or beaker containing electrolyte solution (light blue fill)\n"
-        "• Two electrodes: vertical lines, left=cathode (−), right=anode (+)\n"
-        "• Battery: connected at top, labelled with polarity\n"
-        "• Gas bubbles: small circles at each electrode tip\n"
-        "• Label: Cathode (−), Anode (+), Electrolyte, and the gas produced at each electrode\n"
-        "• Arrows showing direction of electron flow and ion movement"
-    ),
-
-    # ── STATISTICS ─────────────────────────────────────────────────────
-    "histogram": (
-        "DRAW A HISTOGRAM / BAR GRAPH:\n"
-        "• X-axis: class intervals or categories, evenly spaced, labelled\n"
-        "• Y-axis: frequency or count, starting from 0, with evenly spaced ticks and values\n"
-        "• Bars: touching (for histogram) or spaced (for bar chart), equal width\n"
-        "• Label each bar with its exact frequency value on top\n"
-        "• Add axis titles: 'Class Interval' on x-axis, 'Frequency' on y-axis\n"
-        "• Title at top of chart"
-    ),
-
-    "ogive": (
-        "DRAW A CUMULATIVE FREQUENCY OGIVE:\n"
-        "• X-axis: upper class boundaries, labelled\n"
-        "• Y-axis: cumulative frequency, starting from 0 to total n\n"
-        "• Plot points at each (upper boundary, cumulative frequency)\n"
-        "• Connect points with a smooth S-curve\n"
-        "• Mark the median: draw horizontal line from n/2 on y-axis to the curve, then drop to x-axis\n"
-        "• Label the median value on the x-axis\n"
-        "• Mark all plotted points with filled circles"
-    ),
-
-    "venn": (
-        "DRAW A VENN DIAGRAM:\n"
-        "• Rectangle representing the Universal Set U, labelled 'U' in top-right corner\n"
-        "• Two overlapping circles A and B inside the rectangle\n"
-        "• Label 'A' inside left circle, 'B' inside right circle\n"
-        "• Label regions: 'Only A' in left part, 'A∩B' in overlapping part, 'Only B' in right part\n"
-        "• Fill regions with different light colours if showing specific sets\n"
-        "• Place element counts or specific elements in each region as required"
-    ),
-
-    # ── SOCIAL STUDIES ─────────────────────────────────────────────────
-    "map": (
-        "DRAW AN OUTLINE MAP OF INDIA:\n"
-        "• Draw the recognisable D-shaped outline of India\n"
-        "• Show major rivers as curved blue lines: Ganga (north), Godavari/Krishna (south)\n"
-        "• Show Himalayas: horizontal hatching at top\n"
-        "• Mark Western Ghats and Eastern Ghats as dotted lines along respective coasts\n"
-        "• Mark state boundaries as dashed internal lines if required\n"
-        "• Mark major cities as dots with labels\n"
-        "• Add a compass rose (N/S/E/W) and a simple scale bar"
-    ),
+    # Geometry
+    "tangent":      "circle geometry: external point P, two tangent lines PA and PB touching the circle at A and B, centre O, radius OA perpendicular to PA, all lengths and angles labelled",
+    "secant":       "circle with a secant line intersecting at two points and a tangent from an external point, all lengths labelled",
+    "circle":       "circle with centre O, radius, chord, tangent line, and relevant angles clearly labelled",
+    "triangle":     "triangle with labelled vertices A B C, sides a b c, angles, altitude or median as required",
+    "geometry":     "clean geometric figure with all vertices, sides, angles and relevant construction marks labelled",
+    "coordinate":   "coordinate plane with clearly marked x-axis and y-axis, origin O, labelled points, plotted line or curve",
+    "construction": "step-by-step geometric construction showing compass arcs (dashed), straight lines, and all labelled points",
+    "pythagoras":   "right-angled triangle with the right angle marked by a small square, sides labelled a, b, and hypotenuse c",
+    "similar":      "two similar triangles with corresponding sides and angles marked with tick marks and arcs",
+    "mensuration":  "3D solid (cylinder/cone/sphere/frustum) drawn in perspective with all dimensions r, h, l labelled",
+    # Physics
+    "circuit":      "electric circuit schematic using standard symbols: battery (long/short lines), resistor (rectangle), bulb (circle-X), switch, ammeter (A in circle), voltmeter (V in circle), connecting wires",
+    "ray":          "optics ray diagram: incident ray, normal (dashed), reflected or refracted ray, angles of incidence and reflection/refraction labelled with θ, lens or mirror surface",
+    "lens":         "convex or concave lens diagram showing principal axis, focal points F and 2F, object arrow, image arrow, three standard rays",
+    "mirror":       "concave or convex mirror diagram with principal axis, centre of curvature C, focal point F, object, image, and ray paths",
+    "motion":       "velocity-time or distance-time graph with clearly labelled axes, values on axes, and the plotted line or curve",
+    "force":        "free body diagram showing an object (rectangle or dot) with force arrows labelled: weight W downward, normal N upward, friction f horizontal, applied force F",
+    "magnet":       "bar magnet with field lines curving from N pole to S pole, arrowheads showing direction",
+    "refraction":   "glass slab or prism with incident ray, refracted ray inside the medium, emergent ray, normals (dashed) and angles i, r labelled",
+    # Biology
+    "cell":         "animal or plant cell (oval/rectangle outline) with organelles inside: nucleus (double circle), mitochondria, ribosomes, cell wall (plant only), vacuole, chloroplast (plant only), each labelled with leader lines",
+    "heart":        "human heart cross-section showing 4 chambers: left atrium (LA), right atrium (RA), left ventricle (LV), right ventricle (RV), aorta, pulmonary artery/vein, vena cava, bicuspid and tricuspid valves, all labelled",
+    "digestion":    "human digestive system: mouth → oesophagus → stomach → small intestine (duodenum, jejunum, ileum) → large intestine → rectum → anus, with liver and pancreas, all labelled",
+    "neuron":       "neuron showing: dendrites (branching), cell body (circle with nucleus), axon (long line), myelin sheath (oval segments), nodes of Ranvier, synaptic knob, direction of impulse arrow",
+    "eye":          "human eye cross-section: cornea, iris, pupil, lens, vitreous humour, retina, fovea, blind spot, optic nerve, ciliary muscles, all labelled",
+    "reproduction": "longitudinal section of a flower showing: sepal, petal, stamen (anther + filament), carpel (stigma + style + ovary), ovules, receptacle, all labelled",
+    "photosynthesis":"chloroplast structure: outer membrane, inner membrane, granum (stack of thylakoids), stroma, starch grain, labelled; with equation 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ shown",
+    "respiration":  "mitochondrion cross-section: outer membrane, inner membrane, cristae (folds), matrix, ATP synthase, all labelled",
+    # Chemistry
+    "atom":         "Bohr atomic model: nucleus (circle) labelled with protons P and neutrons N, electron shells (concentric circles) with electrons (dots) on each shell, element symbol in centre",
+    "apparatus":    "laboratory glassware setup: stand with clamp holding a test tube or flask over a burner, beaker, thermometer, delivery tube, collecting jar over water trough, all labelled",
+    "molecule":     "structural formula or ball-and-stick model of a simple molecule with atoms as circles and bonds as lines, atom symbols labelled",
+    # Social Studies
+    "map":          "outline map of India showing state boundaries, major rivers (Ganga, Yamuna, Godavari, Krishna, Brahmaputra), mountain ranges (Himalayas, Western/Eastern Ghats), and key locations as required",
 }
 
-
 def _get_diag_context(desc: str) -> str:
-    """Return the best drawing instructions for this diagram description."""
     dl = desc.lower()
-
-    # Priority keyword matches — most specific first
-    priority_keys = [
-        # Very specific
-        ("tangent from external", "tangent"),
-        ("tangent", "tangent"),
-        ("bpt", "bpt"),
-        ("basic proportionality", "bpt"),
-        ("thales", "bpt"),
-        ("de parallel to bc", "bpt"),
-        ("de || bc", "bpt"),
-        # Physics
-        ("circuit", "circuit"),
-        ("resistor", "circuit"),
-        ("ammeter", "circuit"),
-        ("voltmeter", "circuit"),
-        ("convex lens", "lens"),
-        ("concave lens", "lens"),
-        ("ray diagram", "ray"),
-        ("refraction", "ray"),
-        ("reflection", "mirror"),
-        ("concave mirror", "mirror"),
-        ("velocity-time", "motion"),
-        ("distance-time", "motion"),
-        ("v-t graph", "motion"),
-        ("free body", "force"),
-        ("bar magnet", "magnet"),
-        ("magnetic field", "magnet"),
-        ("angle of depression", "heights"),
-        ("angle of elevation", "heights"),
-        ("tower", "heights"),
-        # Biology
-        ("plant cell", "cell"),
-        ("animal cell", "cell"),
-        ("cell wall", "cell"),
-        ("organelle", "cell"),
-        ("human heart", "heart"),
-        ("heart cross", "heart"),
-        ("neuron", "neuron"),
-        ("digestive system", "digestion"),
-        ("flower", "flower"),
-        ("longitudinal section", "flower"),
-        ("photosynthesis", "photosynthesis"),
-        # Chemistry
-        ("bohr model", "atom"),
-        ("atomic model", "atom"),
-        ("electron shell", "atom"),
-        ("laboratory apparatus", "apparatus"),
-        ("lab setup", "apparatus"),
-        ("gas collection", "apparatus"),
-        ("structural formula", "molecule"),
-        ("electrolysis", "electrolysis"),
-        # Statistics
-        ("ogive", "ogive"),
-        ("cumulative frequency", "ogive"),
-        ("histogram", "histogram"),
-        ("bar chart", "histogram"),
-        ("bar graph", "histogram"),
-        ("venn diagram", "venn"),
-        ("venn", "venn"),
-        # Geometry (less specific, so come later)
-        ("coordinate", "coordinate"),
-        ("parabola", "coordinate"),
-        ("collinear", "coordinate"),
-        ("midpoint", "coordinate"),
-        ("similar triangle", "similar"),
-        ("pythagoras", "pythagoras"),
-        ("right-angled triangle", "pythagoras"),
-        ("right angle triangle", "pythagoras"),
-        ("mensuration", "mensuration"),
-        ("cylinder", "mensuration"),
-        ("cone", "mensuration"),
-        ("sphere", "mensuration"),
-        ("frustum", "mensuration"),
-        ("hemisphere", "mensuration"),
-        ("construction", "construction"),
-        ("circle", "circle"),
-        ("chord", "circle"),
-        ("arc", "circle"),
-        ("triangle", "triangle"),
-        ("altitude", "triangle"),
-        ("median", "triangle"),
-        ("quadrilateral", "triangle"),
-    ]
-
-    for phrase, key in priority_keys:
-        if phrase in dl:
-            return _DIAG_CONTEXT.get(key, "")
-
-    return "educational diagram for a Class 10 school exam paper — draw the described figure accurately with all components clearly labelled, using standard colours, precise geometry, and clean layout"
-
+    # Score by how many context keywords appear in description
+    best_score, best_ctx = 0, "educational diagram for a school exam paper with all parts clearly labelled"
+    for key, ctx in _DIAG_CONTEXT.items():
+        if key in dl:
+            score = len(key)  # longer key = more specific match
+            if score > best_score:
+                best_score, best_ctx = score, ctx
+    return best_ctx
 
 
 # ── Master SVG generation prompt ──────────────────────────────────────
@@ -2964,10 +2455,10 @@ def _call_gemini_for_svg(prompt: str) -> str | None:
 
     payload_base = {
         "generationConfig": {
-            "temperature":     0.4,   # Higher = more varied, creative layouts
-            "maxOutputTokens": 8192,  # Complex diagrams need room
-            "topP":            0.95,
-            "topK":            64,
+            "temperature":     0.15,
+            "maxOutputTokens": 4096,
+            "topP":            0.9,
+            "topK":            40,
         },
     }
 
@@ -3008,103 +2499,76 @@ def _call_gemini_for_svg(prompt: str) -> str | None:
 
 def generate_diagram_svg(description: str) -> str | None:
     """
-    Generate a high-quality SVG diagram for exam papers.
-    Uses a rich, type-specific prompt to prevent generic/wrong output.
+    Ask Gemini to produce a clean, accurate SVG for the given description.
+    Returns the SVG string or None on failure.
+    Uses a dedicated fast REST call (not the full call_gemini chain).
     """
-    drawing_instructions = _get_diag_context(description)
+    ctx = _get_diag_context(description)
 
-    prompt = f"""You are an expert technical illustrator creating a precise educational diagram for a Class 10 Indian school exam paper (CBSE/State Board standard).
+    prompt = f"""You are a professional technical illustrator producing diagrams for a Class 10 Indian school exam paper.
 
-════════════════════════════════════════
-DIAGRAM REQUIRED: "{description}"
-════════════════════════════════════════
+DIAGRAM TO DRAW: "{description}"
+DIAGRAM TYPE: {ctx}
 
-DRAWING INSTRUCTIONS FOR THIS DIAGRAM TYPE:
-{drawing_instructions}
+═══════════════════════════════════════════════════
+OUTPUT RULES — follow every rule or the diagram is rejected
+═══════════════════════════════════════════════════
+1. Output ONLY the raw SVG code. No markdown code fences (``` or ```svg), no explanation, no comments outside SVG tags.
+2. SVG must start with exactly:
+   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 320" width="500" height="320">
+3. SVG must end with: </svg>
+4. Background: add <rect x="0" y="0" width="500" height="320" fill="white"/> as the very first element.
 
-════════════════════════════════════════
-MANDATORY SVG RULES — violating any rule causes rejection
-════════════════════════════════════════
+VISUAL STYLE:
+5. Main structural lines: stroke="#111111" stroke-width="2"
+6. Secondary/dimension lines: stroke="#333333" stroke-width="1"
+7. Dashed/construction lines: stroke="#555555" stroke-width="1" stroke-dasharray="5,3"
+8. Arrow fill: fill="#111111"
+9. Shape fills: fill="white" for closed shapes (triangles, circles, rectangles)
+10. Shaded regions (if needed): fill="#e8e8e8"
 
-OUTPUT FORMAT:
-1. Output ONLY the raw SVG. Zero markdown, zero explanation, zero text outside the SVG tags.
-2. First line must be exactly: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" width="560" height="360">
-3. Last line must be: </svg>
-4. First child element: <rect x="0" y="0" width="560" height="360" fill="white"/>
+LABELLING — critical for educational quality:
+11. All labels: font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#111111"
+12. Smaller secondary labels (angle names, dimension ticks): font-size="11"
+13. Place every label clearly AWAY from lines — never overlapping a line or another label
+14. Use text-anchor="middle" for centred labels, "start" for left-aligned, "end" for right-aligned
+15. Every important point, line, angle, and measurement MUST be labelled — this is an exam diagram
+16. Right angles: mark with a 6x6 square at the corner vertex
 
-VISUAL QUALITY:
-5. Line weights:  primary shapes → stroke-width="2.5"  |  secondary lines → stroke-width="1.5"  |  construction/dashed → stroke-width="1"
-6. Colours:  primary lines → stroke="#111111"  |  secondary → stroke="#333333"  |  dashed → stroke="#555555" stroke-dasharray="6,3"
-7. Fill for closed shapes: fill="white" stroke="#111111"  |  shaded area: fill="#e8f0f8"  |  highlighted: fill="#fff8e0"
-8. Every label uses: font-family="Arial,Helvetica,sans-serif" fill="#111111"
-9. Primary labels (vertex names, component names): font-size="14" font-weight="bold"
-10. Secondary labels (dimensions, angle values): font-size="12"
-11. Small labels (tick marks, subscripts): font-size="10"
-
-LABELLING (critical for exam quality):
-12. EVERY vertex, point, component, measurement, and angle in the description MUST be labelled
-13. Labels must NEVER overlap a line or another label — offset at least 12px from the element
-14. Use text-anchor="middle" for centred text, "start" or "end" as appropriate
-15. For angles: draw an arc (r=18-22px) and place the angle value label at arc midpoint
-16. For right angles: draw a 7×7 square at the corner
-17. For equal sides: use tick marks (short perpendicular strokes across the line midpoint)
-18. For parallel lines: use double arrow marks (>>) on each parallel line
-
-ARROWS AND ARROWHEADS:
-19. Arrowheads: draw as filled polygons — equilateral triangle tip, fill="#111111", size ≈ 8×6px
-20. For direction arrows on curves (e.g. field lines), place arrowhead at midpoint of the curve
+ARROWS:
+17. Draw arrowheads as filled triangles: <polygon points="x1,y1 x2,y2 x3,y3" fill="#111111"/>
 
 GEOMETRY ACCURACY:
-21. Plan your coordinates BEFORE drawing. Centre the figure in the viewBox with ≥30px margin on all sides
-22. Geometric relationships must be mathematically correct (parallel lines truly parallel, right angles truly 90°, circles truly circular)
-23. For trigonometry: use correct proportions based on given angle values
-24. For graphs: axes must start at origin (0,0), scales must be uniform
+18. All measurements must be geometrically consistent
+19. For circles: use <circle> elements. For arcs: use <path d="M... A..."/>
+20. Leave at least 25px padding on all four sides of the viewBox
 
-ALLOWED SVG ELEMENTS ONLY:
-25. Permitted: <svg> <g> <line> <circle> <ellipse> <rect> <polygon> <polyline> <path> <text> <tspan>
-26. FORBIDDEN: <image> <use> <defs> <symbol> <clipPath> <filter> <foreignObject> <marker> <pattern> <mask>
-27. FORBIDDEN: CSS style blocks, JavaScript, external references
-28. Inline style= is allowed ONLY for fill/stroke/font attributes that cannot be set as attributes
-
-QUALITY CHECK — before outputting, verify:
-- Does the diagram match the exact description given?
-- Are all specified components present and labelled?
-- Are labels readable and not overlapping anything?
-- Is the layout centred and well-proportioned?
-- Are arrowheads correct and pointing the right direction?
+ALLOWED ELEMENTS ONLY:
+21. You may ONLY use: <svg>, <g>, <line>, <circle>, <ellipse>, <rect>, <polygon>, <polyline>, <path>, <text>, <tspan>
+22. Do NOT use: <image>, <use>, <defs>, <symbol>, <clipPath>, <filter>, <foreignObject>, <marker>, <pattern>, <mask>, CSS styles, JavaScript
 
 Generate the SVG now:"""
 
     text = _call_gemini_for_svg(prompt)
-
     if not text:
         print(f"[Diagram] No response for: {description[:60]}")
         return None
 
-    # Strip markdown fences
+    # Extract the SVG block — strip markdown fences if they crept in
     text = re.sub(r'```(?:svg|xml|html)?', '', text).strip()
-    text = text.replace('```', '').strip()
-
-    # Extract SVG block
     m = re.search(r'(<svg[\s\S]*?</svg>)', text, re.IGNORECASE)
     if not m:
-        print(f"[Diagram] No <svg> block for: {description[:60]}")
+        print(f"[Diagram] No <svg> block in response for: {description[:60]}")
         return None
 
     svg = m.group(1).strip()
-
-    # Ensure background rect
-    if 'fill="white"' not in svg[:400] and "fill='white'" not in svg[:400]:
-        svg = svg.replace('>', '><rect x="0" y="0" width="560" height="360" fill="white"/>', 1)
-
-    # Reject if too short — means the model gave a trivial/empty diagram
-    if len(svg) < 300:
-        print(f"[Diagram] SVG too short ({len(svg)} chars), likely empty: {description[:60]}")
-        return None
-
+    # Ensure background rect is present
+    if '<rect x="0" y="0"' not in svg and 'fill="white"' not in svg[:300]:
+        svg = svg.replace(
+            '>', '><rect x="0" y="0" width="500" height="320" fill="white"/>', 1
+        )
     print(f"[Diagram] Generated OK ({len(svg)} chars): {description[:60]}")
     return svg
-
 
 
 
@@ -3685,16 +3149,16 @@ def generate():
                 unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
                 if unique_descs:
                     from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
-                    # Use up to 6 workers for faster parallel diagram generation
-                    max_w = max(1, min(6, len(unique_descs)))
+                    # Use up to 4 workers so diagrams generate in parallel but not all at once
+                    max_w = max(1, min(4, len(unique_descs)))
                     with ThreadPoolExecutor(max_workers=max_w) as ex:
                         futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
-                        # 150 seconds total wall-clock, 100 seconds per individual diagram
+                        # 90 seconds total wall-clock, 80 seconds per individual diagram
                         try:
-                            for future in as_completed(futures, timeout=150):
+                            for future in as_completed(futures, timeout=90):
                                 d = futures[future]
                                 try:
-                                    svg = future.result(timeout=100)
+                                    svg = future.result(timeout=80)
                                     if svg:
                                         diagrams[d] = svg
                                         print(f"[ExamCraft] Diagram OK: {d[:60]}")
