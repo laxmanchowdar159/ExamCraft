@@ -1109,15 +1109,17 @@ def _strip_ai_noise(text: str) -> str:
         elif re.match(r'^[-=]{3,}\s*$', s):
             start_idx = i + 1
     # Trim trailing closing remarks
+    # Trim trailing closing remarks — but only clear AI filler, never real content
+    # Walk backwards max 5 lines (not 10) to avoid eating real content
     end_idx = len(lines)
-    for i in range(len(lines) - 1, max(len(lines) - 10, 0) - 1, -1):
+    for i in range(len(lines) - 1, max(len(lines) - 5, 0) - 1, -1):
         s = lines[i].strip()
         if not s:
-            end_idx = i
-        elif _closing_pat.match(s) or re.match(r'^[-=]{3,}\s*$', s):
-            end_idx = i
+            continue  # skip blank lines, don't use them to shrink end_idx
+        elif _closing_pat.match(s):
+            end_idx = i  # only cut at actual closing phrases
         else:
-            break
+            break  # hit real content — stop trimming
     return '\n'.join(lines[start_idx:end_idx]).strip()
 
 
@@ -1662,7 +1664,7 @@ def _get_lc_chain(model_name: str, api_key: str = None):
             model=model_name,
             google_api_key=key,
             temperature=0.2,
-            max_output_tokens=8192 if is_gemma else 16384,
+            max_output_tokens=8192 if is_gemma else 65536,
             top_p=0.9  if is_gemma else 0.85,
             top_k=40,
             timeout=180,
@@ -1731,7 +1733,7 @@ def _try_one(model_name: str, api_key: str, prompt: str, all_errors: dict) -> tu
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature":     0.2,
-            "maxOutputTokens": 8192 if is_gemma else 16384,
+            "maxOutputTokens": 8192 if is_gemma else 65536,
             "topP":            0.9  if is_gemma else 0.85,
             "topK":            40,
         },
@@ -1741,10 +1743,17 @@ def _try_one(model_name: str, api_key: str, prompt: str, all_errors: dict) -> tu
         resp = _requests.post(url, json=payload, timeout=180)
         if resp.status_code == 200:
             data = resp.json()
-            text = (data.get("candidates", [{}])[0]
+            candidate = data.get("candidates", [{}])[0]
+            finish_reason = candidate.get("finishReason", "")
+            text = (candidate
                         .get("content", {})
                         .get("parts", [{}])[0]
                         .get("text", "")).strip()
+            if finish_reason == "MAX_TOKENS":
+                # Response was cut off — mark as truncated error, not success
+                all_errors[f"{model_name}({label}/rest)"] = f"TRUNCATED (MAX_TOKENS, got {len(text)} chars)"
+                print(f"[ExamCraft] TRUNCATED: {model_name}/{label} hit MAX_TOKENS after {len(text)} chars")
+                return None, False, False
             if text:
                 return text, False, False
             all_errors[f"{model_name}({label}/rest)"] = "empty"
@@ -2300,7 +2309,9 @@ def _prompt_board(subject, chap, board, cls, m, diff, notation, teacher):
         + f" You may include an alternate OR option for up to {min(2, s['cD_given'])} of these questions (optional, on a different sub-topic)."
     ) if s['has_D'] else ""
 
-    return f"""Create a complete model question paper for Class {cls} {subject}, {chap} chapter.
+    return f"""CRITICAL RULE — READ FIRST: Start your output DIRECTLY with "SECTION A". Do NOT write any title, header, instructions, preamble, or numbered general notes before the first section. No "General Instructions:", no "Time: 3 hours", no "Total Marks:", no "Note:", no "1. All questions are...", no introductory text of any kind. Start IMMEDIATELY with SECTION A.
+
+Create a complete model question paper for Class {cls} {subject}, {chap} chapter.
 Board: {board}    Total Marks: {m}    Time Allowed: {time}
 Difficulty: {diff}
 {teacher}
@@ -2337,7 +2348,7 @@ SECTION B:
    ⛔ NEVER write [DIAGRAM: Not applicable] or [DIAGRAM: None] — just omit the tag if no diagram needed.
    Include [DIAGRAM:] tags only where a visual is genuinely needed (geometric constructions, circuits, body systems, apparatus, graphs). Do NOT add diagrams to purely text/calculation questions.
 8. TABLES: Any question with data or comparisons — format as a pipe table (|col|col|...).
-9. ⚠ DO NOT write any general instructions block at the top of the paper.
+9. ⚠ START THE PAPER IMMEDIATELY with "SECTION A" — do NOT write any preamble, title, header, or instructions block before SECTION A. No lines like "1. The question paper consists of...", "Time allowed: 3 hours", "General Instructions:", "Note:", or similar. Those are already printed on the answer sheet. The very first line of your output must be the SECTION A header.
 10. DIAGRAMS IN ANSWER KEY: Repeat the same [DIAGRAM: ...] tag in the answer key solution for any question that has a diagram in the paper — the key must include a diagram to show what a correct answer looks like.
 
 ━━━ {notation.upper().split(chr(10))[0]} ━━━
@@ -3220,6 +3231,35 @@ def generate():
                 }), 502
 
         paper, key = split_key(generated_text)
+
+        # ── Truncation guard: if paper ends mid-sentence, retry once ────────
+        # A complete paper always ends with a recognisable section terminal or
+        # a full sentence. Mid-word / mid-LaTeX endings signal a cut-off response.
+        def _looks_truncated(text: str) -> bool:
+            if not text:
+                return True
+            last = text.rstrip().split("\n")[-1].strip()
+            # Ends inside a LaTeX expression (unclosed $)
+            if last.count("$") % 2 == 1:
+                return True
+            # Ends in the middle of a word (no sentence-ending punctuation)
+            if last and last[-1] not in ".,:;!?)]}—…\'"" and not last.endswith("Marks]"):
+                # Allow lines that are just a number or short label
+                if len(last) > 10:
+                    return True
+            return False
+
+        if _looks_truncated(paper) and not use_fallback:
+            print(f"[ExamCraft] Paper looks truncated — retrying with higher token limit")
+            # Retry once with explicit token-budget note in prompt
+            retry_prompt = prompt + "\n\n[IMPORTANT: The previous attempt was cut off. Continue from where it stopped and complete the FULL paper including all remaining questions and the complete ANSWER KEY. Do not restart from the beginning.]"
+            retry_text, retry_err = call_gemini(retry_prompt)
+            if retry_text and not _looks_truncated(split_key(retry_text)[0]):
+                generated_text = retry_text
+                paper, key = split_key(generated_text)
+                print(f"[ExamCraft] Retry succeeded: {len(paper)} chars paper")
+            else:
+                print(f"[ExamCraft] Retry also truncated or failed — using original")
 
         # ── Build PDFs inline — no second API call needed ────────────
         # ── Diagram generation — sequential with generous per-diagram timeout ──
