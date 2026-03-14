@@ -1023,6 +1023,22 @@ _FIG_JUNK = re.compile(
     r'|α\s*=\s*\d+°?\s*$'
     r'|[A-Z]M\s*is\s+altitude'
     r'|(?:Angle\s+[A-Z]\s*\n?){2,}'           # multiple "Angle X" lines
+    # ── AI hallucination patterns that leak into paper text ───────
+    r'|Note\s*:\s*(Draw|Sketch|Label|Students\s+(are|should|must|can))'
+    r'|\[Students\s+(are|should)\s+(expected|required|asked)'
+    r'|Draw\s+the\s+following\s+diagram'
+    r'|See\s+figure\s+(below|above|given|provided)'
+    r'|As\s+shown\s+(in\s+the\s+figure|above|below)'
+    r'|Refer\s+to\s+the\s+(diagram|figure)\s+(given|above|below|provided)'
+    r'|\(Diagram\s+(not\s+shown|provided|given|here)\)'
+    r'|Draw\s+a\s+(neat|labelled|clean)\s+diagram'
+    r'|Draw\s+and\s+label'
+    r'|Sketch\s+the\s+following'
+    r'|Label\s+the\s+following\s+(diagram|figure|parts)'
+    r'|Using\s+a\s+ruler\s+and\s+compass'
+    r'|With\s+the\s+help\s+of\s+a\s+(diagram|figure|graph|chart)'
+    r'|Students\s+must\s+(draw|sketch|label|include)'
+    r'|\([\s]*[Dd]raw\s+(here|in\s+the\s+space|neat\s+diagram|it)[\s]*\)'
     r')',
     re.IGNORECASE
 )
@@ -1313,18 +1329,29 @@ def create_exam_pdf(text, subject, chapter, board="",
         drawing = None
         if diagrams:
             if desc in diagrams and diagrams[desc]:
-                drawing = svg_to_best_image(diagrams[desc], width_pt=PW * 0.50)
+                drawing = svg_to_best_image(diagrams[desc], width_pt=PW * 0.55)
             if drawing is None:
-                desc_words = set(re.findall(r'\w+', desc.lower()))
+                # Stopwords excluded from overlap — only meaningful content words count
+                _STOP = {'a','an','the','with','and','or','of','in','on','at','to',
+                         'for','from','by','is','are','all','its','their','this',
+                         'that','showing','labelled','labeled','drawn','diagram',
+                         'figure','here','above','below','see','given','draw'}
+                desc_words = set(re.findall(r'\w+', desc.lower())) - _STOP
                 best_key, best_score = None, 0
                 for dk, dv in diagrams.items():
                     if not dv:
                         continue
-                    overlap = len(desc_words & set(re.findall(r'\w+', dk.lower())))
-                    if overlap > best_score:
-                        best_score, best_key = overlap, dk
-                if best_key and best_score >= 2:
-                    drawing = svg_to_best_image(diagrams[best_key], width_pt=PW * 0.50)
+                    dk_words = set(re.findall(r'\w+', dk.lower())) - _STOP
+                    overlap = len(desc_words & dk_words)
+                    # Score must be at least 3 meaningful-word overlap AND
+                    # at least 40% of the shorter description's words must match
+                    # to prevent wrong-diagram substitution
+                    min_words = min(len(desc_words), len(dk_words))
+                    if min_words > 0 and overlap >= 3 and overlap / min_words >= 0.55:
+                        if overlap > best_score:
+                            best_score, best_key = overlap, dk
+                if best_key:
+                    drawing = svg_to_best_image(diagrams[best_key], width_pt=PW * 0.55)
 
         elems.append(Paragraph(f'<i>Figure: {desc}</i>', sDiag))
         if drawing is not None:
@@ -1445,7 +1472,12 @@ def create_exam_pdf(text, subject, chapter, board="",
             if s.startswith('[DIAGRAM:') or s.lower().startswith('[draw'):
                 flush_opts()
                 desc = re.sub(r'^\[DIAGRAM:\s*', '', s, flags=re.I).rstrip(']').strip()
-                render_diagram(desc)
+                # Strip any nested [DIAGRAM:...] tags inside the description
+                desc = re.sub(r'\[DIAGRAM:[^\]]*\]', '', desc, flags=re.I).strip()
+                # Strip prompt-injection attempts: truncate if too long
+                desc = re.sub(r'[\x00-\x1f]', ' ', desc)[:300].strip()
+                if desc:
+                    render_diagram(desc)
                 continue
 
             # ── Figure: label lines ──────────────────────────────────
@@ -1794,6 +1826,23 @@ def call_gemini(prompt: str):
 # FALLBACK PAPER (used when Gemini is unavailable)
 # ═══════════════════════════════════════════════════════════════════════
 def build_local_paper(cls, subject, chapter, marks, difficulty):
+    """Generate a minimal subject-appropriate fallback paper when AI is unavailable."""
+    subj_l = (subject or "").lower()
+    is_math   = any(k in subj_l for k in ["math","algebra","geometry","trigonometry","statistics"])
+    is_sci    = any(k in subj_l for k in ["science","physics","chemistry","biology"])
+    is_social = any(k in subj_l for k in ["social","history","geography","civics","economics"])
+
+    if is_math:
+        return _fallback_math(cls, subject, chapter, marks)
+    elif is_social:
+        return _fallback_social(cls, subject, chapter, marks)
+    elif is_sci:
+        return _fallback_science(cls, subject, chapter, marks)
+    else:
+        return _fallback_generic(cls, subject, chapter, marks)
+
+
+def _fallback_science(cls, subject, chapter, marks):
     return f"""{subject or "Science"} — Model Question Paper
 Subject: {subject or "Science"}   Class: {cls}
 Total Marks: {marks}   Time Allowed: 3 Hours 15 Minutes
@@ -1943,6 +1992,7 @@ def _notation_rules(subject):
     is_bio     = any(k in subj_l for k in ["biology", "biological", "life science", "botany", "zoology"])
     is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"]) or is_physics or is_chem or is_bio
     is_social  = any(k in subj_l for k in ["social", "history", "geography", "civics", "economics", "political", "environment"])
+    is_language = any(k in subj_l for k in ["english", "hindi", "telugu", "kannada", "tamil", "urdu", "sanskrit", "marathi", "language", "literature", "grammar"])
     is_stem    = is_math or is_science
 
     math_block = ""
@@ -1961,20 +2011,27 @@ def _notation_rules(subject):
             "\n"
         )
 
+    # Language subjects: no diagrams at all
+    if is_language:
+        return math_block + (
+            "DIAGRAMS — Do NOT include any [DIAGRAM:] tags for this subject.\n"
+            "This is a language/literature subject — diagrams are not appropriate and must not be added.\n"
+        )
+
     if is_physics or (is_science and not is_bio and not is_chem):
         diag_block = (
-            "DIAGRAMS — MANDATORY for Physics — include in every relevant question:\n"
+            "DIAGRAMS — include for Physics only where a visual genuinely aids understanding:\n"
             "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery, ammeter, voltmeter]\n"
             "• [DIAGRAM: ray diagram showing refraction through a convex lens with principal axis, F and 2F, object and image]\n"
             "• [DIAGRAM: velocity-time graph showing uniform acceleration from rest, axes labelled]\n"
             "• [DIAGRAM: free body diagram with weight, normal force, friction, applied force arrows labelled]\n"
             "• [DIAGRAM: bar magnet with magnetic field lines from N to S pole, arrowheads]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+            "Include [DIAGRAM:] in ≥25% of Section B, C, D questions where a visual genuinely adds educational value.\n"
         )
     elif is_bio:
         diag_block = (
-            "DIAGRAMS — MANDATORY for Biology — include in every relevant question:\n"
+            "DIAGRAMS — include for Biology only where a visual genuinely aids understanding:\n"
             "• [DIAGRAM: labelled plant cell showing cell wall, cell membrane, nucleus, vacuole, chloroplast, mitochondria]\n"
             "• [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, ribosomes, small vacuoles]\n"
             "• [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver, pancreas labelled]\n"
@@ -1982,7 +2039,7 @@ def _notation_rules(subject):
             "• [DIAGRAM: longitudinal section of a flower showing sepals, petals, stamen, carpel, ovules labelled]\n"
             "• [DIAGRAM: human heart cross-section with 4 chambers, valves, aorta, pulmonary vessels labelled]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+            "Include [DIAGRAM:] in ≥25% of Section B, C, D questions where a visual genuinely adds educational value.\n"
         )
     elif is_chem:
         diag_block = (
@@ -1991,7 +2048,7 @@ def _notation_rules(subject):
             "• [DIAGRAM: laboratory apparatus — conical flask, delivery tube, gas collection over water trough, all labelled]\n"
             "• [DIAGRAM: structural formula of methane CH4 showing C at centre with 4 H atoms bonded]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥30% of Section B, C, D questions.\n"
+            "Include [DIAGRAM:] in ≥20% of Section B, C, D questions where a visual genuinely helps.\n"
         )
     elif is_science:
         diag_block = (
@@ -2001,7 +2058,7 @@ def _notation_rules(subject):
             "• [DIAGRAM: ray diagram showing refraction through a convex lens, F and 2F points]\n"
             "• [DIAGRAM: human digestive system with labels]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥35% of Section B, C, D questions.\n"
+            "Include [DIAGRAM:] in ≥20% of Section B, C, D questions where a visual genuinely adds educational value.\n"
         )
     elif is_math:
         diag_block = (
@@ -2010,7 +2067,7 @@ def _notation_rules(subject):
             "• [DIAGRAM: number line showing solution set of inequality -3 < x ≤ 5]\n"
             "• [DIAGRAM: coordinate axes with parabola y=x²-4x+3, showing vertex and x-intercepts]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥30% of geometry/coordinate questions.\n"
+            "Include [DIAGRAM:] in ≥25% of geometry/coordinate/construction questions where a visual is essential.\n"
         )
     elif is_social:
         diag_block = (
@@ -2019,7 +2076,7 @@ def _notation_rules(subject):
             "• [DIAGRAM: bar chart comparing GDP of 5 countries with labelled axes]\n"
             "• [DIAGRAM: flowchart showing the legislative process in Parliament]\n"
             "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥20% of written-answer questions where a visual helps.\n"
+            "Include [DIAGRAM:] in ≥10% of written-answer questions only where a map or chart genuinely helps.\n"
         )
     else:
         diag_block = (
@@ -2231,14 +2288,16 @@ def _prompt_board(subject, chap, board, cls, m, diff, notation, teacher):
         f"(exactly {s['nA_match']} data rows — no extra rows, no separator-only rows)"
     )
     secB_note  = f"Write EXACTLY {s['nB']} questions worth 2 marks each. All are compulsory."
+    secc_scored = s['cC_att'] * 4  # actual marks counted = attempted × 4
     secC_note  = (
         f"Write EXACTLY {s['cC_given']} questions worth 4 marks each."
-        + (f" Students will attempt any {s['cC_att']}." if s['cC_given'] > s['nC'] else " All are compulsory.")
+        + (f" Students will attempt any {s['cC_att']} (scoring {secc_scored} marks total)." if s['cC_given'] > s['nC'] else " All are compulsory.")
     ) if s['nC'] > 0 else ""
+    secd_scored = s['cD_att'] * s['dEach']
     secD_note  = (
         f"Write EXACTLY {s['cD_given']} questions worth {s['dEach']} marks each."
-        + (f" Students will attempt any {s['cD_att']}." if s['cD_given'] > s['nD'] else " All are compulsory.")
-        + " Each Long Answer question MUST have an alternate OR question on a different sub-topic."
+        + (f" Students will attempt any {s['cD_att']} (scoring {secd_scored} marks total)." if s['cD_given'] > s['nD'] else " All are compulsory.")
+        + f" You may include an alternate OR option for up to {min(2, s['cD_given'])} of these questions (optional, on a different sub-topic)."
     ) if s['has_D'] else ""
 
     return f"""Create a complete model question paper for Class {cls} {subject}, {chap} chapter.
@@ -2264,27 +2323,22 @@ SECTION B:
 {"SECTION D:" + chr(10) + secD_note if secD_note else ""}
 
 ━━━ CONTENT & QUALITY RULES ━━━
-1. Every question MUST be strictly about "{chap}" — no questions from other chapters.
+1. {("Cover the COMPLETE " + board + " Class " + cls + " " + subject + " syllabus — all chapters and topics included." if chap == "Full Syllabus" else 'Every question MUST be strictly about the chapter "' + chap + '" — no questions from other chapters.')}
 2. Question counts are EXACT — do NOT add or remove any questions.
 3. Include one genuinely challenging question in each section.
-4. End every question with its mark allocation in square brackets: [1 Mark], [2 Marks], [4 Marks].
+4. End each question with its mark allocation in square brackets — for Section B, C, D only: [2 Marks], [4 Marks], [5 Marks]. Do NOT add [1 Mark] labels to individual MCQ, fill-in-blank, or match items — those sections already have the mark stated in the section heading.
 5. Follow {board} syllabus strictly.
 6. Output ONLY the questions and section headings. No hints in the question paper itself.
-7. ⚠ DIAGRAMS — MANDATORY: For ANY question involving a diagram, figure, structure, body system,
-   circuit, graph, map, cell, organism, apparatus, geometric shape, or physical setup — place a
+7. ⚠ DIAGRAMS — use when genuinely needed: For questions involving geometric shapes, constructions,
+   circuits, biological structures, scientific apparatus, graphs, or maps — place a
    [DIAGRAM: detailed description] tag on its own line immediately after the question stem.
-   Examples:
-     • Cell biology  → [DIAGRAM: labelled plant cell showing cell wall, nucleus, chloroplast, vacuole, mitochondria]
-     • Animal cell   → [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, small vacuoles]
-     • Human body    → [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver]
-     • Triangle      → [DIAGRAM: triangle ABC with altitude from A to BC, all sides and angles labelled]
-     • Circuit       → [DIAGRAM: circuit with 3Ω and 6Ω resistors in parallel, 12V battery, ammeter A, voltmeter V]
-     • Ray diagram   → [DIAGRAM: convex lens showing principal axis, F and 2F, incident rays, image formation]
-     • Map question  → [DIAGRAM: outline map of India with major rivers and state boundaries labelled]
+   Do NOT add diagrams to MCQs, fill-in-blank, match-the-following, or purely text/calculation questions.
+   The DIAGRAMS section below contains subject-specific examples. Use only those.
    ⛔ NEVER write [DIAGRAM: Not applicable] or [DIAGRAM: None] — just omit the tag if no diagram needed.
-   Include [DIAGRAM:] tags in at least 50% of Section B, C, D questions.
+   Include [DIAGRAM:] tags only where a visual is genuinely needed (geometric constructions, circuits, body systems, apparatus, graphs). Do NOT add diagrams to purely text/calculation questions.
 8. TABLES: Any question with data or comparisons — format as a pipe table (|col|col|...).
 9. ⚠ DO NOT write any general instructions block at the top of the paper.
+10. DIAGRAMS IN ANSWER KEY: Repeat the same [DIAGRAM: ...] tag in the answer key solution for any question that has a diagram in the paper — the key must include a diagram to show what a correct answer looks like.
 
 ━━━ {notation.upper().split(chr(10))[0]} ━━━
 {notation}
@@ -2294,9 +2348,10 @@ After ALL questions are written, print this EXACT line alone on its own line:
 ANSWER KEY
 
 Then provide:
-• Section A MCQs : Q1.(A)  Q2.(C)  … (one per question)
-• Section A Fill : numbered answers
-• Section A Match: matching pairs as a pipe table
+• Section A Part I (MCQs)  : 1.(A)  2.(C)  3.(B)  … list all the MCQ count answers
+• Section A Part II (Fill) : 1. answer  2. answer  … list all the fill count answers
+• Section A Part III (Match): a pipe table showing each Group A → Group B match
+
 • Sections B / C / D: full worked solutions for EVERY question.
   — Show every calculation step on a new line.
   — Diagram questions: repeat [DIAGRAM: …] with full description.
@@ -2305,7 +2360,7 @@ Then provide:
 Start immediately with the paper — no preamble, no "Sure!", no commentary.
 Use this EXACT layout:
 
-SECTION A  ({s['totA']} x 1 = {s['totA']} Marks)
+SECTION A  ({s['nA_mcq']} + {s['nA_fill']} + {s['nA_match']} = {s['totA']} Marks)
 
 Part I — Multiple Choice Questions  [1 Mark each]
 (Choose the correct answer from (A), (B), (C), (D).)
@@ -2319,9 +2374,9 @@ Part III — Match the Following  [1 Mark each]
 SECTION B  ({s['nB']} x 2 = {s['totB']} Marks)
 (Answer all questions. Each carries 2 marks.)
 
-{"SECTION C  (" + str(s['cC_given']) + " x 4 = " + str(s['cC_given']*4) + " Marks)" + chr(10) + "(" + ("Attempt any " + str(s['cC_att']) + " questions." if s['cC_given'] > s['nC'] else "Answer all questions.") + " Each carries 4 marks.)" if s['nC'] > 0 else ""}
+{"SECTION C  (" + str(s['cC_att']) + " x 4 = " + str(s['cC_att']*4) + " Marks)" + chr(10) + "(" + ("Attempt any " + str(s['cC_att']) + " questions from " + str(s['cC_given']) + "." if s['cC_given'] > s['nC'] else "Answer all questions.") + " Each carries 4 marks.)" if s['nC'] > 0 else ""}
 
-{"SECTION D  (" + str(s['cD_given']) + " x " + str(s['dEach']) + " = " + str(s['cD_given']*s['dEach']) + " Marks)" + chr(10) + "(" + ("Attempt any " + str(s['cD_att']) + " questions." if s['cD_given'] > s['nD'] else "Answer all questions.") + " Each carries " + str(s['dEach']) + " marks.)" if s['has_D'] else ""}
+{"SECTION D  (" + str(s['cD_att']) + " x " + str(s['dEach']) + " = " + str(s['cD_att']*s['dEach']) + " Marks)" + chr(10) + "(" + ("Attempt any " + str(s['cD_att']) + " questions from " + str(s['cD_given']) + "." if s['cD_given'] > s['nD'] else "Answer all questions.") + " Each carries " + str(s['dEach']) + " marks.)" if s['has_D'] else ""}
 
 """
 
@@ -2423,10 +2478,12 @@ _DIAG_CONTEXT = {
 
 def _get_diag_context(desc: str) -> str:
     dl = desc.lower()
-    # Score by how many context keywords appear in description
-    best_score, best_ctx = 0, "educational diagram for a school exam paper with all parts clearly labelled"
+    best_score, best_ctx = 0, "educational diagram for a Class 10 Indian school exam paper with all important parts clearly labelled and described"
     for key, ctx in _DIAG_CONTEXT.items():
-        if key in dl:
+        # Use whole-word matching to avoid 'cell' matching 'cellular',
+        # 'map' matching 'roadmap', 'ray' matching 'array', etc.
+        pattern = r'\b' + re.escape(key) + r'\b'
+        if re.search(pattern, dl):
             score = len(key)  # longer key = more specific match
             if score > best_score:
                 best_score, best_ctx = score, ctx
@@ -2456,8 +2513,8 @@ def _call_gemini_for_svg(prompt: str) -> str | None:
     payload_base = {
         "generationConfig": {
             "temperature":     0.15,
-            "maxOutputTokens": 4096,
-            "topP":            0.9,
+            "maxOutputTokens": 8192,
+            "topP":            0.92,
             "topK":            40,
         },
     }
@@ -2503,6 +2560,15 @@ def generate_diagram_svg(description: str) -> str | None:
     Returns the SVG string or None on failure.
     Uses a dedicated fast REST call (not the full call_gemini chain).
     """
+    # ── Sanitise description to prevent prompt injection ─────────────
+    # Strip any nested [DIAGRAM:...] tags, limit length, remove control chars
+    description = re.sub(r'\[DIAGRAM:[^\]]*\]', '', description, flags=re.IGNORECASE)
+    description = re.sub(r'[\x00-\x1f\x7f]', ' ', description)  # strip control chars
+    description = re.sub(r'\s+', ' ', description).strip()
+    description = description[:300]  # hard cap: no description needs more than 300 chars
+    if not description:
+        return None
+
     ctx = _get_diag_context(description)
 
     prompt = f"""You are a professional technical illustrator producing diagrams for a Class 10 Indian school exam paper.
@@ -2515,9 +2581,9 @@ OUTPUT RULES — follow every rule or the diagram is rejected
 ═══════════════════════════════════════════════════
 1. Output ONLY the raw SVG code. No markdown code fences (``` or ```svg), no explanation, no comments outside SVG tags.
 2. SVG must start with exactly:
-   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 320" width="500" height="320">
+   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="800" height="520">
 3. SVG must end with: </svg>
-4. Background: add <rect x="0" y="0" width="500" height="320" fill="white"/> as the very first element.
+4. Background: add <rect x="0" y="0" width="800" height="520" fill="white"/> as the very first element.
 
 VISUAL STYLE:
 5. Main structural lines: stroke="#111111" stroke-width="2"
@@ -2528,8 +2594,8 @@ VISUAL STYLE:
 10. Shaded regions (if needed): fill="#e8e8e8"
 
 LABELLING — critical for educational quality:
-11. All labels: font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#111111"
-12. Smaller secondary labels (angle names, dimension ticks): font-size="11"
+11. All labels: font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#111111"
+12. Smaller secondary labels (angle names, dimension ticks): font-size="13"
 13. Place every label clearly AWAY from lines — never overlapping a line or another label
 14. Use text-anchor="middle" for centred labels, "start" for left-aligned, "end" for right-aligned
 15. Every important point, line, angle, and measurement MUST be labelled — this is an exam diagram
@@ -2562,10 +2628,30 @@ Generate the SVG now:"""
         return None
 
     svg = m.group(1).strip()
+
+    # ── Sanity checks: reject clearly wrong SVGs ─────────────────────
+    # Must contain at least one visual element (not just a blank rect)
+    has_visual = any(tag in svg for tag in ('<line', '<circle', '<rect', '<polygon',
+                                             '<polyline', '<path', '<ellipse'))
+    if not has_visual:
+        print(f"[Diagram] SVG has no visual elements, rejecting: {description[:60]}")
+        return None
+
+    # Must contain at least one text label (diagrams without labels are useless for exams)
+    has_label = '<text' in svg
+    if not has_label:
+        print(f"[Diagram] SVG has no text labels, rejecting: {description[:60]}")
+        return None
+
+    # Reject suspiciously tiny SVGs (likely error messages or empty diagrams)
+    if len(svg) < 400:
+        print(f"[Diagram] SVG too small ({len(svg)} chars), rejecting: {description[:60]}")
+        return None
+
     # Ensure background rect is present
     if '<rect x="0" y="0"' not in svg and 'fill="white"' not in svg[:300]:
         svg = svg.replace(
-            '>', '><rect x="0" y="0" width="500" height="320" fill="white"/>', 1
+            '>', '><rect x="0" y="0" width="800" height="520" fill="white"/>', 1
         )
     print(f"[Diagram] Generated OK ({len(svg)} chars): {description[:60]}")
     return svg
