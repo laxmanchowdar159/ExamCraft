@@ -1935,95 +1935,138 @@ def _difficulty_profile(difficulty):
 
 
 def _notation_rules(subject):
-    """Returns notation and formatting rules relevant to the subject."""
-    subj_l = (subject or "").lower()
-    is_math    = any(k in subj_l for k in ["math", "algebra", "geometry", "trigonometry", "statistics", "arithmetic"])
-    is_physics = any(k in subj_l for k in ["physics", "physical"])
-    is_chem    = any(k in subj_l for k in ["chemistry", "chemical"])
-    is_bio     = any(k in subj_l for k in ["biology", "biological", "life science", "botany", "zoology"])
-    is_science = any(k in subj_l for k in ["science", "physics", "chemistry", "biology"]) or is_physics or is_chem or is_bio
-    is_social  = any(k in subj_l for k in ["social", "history", "geography", "civics", "economics", "political", "environment"])
+    """Returns notation and formatting rules for all subjects.
+    Diagrams are MANDATORY for every subject wherever a visual aids understanding.
+    """
+    subj_l     = (subject or "").lower()
+    is_math    = any(k in subj_l for k in ["math","algebra","geometry","trigonometry","statistics","arithmetic"])
+    is_physics = any(k in subj_l for k in ["physics","physical"])
+    is_chem    = any(k in subj_l for k in ["chemistry","chemical"])
+    is_bio     = any(k in subj_l for k in ["biology","biological","life science","botany","zoology"])
+    is_science = any(k in subj_l for k in ["science","physics","chemistry","biology"]) or is_physics or is_chem or is_bio
+    is_social  = any(k in subj_l for k in ["social","history","geography","civics","economics","political","environment"])
+    is_cs      = any(k in subj_l for k in ["computer","computing","information technology","programming"])
+    is_eng     = any(k in subj_l for k in ["english","language","literature"])
     is_stem    = is_math or is_science
 
     math_block = ""
     if is_stem:
         math_block = (
             "MATH & SCIENCE NOTATION — strictly required:\n"
-            "• ALL expressions inside $…$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
+            "• ALL expressions inside $...$:  $x^{2}$  $\\frac{a}{b}$  $\\sqrt{b^2-4ac}$\n"
             "• Chemical formulas: $H_2O$  $CO_2$  $H_2SO_4$  $Ca(OH)_2$\n"
             "• Powers / subscripts: $a^{3}$  $v_0$  $10^{-3}$  never write as plain a3 or v0\n"
             "• Greek letters: $\\theta$  $\\alpha$  $\\beta$  $\\pi$  $\\lambda$  $\\mu$  $\\Omega$\n"
             "• Trig: $\\sin\\theta$  $\\cos 60^{\\circ}$  $\\tan\\alpha$  $\\sin^2\\theta + \\cos^2\\theta = 1$\n"
             "• Fractions: $\\frac{mv^2}{r}$  $\\frac{\\Delta v}{\\Delta t}$  never use /\n"
             "• Units OUTSIDE $: write '5 cm', '$F = ma$ where F is in newtons'\n"
-            "• Fill blanks: __________ (ten underscores, ALWAYS outside $…$, never inside math mode)\n"
+            "• Fill blanks: __________ (ten underscores, ALWAYS outside $...$, never inside math mode)\n"
             "• Equations on own line: $PV = nRT$\n"
             "\n"
         )
 
-    if is_physics or (is_science and not is_bio and not is_chem):
+    if is_physics:
         diag_block = (
-            "DIAGRAMS — MANDATORY for Physics — include in every relevant question:\n"
-            "• [DIAGRAM: circuit diagram with 3Ω and 6Ω resistors in parallel connected to 12V battery, ammeter, voltmeter]\n"
-            "• [DIAGRAM: ray diagram showing refraction through a convex lens with principal axis, F and 2F, object and image]\n"
-            "• [DIAGRAM: velocity-time graph showing uniform acceleration from rest, axes labelled]\n"
-            "• [DIAGRAM: free body diagram with weight, normal force, friction, applied force arrows labelled]\n"
-            "• [DIAGRAM: bar magnet with magnetic field lines from N to S pole, arrowheads]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+            "DIAGRAMS — MANDATORY IN EVERY PHYSICS QUESTION THAT HAS A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: circuit diagram with 3 ohm and 6 ohm resistors in parallel connected to 12V battery, ammeter A and voltmeter V labelled]\n"
+            "• [DIAGRAM: ray diagram showing refraction through a convex lens, principal axis, F and 2F marked, object arrow, image arrow, three standard rays]\n"
+            "• [DIAGRAM: velocity-time graph for uniform acceleration from rest: x-axis time in seconds, y-axis velocity in m/s, straight line from origin, area shaded for distance]\n"
+            "• [DIAGRAM: free body diagram of block on inclined plane: weight W downward, normal N perpendicular to surface, friction f up the slope, all labelled]\n"
+            "• [DIAGRAM: bar magnet with magnetic field lines looping from N pole to S pole, arrowheads on field lines, poles labelled N and S]\n"
+            "• [DIAGRAM: human ear cross-section: pinna, ear canal, eardrum, ossicles, cochlea, auditory nerve labelled with arrows]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in ALL Section B, C, D questions where any visual component exists.\n"
+            "Minimum: 80% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
         )
     elif is_bio:
         diag_block = (
-            "DIAGRAMS — MANDATORY for Biology — include in every relevant question:\n"
-            "• [DIAGRAM: labelled plant cell showing cell wall, cell membrane, nucleus, vacuole, chloroplast, mitochondria]\n"
-            "• [DIAGRAM: labelled animal cell showing cell membrane, nucleus, mitochondria, ribosomes, small vacuoles]\n"
-            "• [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, liver, pancreas labelled]\n"
-            "• [DIAGRAM: neuron showing dendrites, cell body, axon, myelin sheath, synaptic knob, impulse direction]\n"
-            "• [DIAGRAM: longitudinal section of a flower showing sepals, petals, stamen, carpel, ovules labelled]\n"
-            "• [DIAGRAM: human heart cross-section with 4 chambers, valves, aorta, pulmonary vessels labelled]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥40% of Section B, C, D questions.\n"
+            "DIAGRAMS — MANDATORY IN EVERY BIOLOGY QUESTION THAT HAS A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: labelled plant cell: cell wall, cell membrane, nucleus with nucleolus, large central vacuole, chloroplasts, mitochondria, all labelled with arrows]\n"
+            "• [DIAGRAM: labelled animal cell: cell membrane, cytoplasm, nucleus, mitochondria, ribosomes, centrioles, small vacuoles, all labelled]\n"
+            "• [DIAGRAM: human digestive system: mouth, oesophagus, stomach, small intestine, large intestine, rectum, liver, pancreas, all labelled with arrows]\n"
+            "• [DIAGRAM: neuron: dendrites, cell body with nucleus, axon, myelin sheath, nodes of Ranvier, synaptic knob, direction of impulse arrow]\n"
+            "• [DIAGRAM: longitudinal section of a flower: sepal, petal, stamen with anther and filament, carpel with stigma, style, ovary, ovules, receptacle]\n"
+            "• [DIAGRAM: human heart cross-section: right atrium, left atrium, right ventricle, left ventricle, aorta, pulmonary artery, vena cava, valves labelled]\n"
+            "• [DIAGRAM: photosynthesis process: sunlight arrow, CO2 entering leaf, H2O entering roots, O2 exiting leaf, glucose produced, chloroplast highlighted]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in ALL Section B, C, D questions where any visual component exists.\n"
+            "Minimum: 80% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
         )
     elif is_chem:
         diag_block = (
-            "DIAGRAMS — include wherever they add clarity in Chemistry:\n"
-            "• [DIAGRAM: Bohr model of carbon atom showing nucleus with 6 protons and 6 neutrons, 2 electrons in shell 1, 4 in shell 2]\n"
-            "• [DIAGRAM: laboratory apparatus — conical flask, delivery tube, gas collection over water trough, all labelled]\n"
-            "• [DIAGRAM: structural formula of methane CH4 showing C at centre with 4 H atoms bonded]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥30% of Section B, C, D questions.\n"
+            "DIAGRAMS — MANDATORY IN EVERY CHEMISTRY QUESTION THAT HAS A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: Bohr model of carbon atom: nucleus with 6 protons and 6 neutrons labelled, 2 electrons in shell 1, 4 electrons in shell 2, shells as concentric circles]\n"
+            "• [DIAGRAM: laboratory apparatus for gas collection over water: conical flask with reactants, delivery tube, trough of water, inverted test-tube, all labelled]\n"
+            "• [DIAGRAM: structural formula of ethanol CH3CH2OH showing all covalent bonds, carbon atoms, hydrogen atoms, oxygen atom with bond angles]\n"
+            "• [DIAGRAM: electrolysis of water: U-tube, platinum electrodes, battery, H2 gas at cathode, O2 gas at anode, bubble ratio 2:1, all labelled]\n"
+            "• [DIAGRAM: pH scale from 0 to 14, acids on left in red, neutral at centre in green, bases on right in blue, indicator colours at each pH, examples labelled]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in ALL Section B, C, D questions where any visual component exists.\n"
+            "Minimum: 75% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
         )
     elif is_science:
         diag_block = (
-            "DIAGRAMS — include wherever they add clarity (Physics/Chemistry/Biology):\n"
-            "• [DIAGRAM: labelled plant cell showing cell wall, membrane, nucleus, vacuole, chloroplast]\n"
-            "• [DIAGRAM: circuit diagram with resistors, battery, ammeter, voltmeter]\n"
-            "• [DIAGRAM: ray diagram showing refraction through a convex lens, F and 2F points]\n"
-            "• [DIAGRAM: human digestive system with labels]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥35% of Section B, C, D questions.\n"
+            "DIAGRAMS — MANDATORY IN EVERY SCIENCE QUESTION THAT HAS A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: labelled plant cell: cell wall, cell membrane, nucleus, vacuole, chloroplasts, mitochondria with arrows]\n"
+            "• [DIAGRAM: simple electric circuit: battery, switch, bulb, ammeter in series; voltmeter in parallel; all components labelled]\n"
+            "• [DIAGRAM: convex lens ray diagram: object arrow left of lens, principal axis, focal points F both sides, image arrow, three standard rays drawn]\n"
+            "• [DIAGRAM: human digestive system with all major organs labelled and arrows showing path of food]\n"
+            "• [DIAGRAM: water cycle: evaporation from ocean, condensation forming clouds, precipitation as rain/snow, transpiration from plants, runoff, all arrows labelled]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in ALL Section B, C, D questions where any visual component exists.\n"
+            "Minimum: 70% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
         )
     elif is_math:
         diag_block = (
-            "DIAGRAMS — include wherever geometric/graphical clarity is needed:\n"
-            "• [DIAGRAM: triangle ABC with angle A=60°, B=80°, side BC=7cm, altitude from A to BC]\n"
-            "• [DIAGRAM: number line showing solution set of inequality -3 < x ≤ 5]\n"
-            "• [DIAGRAM: coordinate axes with parabola y=x²-4x+3, showing vertex and x-intercepts]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥30% of geometry/coordinate questions.\n"
+            "DIAGRAMS — MANDATORY IN EVERY MATHS QUESTION WITH GEOMETRIC OR GRAPHICAL CONTENT:\n"
+            "• [DIAGRAM: triangle ABC with angle A=60 degrees, angle B=80 degrees, side BC=7cm, altitude from A meeting BC at D, all measurements labelled]\n"
+            "• [DIAGRAM: coordinate axes with parabola y=x squared minus 4x plus 3, vertex marked at (2,-1), x-intercepts at (1,0) and (3,0), y-intercept at (0,3)]\n"
+            "• [DIAGRAM: number line from -5 to 5, solution set -3 less than x at most 5 shown with open circle at -3 and filled circle at 5, region shaded]\n"
+            "• [DIAGRAM: circle with centre O, radius r, chord AB, tangent at point P, central angle AOB, inscribed angle APB, all labelled]\n"
+            "• [DIAGRAM: right-angled triangle: legs a and b, hypotenuse c, angle theta opposite side a, right angle box at corner, all sides and angles labelled]\n"
+            "• [DIAGRAM: bar graph for statistics question with labelled x-axis categories, y-axis with scale, title, and data values on each bar]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in ALL geometry, coordinate geometry, trigonometry, and statistics questions.\n"
+            "Minimum: 70% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
         )
     elif is_social:
         diag_block = (
-            "DIAGRAMS — include maps and charts wherever relevant:\n"
-            "• [DIAGRAM: outline map of India showing major rivers, mountain ranges, state boundaries]\n"
-            "• [DIAGRAM: bar chart comparing GDP of 5 countries with labelled axes]\n"
-            "• [DIAGRAM: flowchart showing the legislative process in Parliament]\n"
-            "Use format [DIAGRAM: …] on its own line after the question stem.\n"
-            "Include [DIAGRAM:] in ≥20% of written-answer questions where a visual helps.\n"
+            "DIAGRAMS — MANDATORY IN EVERY SOCIAL SCIENCE QUESTION WITH A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: outline map of India showing major rivers (Ganga, Yamuna, Godavari, Krishna, Cauvery) and mountain ranges (Himalayas, Western Ghats, Eastern Ghats) labelled]\n"
+            "• [DIAGRAM: bar chart comparing GDP per capita of India, China, USA, UK, Japan with labelled axes, units in USD, and value labels on each bar]\n"
+            "• [DIAGRAM: flowchart of Indian Parliament bill process: bill introduced in Lok Sabha, passed to Rajya Sabha, Presidential assent, becomes law, arrows connecting each step]\n"
+            "• [DIAGRAM: timeline of Indian independence movement: 1857 Revolt, 1885 INC founded, 1919 Rowlatt Act, 1930 Salt March, 1942 Quit India, 1947 Independence]\n"
+            "• [DIAGRAM: food chain with arrows: grass to grasshopper to frog to snake to hawk, energy flow arrows, trophic levels labelled 1 through 5]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in all geography, economics, political process, and historical event questions.\n"
+            "Minimum: 50% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
+        )
+    elif is_cs:
+        diag_block = (
+            "DIAGRAMS — MANDATORY IN EVERY COMPUTER SCIENCE QUESTION WITH A VISUAL COMPONENT:\n"
+            "• [DIAGRAM: flowchart for algorithm: start/end ovals, process rectangles, decision diamonds with yes/no branches, input/output parallelograms, arrows showing flow]\n"
+            "• [DIAGRAM: binary search tree with nodes showing integer values, left child smaller, right child larger, root at top, leaf nodes at bottom]\n"
+            "• [DIAGRAM: network topology: 4 computers as rectangles connected to central switch/hub, IP addresses labelled on each node, cable lines shown]\n"
+            "• [DIAGRAM: memory hierarchy pyramid: registers at top (smallest/fastest), L1 cache, L2 cache, RAM, hard disk at bottom (largest/slowest), labels on sides]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "MANDATORY: Include [DIAGRAM:] in all algorithm, data structure, networking, and hardware architecture questions.\n"
+            "Minimum: 60% of Section B/C/D questions must have a [DIAGRAM:] tag.\n"
+        )
+    elif is_eng:
+        diag_block = (
+            "DIAGRAMS — include where a visual meaningfully aids comprehension:\n"
+            "• [DIAGRAM: story plot arc curve: x-axis shows story progression, y-axis shows tension/conflict, exposition at start, rising action climbing, climax at peak, falling action descending, resolution at end]\n"
+            "• [DIAGRAM: mind map for poem/story themes: central topic circle in middle, radiating branches to subtopics, each branch labelled with theme or character name]\n"
+            "Use format [DIAGRAM: ...] on its own line after the question stem.\n"
+            "Include [DIAGRAM:] in questions about story structure, character relationships, or comprehension passages where a visual helps.\n"
+            "Minimum: 20% of written-answer questions may benefit from a [DIAGRAM:] tag.\n"
         )
     else:
         diag_block = (
-            "DIAGRAMS — include [DIAGRAM: description] on its own line wherever a visual aids understanding.\n"
+            "DIAGRAMS — MANDATORY wherever a visual would help a student understand:\n"
+            "• Use [DIAGRAM: detailed description] on its own line after any question stem that involves a process, structure, system, relationship, cycle, or spatial concept.\n"
+            "• Every [DIAGRAM:] description must be specific enough for an artist to draw it: include all labels, measurements, direction arrows, and component names.\n"
+            "Minimum: 40% of Section B/C/D questions should include a [DIAGRAM:] tag.\n"
         )
 
     return math_block + diag_block
@@ -3149,16 +3192,16 @@ def generate():
                 unique_descs = list(dict.fromkeys(d.strip() for d in diag_descs_raw if d.strip()))
                 if unique_descs:
                     from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
-                    # Use up to 4 workers so diagrams generate in parallel but not all at once
-                    max_w = max(1, min(4, len(unique_descs)))
+                    # Use up to 6 workers for faster parallel diagram generation
+                    max_w = max(1, min(6, len(unique_descs)))
                     with ThreadPoolExecutor(max_workers=max_w) as ex:
                         futures = {ex.submit(generate_diagram_svg, d): d for d in unique_descs}
-                        # 90 seconds total wall-clock, 80 seconds per individual diagram
+                        # 150 seconds total wall-clock, 100 seconds per individual diagram
                         try:
-                            for future in as_completed(futures, timeout=90):
+                            for future in as_completed(futures, timeout=150):
                                 d = futures[future]
                                 try:
-                                    svg = future.result(timeout=80)
+                                    svg = future.result(timeout=100)
                                     if svg:
                                         diagrams[d] = svg
                                         print(f"[ExamCraft] Diagram OK: {d[:60]}")
