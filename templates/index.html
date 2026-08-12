@@ -4,636 +4,262 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExamCraft — AI Exam Paper Generator</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f2149'/%3E%3Cpolygon points='16,4 28,28 16,22 4,28' fill='%23C8A96E' opacity='0.9'/%3E%3Cline x1='16' y1='6' x2='16' y2='21' stroke='%230f2149' stroke-width='1.5'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#0f2149">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231C2B3A'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23A6823C' stroke-width='1.6'/%3E%3Ctext x='16' y='20' font-family='Georgia,serif' font-size='12' fill='%23A6823C' text-anchor='middle'%3EEC%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#1C2B3A">
+<meta name="description" content="ExamCraft — generate board-accurate exam papers with answer keys as print-ready PDFs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<!-- Security & Privacy meta -->
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-<meta name="description" content="ExamCraft — AI-powered exam paper generator for AP/TS State Board and competitive exams. Secure, private, no account needed.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<div id="bg-layer" aria-hidden="true">
-  <canvas id="particle-canvas"></canvas>
-  <div class="bg-mesh"></div><div class="bg-grid"></div>
-  <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div><div class="bg-orb orb-c"></div>
-  <div class="bg-orb orb-d"></div><div class="bg-orb orb-e"></div>
-  <div class="bg-noise"></div><div class="bg-glow"></div><div class="bg-lines"></div>
-  <div class="bg-floats" id="bgFloats"></div>
-</div>
-<div id="notificationToast" role="status" aria-live="polite"></div>
+<div class="wrap">
 
-<!-- ═══ LOADING MODAL ═══════════════════════════════════════════ -->
-<div id="loadingModal" role="dialog" aria-modal="true" aria-label="Generating exam paper">
-  <div class="loader-layout">
-
-    <!-- Left: Big status display -->
-    <div class="loader-left">
-      <div class="loader-left-inner">
-
-        <!-- Top label -->
-        <div class="ls-label-top">
-          <span class="ls-pulse-dot"></span>
-          <span class="ls-label-txt">AI is working on your paper</span>
-        </div>
-
-        <!-- Giant heading -->
-        <div class="ls-big-heading">
-          Building your<br><em>exam paper</em>
-        </div>
-
-        <!-- Live elapsed timer -->
-        <div class="ls-timer-row">
-          <div class="ls-timer" id="loaderTimer">00:00</div>
-          <div class="ls-timer-label">elapsed</div>
-        </div>
-
-        <!-- Divider -->
-        <div class="ls-divider"></div>
-
-        <!-- Big step list -->
-        <div class="ls-steps-big" id="lsStepsBig">
-          <div class="ls-step-big" id="ls1">
-            <div class="ls-step-num">01</div>
-            <div class="ls-step-body">
-              <div class="ls-step-name">Reading your selections</div>
-              <div class="ls-step-sub">Board, subject, chapter &amp; difficulty confirmed</div>
-            </div>
-            <div class="ls-step-state" id="ls1-state"></div>
-          </div>
-          <div class="ls-step-big" id="ls2">
-            <div class="ls-step-num">02</div>
-            <div class="ls-step-body">
-              <div class="ls-step-name">Writing the questions</div>
-              <div class="ls-step-sub">Generating curriculum-aligned questions — this takes the longest</div>
-            </div>
-            <div class="ls-step-state" id="ls2-state"></div>
-          </div>
-          <div class="ls-step-big" id="ls3">
-            <div class="ls-step-num">03</div>
-            <div class="ls-step-body">
-              <div class="ls-step-name">Writing the answer key</div>
-              <div class="ls-step-sub">Full solutions and marking scheme for every question</div>
-            </div>
-            <div class="ls-step-state" id="ls3-state"></div>
-          </div>
-          <div class="ls-step-big" id="ls4">
-            <div class="ls-step-num">04</div>
-            <div class="ls-step-body">
-              <div class="ls-step-name">Laying out the paper</div>
-              <div class="ls-step-sub">Sections, marks distribution and board-standard structure</div>
-            </div>
-            <div class="ls-step-state" id="ls4-state"></div>
-          </div>
-          <div class="ls-step-big" id="ls5">
-            <div class="ls-step-num">05</div>
-            <div class="ls-step-body">
-              <div class="ls-step-name">Creating the PDF</div>
-              <div class="ls-step-sub">Rendering a print-ready document — almost done</div>
-            </div>
-            <div class="ls-step-state" id="ls5-state"></div>
-          </div>
-        </div>
-
-        <!-- Bottom meta strip -->
-        <div class="ls-meta-strip">
-          <span id="recap-subject-val" class="ls-meta-val">—</span>
-          <span class="ls-meta-sep">·</span>
-          <span id="recap-board-val" class="ls-meta-val">—</span>
-          <span class="ls-meta-sep">·</span>
-          <span id="recap-marks-val" class="ls-meta-val">—</span>
-        </div>
-
-      </div>
+  <!-- ═══ MASTHEAD ═══════════════════════════════════════════════ -->
+  <header class="masthead">
+    <div class="brand">
+      <div class="brand-mark">Exam<em>Craft</em></div>
+      <div class="brand-tag">Board-accurate paper generator</div>
     </div>
-
-    <!-- Right: Mini game + mobile progress -->
-    <div class="loader-right">
-      <!-- Mobile-only: progress steps (desktop shows them in loader-left) -->
-      <div class="mob-progress-wrap" id="mobProgressWrap">
-        <div class="mob-progress-title">Generating your paper — about 1–1.5 min</div>
-        <div class="mob-load-steps">
-          <div class="mob-load-step" id="mls1"><div class="mob-ls-dot"></div>Reading your selections</div>
-          <div class="mob-load-step" id="mls2"><div class="mob-ls-dot"></div>Writing the questions</div>
-          <div class="mob-load-step" id="mls3"><div class="mob-ls-dot"></div>Writing the answer key</div>
-          <div class="mob-load-step" id="mls4"><div class="mob-ls-dot"></div>Laying out the paper</div>
-          <div class="mob-load-step" id="mls5"><div class="mob-ls-dot"></div>Creating the PDF</div>
-        </div>
-      </div>
-      <div class="loader-orbital-wrap" id="gameOrbital">
-        <div class="orbital">
-          <div class="o-ring o-r1"></div><div class="o-ring o-r2"></div><div class="o-ring o-r3"></div>
-          <div class="o-emoji">✦</div>
-        </div>
-      </div>
-      <div class="loader-game-title" id="gameTitle">Trivia while you wait</div>
-      <div class="loader-game-sub" id="gameSub">Test your academic knowledge</div>
-      <div class="game-box" id="gameBox">
-        <div class="game-score-row">
-          <div class="game-score">Score: <span id="gameScore">0</span></div>
-          <div class="game-streak">Streak: <span id="gameStreak">0</span>🔥</div>
-        </div>
-        <div class="game-q" id="gameQ">Loading question...</div>
-        <div class="game-opts" id="gameOpts">
-          <button class="game-opt" id="go0" onclick="answerQ(0)"></button>
-          <button class="game-opt" id="go1" onclick="answerQ(1)"></button>
-          <button class="game-opt" id="go2" onclick="answerQ(2)"></button>
-          <button class="game-opt" id="go3" onclick="answerQ(3)"></button>
-        </div>
-        <div class="game-feedback" id="gameFeedback"></div>
-        <div class="game-progress-bar"><div class="game-progress-fill" id="gameProgressFill" style="width:0%"></div></div>
-      </div>
+    <div class="masthead-right">
+      <div><span class="dot"></span>AI service online</div>
+      <div id="lifetimeLine">0 papers generated on this device</div>
     </div>
+  </header>
 
-  </div>
-</div>
-<!-- ═══ END MODAL ════════════════════════════════════════════════ -->
+  <div class="layout">
 
-<div id="mob-overlay" onclick="closeMobileSidebar()"></div>
+    <!-- ═══ FORM — laid out like the paper it produces ═══════════ -->
+    <form class="paper" id="paperForm" autocomplete="off" onsubmit="return false;">
 
-<div class="app">
-
-  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
-  <aside id="sidebar">
-    <div class="sb-inner">
-
-      <!-- Brand -->
-      <div class="sb-brand">
-        <div class="sb-brand-row">
-          <div class="sb-logo" title="ExamCraft AI">✦</div>
-          <div>
-            <div class="sb-name">Exam<em>Craft</em></div>
-            <div class="sb-sub">AI Examination System</div>
-          </div>
-        </div>
-        <span class="sb-pill"><span class="pulse-dot"></span>Gemini AI · Online</span>
-        <div class="sb-caps">
-          <span class="sb-cap-tag">2 State Boards</span>
-          <span class="sb-cap-dot">·</span>
-          <span class="sb-cap-tag">4 Competitive</span>
-          <span class="sb-cap-dot">·</span>
-          <span class="sb-cap-tag">Classes 6–12</span>
-        </div>
-        <div class="sb-lifetime-row">
-          <span class="sb-lifetime-lbl">Papers Generated (All Time)</span>
-          <span class="sb-lifetime-val" id="lifetimeCount">0</span>
-        </div>
+      <div class="paper-head">
+        <div class="paper-head-title">Question Paper — Setup</div>
+        <div class="marks-box">MAX MARKS <b id="marksPreview">100</b></div>
       </div>
 
-      <!-- ① WORKFLOW -->
-      <div class="sb-progress">
-        <div class="sb-lbl sb-lbl-workflow">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          Workflow
+      <!-- PART A — Paper type -->
+      <section class="part">
+        <div class="part-banner">
+          <span class="part-num">PART A</span>
+          <span class="part-title">Choose your exam</span>
         </div>
-        <div class="step active" id="step-1"><div class="step-num">1</div><span>Paper Type</span></div>
-        <div class="step-conn" id="conn-1"></div>
-        <div class="step" id="step-2"><div class="step-num">2</div><span>Board / Exam</span></div>
-        <div class="step-conn" id="conn-2"></div>
-        <div class="step" id="step-3"><div class="step-num">3</div><span>Scope</span></div>
-        <div class="step-conn" id="conn-3"></div>
-        <div class="step" id="step-4"><div class="step-num">4</div><span>Paper Details</span></div>
-        <div class="step-conn" id="conn-4"></div>
-        <div class="step" id="step-5"><div class="step-num">5</div><span>Marks &amp; Level</span></div>
-        <div class="step-conn" id="conn-5"></div>
-        <div class="step" id="step-6"><div class="step-num">6</div><span>Generate &amp; Download</span></div>
-      </div>
-
-      <!-- ② CURRENT STATUS -->
-      <div class="sb-selection">
-        <div class="sel-title">Current Status</div>
-        <div class="sel-steps">
-          <div class="sel-step" id="ssel-1">
-            <div class="sel-step-num">I</div>
-            <div class="sel-step-label">Type</div>
-            <div class="sel-step-value" id="ssel-1-v">—</div>
-          </div>
-          <div class="sel-step" id="ssel-2">
-            <div class="sel-step-num">II</div>
-            <div class="sel-step-label">Board</div>
-            <div class="sel-step-value" id="ssel-2-v">—</div>
-          </div>
-          <div class="sel-step" id="ssel-3">
-            <div class="sel-step-num">III</div>
-            <div class="sel-step-label">Scope</div>
-            <div class="sel-step-value" id="ssel-3-v">—</div>
-          </div>
-          <div class="sel-step" id="ssel-4">
-            <div class="sel-step-num">IV</div>
-            <div class="sel-step-label">Subject</div>
-            <div class="sel-step-value" id="ssel-4-v">—</div>
-          </div>
-          <div class="sel-step" id="ssel-5">
-            <div class="sel-step-num">V</div>
-            <div class="sel-step-label">Marks</div>
-            <div class="sel-step-value" id="ssel-5-v">—</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Paper Stats Panel -->
-      <div class="sb-stats-wrap">
-        <div class="sb-stats-hdr">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Paper Estimate
-        </div>
-        <div class="sb-stats-grid">
-          <div class="sb-stat">
-            <div class="sb-stat-val" id="stat-qs">—</div>
-            <div class="sb-stat-lbl">Questions</div>
-          </div>
-          <div class="sb-stat">
-            <div class="sb-stat-val" id="stat-time">—</div>
-            <div class="sb-stat-lbl">Exam Time</div>
-          </div>
-          <div class="sb-stat">
-            <div class="sb-stat-val" id="stat-marks">—</div>
-            <div class="sb-stat-lbl">Total Marks</div>
-          </div>
-          <div class="sb-stat">
-            <div class="sb-stat-val" id="stat-hist">0</div>
-            <div class="sb-stat-lbl">Generated</div>
-          </div>
-        </div>
-        <div class="sb-stats-sections" id="statSections">
-          <div class="sb-stats-section-lbl">Sections</div>
-          <div class="sb-sections-row" id="statSectionsRow">
-            <span class="sb-sec-tag">Select marks to preview</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ③ HISTORY — last in sidebar, persists last 10 papers -->
-      <div class="sb-hist">
-        <div class="hist-hdr">
-          <div class="hist-lbl">History <span class="hist-count" id="histCount">0</span></div>
-          <button class="hist-clear" onclick="clearHistory()">Clear all</button>
-        </div>
-        <div id="historyList"></div>
-      </div>
-
-      <div class="sb-footer">
-  <div style="margin-bottom:6px">by <span class="author-name">Laxman Nimmagadda</span> &middot; © 2026</div>
-  <div style="font-size:7px;opacity:.6;letter-spacing:.06em;line-height:1.6">
-    Issues? Contact:<br>
-    <a href="mailto:laxmanchowday159@gmail.com" style="color:var(--ac2);text-decoration:none;letter-spacing:.03em">laxmanchowday159@gmail.com</a>
-  </div>
-</div>
-    </div>
-  </aside>
-
-  <!-- ═══ MAIN AREA ══════════════════════════════════════════════ -->
-  <div class="main-area">
-
-    <nav class="topbar">
-      <div class="tb-left">
-        <button class="mob-toggle" onclick="toggleMobileSidebar()" aria-label="Open menu">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-        <div class="tb-divider"></div>
-        <div class="tb-dot"></div>
-        <span class="tb-hint" id="hintText">Select a paper type to begin</span>
-      </div>
-      <div class="tb-right">
-        <button class="font-btn" onclick="cycleFontMode()" title="Change font">
-          <span class="font-icon" id="fontIcon">A</span>
-          <span id="fontLabel">Serif</span>
-        </button>
-        <div class="tb-divider"></div>
-        <button class="theme-mode-btn" onclick="toggleDarkMode()" title="Toggle day/night mode">
-          <span class="mode-icon mode-sun" id="modeIcon">☀</span>
-          <span class="mode-icon-label" id="modeLbl"></span>
-        </button>
-        <div class="tb-divider"></div>
-        <button class="tb-btn" onclick="cycleTheme()">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-          <span id="themeLabel">Gold</span>
-        </button>
-      </div>
-    </nav>
-
-    <form id="paperForm" autocomplete="off" onsubmit="return false">
-      <input type="hidden" id="examType" name="examType">
-      <input type="hidden" id="scopeSelect" name="scope" value="single">
-      <input type="hidden" id="totalMarks" name="totalMarks" value="40">
-
-      <div class="form-area">
-
-        <!-- HERO -->
-        <div class="hero">
-          <div class="hero-kicker">
-            <span class="hero-eye">AI-Powered Examination Tool</span>
-            <span class="hero-divider">✦</span>
-            <span class="hero-year">MMXXVI</span>
-          </div>
-          <h1 class="hero-h1">Generate a perfect<br><em>exam paper</em> in seconds</h1>
-          <p class="hero-sub">Curriculum-aligned papers for AP/TS State Board and national competitive exams. Configure below, click Generate, receive your PDF instantly.</p>
+        <div class="seg cols-2" id="examTypeSeg" role="radiogroup" aria-label="Exam type">
+          <button type="button" class="seg-btn active" data-exam-type="state-board">
+            <strong>State Board</strong>
+            <span>AP or Telangana SSC</span>
+          </button>
+          <button type="button" class="seg-btn" data-exam-type="competitive">
+            <strong>Competitive</strong>
+            <span>NTSE · NSO · IMO · IJSO</span>
+          </button>
         </div>
 
-        <!-- I — Paper Type -->
-        <div class="gcard" id="card-type">
-          <div class="sec-hdr">
-            <div class="sec-badge">I</div>
-            <div class="sec-title">Paper Type</div>
-            <div class="sec-note">Choose one to begin</div>
-          </div>
-          <div class="type-grid">
-            <div class="type-card" id="tile-state" onclick="selectType('state-board')" role="button" tabindex="0">
-              <span class="tc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-              <div class="tc-name">State Board</div>
-              <div class="tc-desc">AP/Telangana official pattern with Sections A, B, C and blueprint</div>
-              <span class="tc-tag">AP · TS · SSC</span>
-            </div>
-            <div class="type-card" id="tile-comp" onclick="selectType('competitive')" role="button" tabindex="0">
-              <span class="tc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-              <div class="tc-name">Competitive</div>
-              <div class="tc-desc">NTSE, NSO, IMO, IJSO — MCQ format with official marking schemes</div>
-              <span class="tc-tag">NTSE · NSO · IMO</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="sec-div"></div>
-
-        <!-- II-a — State Board -->
-        <div class="gcard collapsed" id="stateCard">
-          <div class="sec-hdr">
-            <div class="sec-badge">II</div>
-            <div class="sec-title">Select State Board</div>
-          </div>
-          <div class="fg sel-w">
-            <label class="fl" for="stateSelect">State</label>
-            <select id="stateSelect" onchange="updateSubjects(); updateSidebar(); setActiveStep(3);">
+        <div class="field-row" style="margin-top:14px">
+          <div class="field" id="stateField">
+            <label for="stateSelect">State board</label>
+            <select id="stateSelect">
               <option value="">Choose state…</option>
-              <option value="Andhra Pradesh">Andhra Pradesh</option>
-              <option value="Telangana">Telangana</option>
+              <option value="Andhra Pradesh">Andhra Pradesh (BSEAP)</option>
+              <option value="Telangana">Telangana (BSETS)</option>
             </select>
           </div>
-        </div>
-
-        <!-- II-b — Competitive -->
-        <div class="gcard collapsed" id="competitiveCard">
-          <div class="sec-hdr">
-            <div class="sec-badge">II</div>
-            <div class="sec-title">Select Competitive Exam</div>
-          </div>
-          <div class="fg sel-w">
-            <label class="fl" for="competitiveExam">Examination</label>
-            <select id="competitiveExam" onchange="updateCompInfo()">
+          <div class="field is-hidden" id="compField">
+            <label for="competitiveExam">Examination</label>
+            <select id="competitiveExam">
               <option value="">Choose exam…</option>
-              <option value="NTSE">NTSE</option>
-              <option value="NSO">NSO (Science Olympiad)</option>
-              <option value="IMO">IMO (Maths Olympiad)</option>
-              <option value="IJSO">IJSO (Junior Science)</option>
+              <option value="NTSE">NTSE — Talent Search</option>
+              <option value="NSO">NSO — Science Olympiad</option>
+              <option value="IMO">IMO — Maths Olympiad</option>
+              <option value="IJSO">IJSO — Junior Science</option>
             </select>
           </div>
-          <div class="info-box" id="compInfoBox"><div id="compInfoText"></div></div>
-        </div>
-
-        <div class="sec-div"></div>
-
-        <!-- III — Scope -->
-        <div class="gcard collapsed" id="scopeCard">
-          <div class="sec-hdr">
-            <div class="sec-badge">III</div>
-            <div class="sec-title">Paper Scope</div>
-          </div>
-          <div id="boardScopeRow" style="display:none">
-            <div class="scope-grid">
-              <div class="scope-card active" id="bscope-single" onclick="selectBoardScope('single')" role="button" tabindex="0">
-                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><div class="sc-name">One Chapter</div><div class="sc-desc">Focused single-chapter paper</div>
-              </div>
-              <div class="scope-card" id="bscope-all" onclick="selectBoardScope('all')" role="button" tabindex="0">
-                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><div class="sc-name">All Chapters</div><div class="sc-desc">Full syllabus paper</div>
-              </div>
-            </div>
-          </div>
-          <div id="compScopeRow" style="display:none">
-            <div class="scope-grid">
-              <div class="scope-card active" id="cscope-topic" onclick="selectCompScope('topic')" role="button" tabindex="0">
-                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></span><div class="sc-name">One Topic</div><div class="sc-desc">Specific focus area</div>
-              </div>
-              <div class="scope-card" id="cscope-subject" onclick="selectCompScope('subject')" role="button" tabindex="0">
-                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><div class="sc-name">Full Subject</div><div class="sc-desc">Entire subject covered</div>
-              </div>
-              <div class="scope-card" id="cscope-all" onclick="selectCompScope('all')" role="button" tabindex="0">
-                <span class="sc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><div class="sc-name">All Subjects</div><div class="sc-desc">Complete syllabus</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="sec-div"></div>
-
-        <!-- IV — Details -->
-        <div class="gcard">
-          <div class="sec-hdr">
-            <div class="sec-badge">IV</div>
-            <div class="sec-title">Paper Details</div>
-          </div>
-          <div class="frow" style="margin-bottom:16px">
-            <div class="fg sel-w">
-              <label class="fl" for="class">Class</label>
-              <select id="class" onchange="onClassChange()">
-                <option value="">Select class…</option>
-                <option value="6">Class VI</option><option value="7">Class VII</option>
-                <option value="8">Class VIII</option><option value="9">Class IX</option>
-                <option value="10">Class X</option>
-              </select>
-            </div>
-            <div class="fg sel-w" id="subjectCard">
-              <label class="fl" id="subjectLabel" for="subject">Subject / Paper</label>
-              <select id="subject" onchange="onSubjectChange()">
-                <option value="">Select subject…</option>
-              </select>
-            </div>
-          </div>
-          <div class="fg sel-w" id="chapterCard">
-            <label class="fl" id="chapterLabel" for="chapter">Chapter</label>
-            <select id="chapter" onchange="updateSidebar()">
-              <option value="">Select chapter…</option>
+          <div class="field">
+            <label for="classSelect">Class</label>
+            <select id="classSelect">
+              <option value="">Select class…</option>
+              <option value="6">Class VI</option>
+              <option value="7">Class VII</option>
+              <option value="8">Class VIII</option>
+              <option value="9">Class IX</option>
+              <option value="10">Class X</option>
             </select>
           </div>
         </div>
+      </section>
 
-        <div class="sec-div"></div>
+      <!-- PART B — Scope -->
+      <section class="part">
+        <div class="part-banner">
+          <span class="part-num">PART B</span>
+          <span class="part-title">Set the scope</span>
+          <span class="part-sub" id="scopeHint">How much of the syllabus should the paper cover?</span>
+        </div>
+        <div class="seg cols-2" id="boardScopeSeg">
+          <button type="button" class="seg-btn active" data-scope="single">
+            <strong>Single chapter</strong>
+            <span>Focused practice test</span>
+          </button>
+          <button type="button" class="seg-btn" data-scope="all">
+            <strong>Full syllabus</strong>
+            <span>Comprehensive exam</span>
+          </button>
+        </div>
+        <div class="seg cols-3 is-hidden" id="compScopeSeg">
+          <button type="button" class="seg-btn active" data-comp-scope="topic">
+            <strong>Single topic</strong>
+            <span>One topic only</span>
+          </button>
+          <button type="button" class="seg-btn" data-comp-scope="subject">
+            <strong>Full subject</strong>
+            <span>All topics, one subject</span>
+          </button>
+          <button type="button" class="seg-btn" data-comp-scope="all">
+            <strong>All subjects</strong>
+            <span>Complete exam coverage</span>
+          </button>
+        </div>
+      </section>
 
-        <!-- V — Marks & Difficulty -->
-        <div class="gcard">
-          <div class="sec-hdr">
-            <div class="sec-badge">V</div>
-            <div class="sec-title">Marks &amp; Difficulty</div>
+      <!-- PART C — Subject & chapter -->
+      <section class="part" id="subjectPart">
+        <div class="part-banner">
+          <span class="part-num">PART C</span>
+          <span class="part-title">Subject &amp; chapter</span>
+        </div>
+        <div class="field-row">
+          <div class="field" id="subjectField">
+            <label for="subjectSelect" id="subjectLabel">Subject</label>
+            <select id="subjectSelect">
+              <option value="">Select class first…</option>
+            </select>
           </div>
-          <label class="fl" style="margin-bottom:10px;display:block">Total Marks</label>
+          <div class="field" id="chapterField">
+            <label for="chapterSelect" id="chapterLabel">Chapter</label>
+            <select id="chapterSelect">
+              <option value="">Select subject first…</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- PART D — Marks & difficulty -->
+      <section class="part">
+        <div class="part-banner">
+          <span class="part-num">PART D</span>
+          <span class="part-title">Marks &amp; difficulty</span>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Total marks</label>
           <div class="chips" id="marksChips">
-            <div class="chip" data-val="20"  onclick="selectMark(this)">20</div>
-            <div class="chip active" data-val="40"  onclick="selectMark(this)">40</div>
-            <div class="chip" data-val="80"  onclick="selectMark(this)">80</div>
-            <div class="chip" data-val="100" onclick="selectMark(this)">100</div>
-            <div class="chip" id="chipCustom" onclick="toggleCustomMark(this)">Custom</div>
+            <button type="button" class="chip" data-marks="25">25</button>
+            <button type="button" class="chip" data-marks="50">50</button>
+            <button type="button" class="chip" data-marks="80">80</button>
+            <button type="button" class="chip active" data-marks="100">100</button>
+            <input type="number" class="chip-custom" id="marksCustom" placeholder="Custom" min="10" max="200">
           </div>
-          <div class="cust-wrap" id="customMarkWrap" style="display:none">
-            <input type="number" id="customMarkInput" placeholder="e.g. 75" min="10" max="500" oninput="applyCustomMark(this.value)">
-            <span class="unit-lbl">marks</span>
-          </div>
-          <div style="height:22px"></div>
-          <label class="fl" style="margin-bottom:10px;display:block">Difficulty Level</label>
-          <div class="diff-row">
-            <input type="radio" name="difficulty" id="r-easy" value="Easy">
-            <button type="button" class="diff-btn" data-val="Easy"   onclick="selectDiff('Easy',this)">Easy</button>
-            <input type="radio" name="difficulty" id="r-med" value="Medium" checked>
-            <button type="button" class="diff-btn" data-val="Medium" onclick="selectDiff('Medium',this)">Medium</button>
-            <input type="radio" name="difficulty" id="r-hard" value="Hard">
-            <button type="button" class="diff-btn" data-val="Hard"   onclick="selectDiff('Hard',this)">Hard</button>
+        </div>
+        <div class="field">
+          <label>Difficulty</label>
+          <div class="chips" id="diffChips">
+            <button type="button" class="chip" data-diff="Easy">Easy</button>
+            <button type="button" class="chip active" data-diff="Medium">Medium</button>
+            <button type="button" class="chip" data-diff="Hard">Hard</button>
           </div>
         </div>
 
-        <div class="sec-div"></div>
-
-        <!-- VI — Instructions -->
-        <div class="gcard">
-          <div class="sec-hdr">
-            <div class="sec-badge">VI</div>
-            <div class="sec-title">Special Instructions</div>
-            <div class="sec-note">Optional</div>
+        <button type="button" class="more-toggle" id="moreToggle">+ Add special instructions for the AI</button>
+        <div class="more-panel" id="morePanel">
+          <div class="field" style="margin-top:12px">
+            <label for="suggestions">Special instructions (optional)</label>
+            <textarea id="suggestions" placeholder="e.g. Focus on word problems, avoid MCQs on this topic, include one diagram-based question…"></textarea>
           </div>
-          <div class="fg" style="margin-bottom:16px">
-            <label class="fl" for="suggestions">Additional directives for the AI</label>
-            <textarea id="suggestions" placeholder="e.g. Include more application-based questions, focus on diagrams for geometry, add case-study format…"></textarea>
-          </div>
-
         </div>
+      </section>
 
-      </div><!-- /form-area -->
-
-      <div class="gen-wrap">
-        <button type="button" class="gen-btn" onclick="generatePaper()">
-          <svg class="bolt" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          <span>Generate &amp; Download PDF</span>
+      <!-- Generate -->
+      <div class="generate-bar">
+        <button type="button" class="btn-generate" id="generateBtn">
+          <span class="seal-icon">✦</span>
+          <span id="generateBtnLabel">Generate paper</span>
         </button>
-        <div class="gen-note">
-          <span class="ac">Gemini 2.5 Flash</span> · Board-aligned · ~1–1.5 min · Direct PDF download
-        </div>
-        <div class="support-note">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
-          Issues or feedback? &nbsp;<a href="mailto:laxmanchowday159@gmail.com">laxmanchowday159@gmail.com</a> &nbsp;—&nbsp; <span class="author-name">Laxman Nimmagadda</span>
-        </div>
       </div>
+      <div class="hint" id="formHint">Typically done in well under a minute.</div>
+
     </form>
 
-    <div id="successPanel">
-      <div class="succ-bar">
-        <div class="succ-l">
-          <span class="succ-check">✦</span>
-          <div>
-            <div class="succ-title">Examination Paper Ready</div>
-            <div class="succ-meta" id="successMeta">Downloading automatically…</div>
-          </div>
+    <!-- ═══ RESULT RAIL ═══════════════════════════════════════════ -->
+    <aside class="rail">
+
+      <div class="result-card" id="resultCard">
+        <div class="result-empty" id="resultEmpty">
+          <div class="stamp-outline">?</div>
+          <p>Your generated paper will appear here, ready to download.</p>
         </div>
-        <div class="succ-btns">
-          <button class="succ-btn dl" onclick="downloadPDF(false)">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>Paper PDF
-          </button>
-          <button class="succ-btn key" id="dlWithKey" style="display:none" onclick="downloadPDF(true)">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-            </svg>+ Answer Key
-          </button>
-          <button class="succ-btn new" onclick="generateAnother()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
-            </svg>New Paper
-          </button>
+
+        <div id="resultFilled" style="display:none">
+          <div class="result-head">
+            <div class="result-stamp" id="resultStamp">READY</div>
+            <div>
+              <div class="result-meta-title" id="resultTitle">Paper title</div>
+              <div class="result-meta-sub" id="resultSub">—</div>
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button class="btn btn-primary" id="downloadPaperBtn">Download question paper</button>
+            <button class="btn" id="downloadKeyBtn">Download with answer key</button>
+            <button class="btn" id="copyBtn">Copy text</button>
+          </div>
+
+          <div class="preview-tabs">
+            <button class="preview-tab active" data-tab="paper">Question paper</button>
+            <button class="preview-tab" data-tab="key">Answer key</button>
+          </div>
+          <div class="preview-body" id="previewBody"></div>
         </div>
       </div>
-    </div>
 
-  </div><!-- /main-area -->
-</div><!-- /app -->
+      <div class="result-card" id="historyCard">
+        <div class="history-head">
+          <h3>Recent papers</h3>
+          <button class="history-clear" id="clearHistoryBtn">Clear</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No papers generated yet on this device.</div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span>ExamCraft — no accounts, no tracking. Papers stay on this device.</span>
+    <span>Built by Laxman Nimmagadda</span>
+  </footer>
+</div>
+
+<!-- ═══ LOADING OVERLAY ═══════════════════════════════════════════ -->
+<div class="loading-overlay" id="loadingOverlay" role="dialog" aria-modal="true" aria-label="Generating exam paper">
+  <div class="loading-card">
+    <div class="loading-title">Setting your paper…</div>
+    <div class="loading-sub" id="loadingSub">Writing questions, building the answer key, and laying out the PDF.</div>
+    <div class="ink-bar"><div class="ink-bar-fill" id="inkBarFill"></div></div>
+    <div class="loading-row">
+      <span id="elapsedTime">0:00</span>
+      <span id="etaTime">~30s typical</span>
+    </div>
+    <div class="loading-steps" id="loadingSteps">
+      <div class="loading-step" data-step="1"><span class="dot"></span>Reading your selections</div>
+      <div class="loading-step" data-step="2"><span class="dot"></span>Writing the questions</div>
+      <div class="loading-step" data-step="3"><span class="dot"></span>Drawing diagrams &amp; building the answer key</div>
+      <div class="loading-step" data-step="4"><span class="dot"></span>Laying out the PDF</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="/static/js/app.js"></script>
-
-<!-- ═══ HELLO POPUP ══════════════════════════════════════════════ -->
-<div id="helloPopup" class="popup-overlay">
-  <div class="popup-card">
-    <div class="popup-sparkle-ring">
-      <div class="popup-logo-glyph">✦</div>
-    </div>
-    <div class="popup-header">
-      <div class="popup-kicker">Welcome to ExamCraft</div>
-      <div class="popup-title">Hello, <em>Teacher</em></div>
-      <div class="popup-subtitle">AI Examination System · 2026</div>
-    </div>
-    <div class="popup-features-row">
-      <div class="popup-feat"><span class="popup-feat-icon">📄</span><span>Instant PDF</span></div>
-      <div class="popup-feat"><span class="popup-feat-icon">🎯</span><span>Board-Aligned</span></div>
-      <div class="popup-feat"><span class="popup-feat-icon">🔑</span><span>Answer Key</span></div>
-    </div>
-    <div class="popup-actions">
-      <button class="popup-btn-primary" onclick="closeHelloPopup()">
-        Start Creating ✦
-      </button>
-      <div class="popup-byline"><span class="author-name">Laxman Nimmagadda</span> · laxmanchowday159@gmail.com</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ PAPER READY POPUP ══════════════════════════════════════ -->
-<div id="paperReadyPopup" class="popup-overlay">
-  <div class="popup-card paper-ready-card">
-    <div class="pr-success-ring">
-      <div class="pr-check-icon">✓</div>
-    </div>
-    <div class="pr-header">
-      <div class="pr-kicker">Paper Generated Successfully</div>
-      <div class="pr-title">Your Exam is <em>Ready</em></div>
-      <div class="pr-meta" id="prMeta">—</div>
-    </div>
-    <div class="pr-history-notice">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      This paper has been saved to your <strong>History</strong> — accessible from the sidebar anytime.
-    </div>
-    <div class="pr-actions">
-      <button class="pr-btn pr-btn-main" onclick="downloadPDF(false); trackPRDownload(this)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Paper PDF
-      </button>
-      <button class="pr-btn pr-btn-key" id="prKeyBtn" style="display:none" onclick="downloadPDF(true); trackPRDownload(this)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-        Download with Answer Key
-      </button>
-      <button class="pr-btn pr-btn-new" onclick="closePaperReadyPopup(); generateAnother()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-        Generate Another
-      </button>
-    </div>
-    <button class="pr-close-btn" onclick="closePaperReadyPopup()" aria-label="Close">✕</button>
-  </div>
-</div>
-
-<!-- CURSOR MUST BE LAST IN DOM — after all backdrop-filter/transform elements -->
-<canvas id="confetti-canvas" aria-hidden="true"></canvas>
-<div id="cur-ring" aria-hidden="true"></div>
-<div id="cur-dot" aria-hidden="true"></div>
 </body>
 </html>
